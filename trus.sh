@@ -13,6 +13,14 @@ general_vars(){
     TRUS_INSTALLATION_PATH=$USER_HOME/.tools
 
     TRUS_PATH=$TRUS_INSTALLATION_PATH/trus.sh
+    HEADER_LOGO=(   "  _________   ______     __  __    ______       "
+                    " /________/\ /_____/\   /_/\/_/\  /_____/\      "
+                    " \__.::.__\/ \:::_ \ \  \:\ \:\ \ \::::_\/_     "
+                    "     \::\ \   \:(_) ) )  \:\ \:\ \ \:\/___/\    "
+                    "      \::\ \   \: __ ´\ \ \:\ \:\ \ \_::._\:\   "
+                    "       \::\ \   \ \ ´\ \ \ \:\_\:\ \  /____\:\  "
+                    "        \__\/    \_\/ \_\/  \_____\/  \_____\/  "
+                )
 
     MAIN_MENU_OPTIONS=(
         "Salir"
@@ -566,8 +574,8 @@ install(){
                 echo '    },'
                 echo '};'
             } > "./dev.config.js"
-
-
+           
+            
             touch "/tmp/truedat_installation"
             print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3
 
@@ -1064,7 +1072,8 @@ load_linages(){
 }
 
 help(){
-    local option=${1:-""}
+    local option=$(normalize_text "${1:-""}")
+
 
     case "$option" in
         "salir"  | " volver" | "")
@@ -1396,7 +1405,6 @@ ddbb_menu(){
 
 repo_menu(){
     local option=$(print_menu "${REPO_MENU_SUBOPTIONS[@]}")
-    echo "option => $option"
     case "$option" in
         "--back")
             trus -ur -b
@@ -1510,7 +1518,7 @@ check_parameters() {
 #########################################
 
 # para mostrar mensajes, descomentar el false, para que solo salgan los mensajes propios de trus, comentarlo (o poner true)
-source tools "Truedat Utils (TrUs)" "" "DOT" true
+source tools "Truedat Utils (TrUs)" "" "DOT" true "F5A400" "000000" $HEADER_LOGO
 
 set_vars
 set_terminal_config
