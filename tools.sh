@@ -11,6 +11,15 @@ ANIMATION=${3:-"PONG"}
 REDIRECT_OUTPUT=${4:-true}
 COLOR_PRIMARY=${5:-"9BB3BB"}
 COLOR_BACKRGROUND=${6:-"043C54"}
+HEADER_LOGO=${7:-(  "                     ___    ___                 "
+                    "                    /  /    \  \                "
+                    "                   /  /      \  \               "
+                    "                  /  /        \  \              "
+                    "                  \  \        /  /              "
+                    "                   \  \      /  /               "
+                    "                    \__\    /__/                "
+            )}
+
 SIMPLE_ECHO=${7:-""}
 
 
@@ -231,7 +240,6 @@ test_colores(){
         
         print_message "\nAvanzado" "" 0 "both"
 
-        Imprimir el resto de los colores en líneas posteriores
         for ((row = 0; row < rows; row++)); do
             for ((col = 0; col < cols; col++)); do
                 index=$(( row + col * rows + 16))
@@ -395,13 +403,13 @@ print_header(){
     print_message "   &&&  &&&&&           &&&&&  &&&   "
     print_message "     &&&&&&&&&&       &&&&&&&&&&     "
     print_message "     &&&*****&&&&& &&&&&*****&&&     $separador"
-    print_message "     &&  *******&&&&&*******  &&        _________   ______     __  __    ______       "
-    print_message "    &&&     **    &   ***     &&&      /________/\ /_____/\   /_/\/_/\  /_____/\         $HEADER_MESSAGE"
-    print_message "   &&&&                      &&&&&     \__.::.__\/ \:::_ \ \  \:\ \:\ \ \::::_\/_     "
-    print_message "   &&&                     &&& &&&         \::\ \   \:(_) ) )  \:\ \:\ \ \:\/___/\       Usuario: $(echo "$(getent passwd $USER)" | cut -d ':' -f 5 | cut -d ',' -f 1) ($USER)"
-    print_message "  &&&&                  &&&&&  &&&&         \::\ \   \: __ ´\ \ \:\ \:\ \ \_::._\:\      Equipo: $HOSTNAME"
-    print_message "  &&&&         &&&&&&&&&&&     &&&&          \::\ \   \ \ ´\ \ \ \:\_\:\ \  /____\:\  "
-    print_message "   &&&&&  &&&&&&&&&&         &&&&&            \__\/    \_\/ \_\/  \_____\/  \_____\/     $DESCRIPTION_MESSAGE"  
+    print_message "     &&  *******&&&&&*******  &&     ${HEADER_LOGO[0]}"
+    print_message "    &&&     **    &   ***     &&&    ${HEADER_LOGO[1]}   $HEADER_MESSAGE"
+    print_message "   &&&&                      &&&&&   ${HEADER_LOGO[2]}"
+    print_message "   &&&                     &&& &&&   ${HEADER_LOGO[3]}   Usuario: $(echo "$(getent passwd $USER)" | cut -d ':' -f 5 | cut -d ',' -f 1) ($USER)"
+    print_message "  &&&&                  &&&&&  &&&&  ${HEADER_LOGO[4]}   Equipo: $HOSTNAME"
+    print_message "  &&&&         &&&&&&&&&&&     &&&&  ${HEADER_LOGO[5]}"
+    print_message "   &&&&&  &&&&&&&&&&         &&&&&   ${HEADER_LOGO[6]}   $DESCRIPTION_MESSAGE"  
     print_message "    &&&&&&&&&&&            &&&&&&    "
     print_message "      &&&&&&&           &&&&&&       $separador"
     print_message "         &&&&&&&&   &&&&&&&&         "
@@ -433,6 +441,8 @@ print_semiheader(){
 
 print_truedat_logo(){
     clear
+    wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz
+    sleep 0.11
     print_centered_message ""
     print_centered_message "              &&             &&&&&&&&&&&&&&&&&&&&              &&               "
     print_centered_message "                &&&&&   &&&&&&&                 &&&&&&&   &&&&&                 "
@@ -633,7 +643,6 @@ extract_start_option() {
     local text=$(normalize_text "$1")
     local prefix
     
-
     if [[ "$text" =~ ^([0-9]+)\ -(.*) ]]  ||
        [[ "$text" =~ ^(--[a-zA-Z]+) ]] || 
        [[ "$text" =~ ^(--[a-zA-Z0-9-]+) ]] ||

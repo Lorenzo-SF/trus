@@ -21,7 +21,17 @@ variables(){
     TMUX_PATH_CONFIG=~/.tmux.conf
     TLP_PATH_CONFIG=/etc/tlp.conf 
     DIALOG_PATH_CONFIG=~/.dialogrc
+
+    HEADER_LOGO=(   "     ________    ___   __     ______    _________   ________     __         __            "
+                    "    /_______/\  /__/\ /__/\  /_____/\  /________/\ /_______/\   /_/\       /_/\           "  
+                    "    \__.::._\/  \::\_\\  \ \ \::::_\/_ \__.::.__\/ \::: _  \ \  \:\ \      \:\ \          "   
+                    "       \::\ \    \:. \`-\  \ \ \:\/___/\   \::\ \    \::(_)  \ \  \:\ \      \:\ \         "   
+                    "       _\::\ \__  \:. _    \ \ \_::._\:\   \::\ \    \:: __  \ \  \:\ \____  \:\ \____    "   
+                    "      /__\::\__/\  \. \`-\  \ \  /____\:\   \::\ \    \:.\ \  \ \  \:\/___/\  \:\/___/\   "   
+                    "      \________\/   \__\/ \__\/  \_____\/    \__\/     \__\/\__\/   \_____\/   \_____\/   "                                                                                             
+                )
     
+
     INSTALL_OPTIONS=(
         "Salir"
         "1 - Instalacion de paquetes y dependencias"
@@ -315,16 +325,8 @@ zsh_config(){
 
 tmux_config(){
     print_semiheader "Creación del archivo de configuración de TMUX"
-     {
+    {
         echo 'set -g mouse on'
-        echo 'bind -n WheelUpPane if-shell -F -t = '#{mouse_any_flag}' 'send-keys -M' 'if -Ft= "#{pane_in_mode}" "send-keys -M" "select-pane -t=; copy-mode -e; send-keys -M"''
-        echo 'bind -n WheelDownPane select-pane -t= \; send-keys -M'
-        echo 'bind -n C-WheelUpPane select-pane -t= \; copy-mode -e \; send-keys -M'
-        echo 'bind -T copy-mode-vi    C-WheelUpPane   send-keys -X halfpage-up'
-        echo 'bind -T copy-mode-vi    C-WheelDownPane send-keys -X halfpage-down'
-        echo 'bind -T copy-mode-emacs C-WheelUpPane   send-keys -X halfpage-up'
-        echo 'bind -T copy-mode-emacs C-WheelDownPane send-keys -X halfpage-down'
-        echo ''
         echo '# To copy, left click and drag to highlight text in yellow, '
         echo '# once you release left click yellow text will disappear and will automatically be available in clibboard'
         echo '# # Use vim keybindings in copy mode'
@@ -470,6 +472,6 @@ install_tools
 
 set_terminal_config
 
-source tools "Bienvenido al equipo de Core de Truedat" "Preparación del entorno" "DOT" true
+source tools "Bienvenido al equipo de Core de Truedat" "Preparación del entorno" "DOT" true "" "" $HEADER_LOGO
 
 installation_main_menu
