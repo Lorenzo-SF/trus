@@ -3,8 +3,6 @@
 variables(){
     SWAP_FILE="/swapfile"
     SWAP_SIZE_MB=$(free --mega | awk '/^Mem:/ {print $2*2}')
-    INSTALLATION_PACKAGES=(redis-tools screen tmux unzip curl vim build-essential git libssl-dev automake autoconf libncurses5 libncurses5-dev awscli docker.io postgresql-client-14 jq tlp lm-sensors psensor zsh gedit wmctrl xclip stress bluez bluez-tools google-chrome-stable code snapd xdotool x11-utils)
-    INSTALLATION_PACKAGES_EXTRA=(winehq-stable gdebi-core libvulkan1 libvulkan1:i386 fonts-powerline plymouth plymouth-themes ckb-next pavucontrol gnome-boxes virt-manager)
     USER_HOME=$(eval echo ~"$SUDO_USER")
     TOOLS_DIRECTORY=$USER_HOME/.tools/
     
@@ -15,23 +13,8 @@ variables(){
     TRUS_ACTUAL_PATH=./trus.sh
     TRUS_PATH=$TOOLS_DIRECTORY/trus.sh
     TRUS_LINK_PATH="/usr/local/bin/trus"
+    TRUS_PATH_CONFIG=~/.trus.conf
  
-    BASH_PATH_CONFIG=~/.bashrc
-    ZSH_PATH_CONFIG=~/.zshrc
-    TMUX_PATH_CONFIG=~/.tmux.conf
-    TLP_PATH_CONFIG=/etc/tlp.conf 
-    DIALOG_PATH_CONFIG=~/.dialogrc
-
-    HEADER_LOGO=(   "     ________    ___   __     ______    _________   ________     __         __            "
-                    "    /_______/\  /__/\ /__/\  /_____/\  /________/\ /_______/\   /_/\       /_/\           "  
-                    "    \__.::._\/  \::\_\\  \ \ \::::_\/_ \__.::.__\/ \::: _  \ \  \:\ \      \:\ \          "   
-                    "       \::\ \    \:. \`-\  \ \ \:\/___/\   \::\ \    \::(_)  \ \  \:\ \      \:\ \         "   
-                    "       _\::\ \__  \:. _    \ \ \_::._\:\   \::\ \    \:: __  \ \  \:\ \____  \:\ \____    "   
-                    "      /__\::\__/\  \. \`-\  \ \  /____\:\   \::\ \    \:.\ \  \ \  \:\/___/\  \:\/___/\   "   
-                    "      \________\/   \__\/ \__\/  \_____\/    \__\/     \__\/\__\/   \_____\/   \_____\/   "                                                                                             
-                )
-    
-
     INSTALL_OPTIONS=(
         "Salir"
         "1 - Instalacion de paquetes y dependencias"
@@ -47,28 +30,13 @@ variables(){
 }
 
 install_tools(){
+    trus_config
+    
     if [ ! -d "$TOOLS_DIRECTORY" ]; then
         mkdir -p "$TOOLS_DIRECTORY" 
     fi
 
-    cp "$TOOLS_ACTUAL_PATH" "$TOOLS_PATH" 
-
-    rm -f ~/.dialogrc
-    touch ~/.dialogrc
-    {
-        echo "use_colors = ON" 
-        echo "screen_color = (WHITE,YELLOW,ON)" 
-        echo "shadow_color = (BLACK,BLACK,ON)" 
-        echo "dialog_color = (BLACK,WHITE,OFF)" 
-        echo "title_color = (BLUE,WHITE,ON)" 
-        echo "border_color = (BLUE,WHITE,ON)" 
-        echo "button_active_color = (WHITE,BLUE,ON)" 
-        echo "button_inactive_color = (BLACK,WHITE,OFF)" 
-        echo "button_key_active_color = (WHITE,BLUE,ON)" 
-        echo "button_key_inactive_color = (RED,WHITE,OFF)" 
-        echo "button_label_active_color = (YELLOW,BLUE,ON)" 
-        echo "button_label_inactive_color = (BLACK,WHITE,ON)" 
-    } >> $DIALOG_PATH_CONFIG
+    cp -f "$TOOLS_ACTUAL_PATH" "$TOOLS_PATH" 
 
     sudo rm -f "$TOOLS_LINK_PATH"
     sudo ln -s "$TOOLS_PATH" "$TOOLS_LINK_PATH" 
@@ -87,12 +55,12 @@ install_tools(){
         echo "127.0.0.1 kong"
         echo "127.0.0.1 neo"
         echo "127.0.0.1 vault"
+        echo "0.0.0.0 local"
     } > /etc/hosts'
 }
 
 install_trus(){
     print_header "Instalación de TrUs"
-    print_message "Instalando Truedat Utils (TrUs)..."  "$COLOR_SUCCESS" 3 "both" 
  
     cp "$TRUS_ACTUAL_PATH" "$TRUS_PATH"
         
@@ -100,7 +68,6 @@ install_trus(){
     sudo ln -s "$TRUS_PATH" "$TRUS_LINK_PATH"
   
     print_message "Truedat Utils (TrUs) instalado con éxito" "$COLOR_SUCCESS" 3 "both"     
-    sleep 2
 }
 
 
@@ -151,7 +118,7 @@ package_installation(){
 
     for package in "${INSTALLATION_PACKAGES[@]}"; do        
         print_message_with_animation "Instalando $package" "$COLOR_TERNARY" 2
-        eval "sudo apt install -y --install-recommends "$package" $REDIRECT"  
+        eval "sudo apt install -y --install-recommends $package $REDIRECT"  
         print_message "$package instalado" "$COLOR_SUCCESS" 3        
     done     
 
@@ -204,7 +171,7 @@ package_installation_extra(){
     print_semiheader "Instalación de paquetes (extra)"
     for package in "${INSTALLATION_PACKAGES_EXTRA[@]}"; do     
         print_message_with_animation "Instalando $package" "$COLOR_TERNARY" 2
-        eval "sudo apt install -y --install-recommends "$package" $REDIRECT"        
+        eval "sudo apt install -y --install-recommends $package $REDIRECT"        
         print_message "$package instalado" "$COLOR_SUCCESS" 3        
     done     
 
@@ -223,6 +190,10 @@ package_installation_extra(){
 
 install_zsh(){
     print_semiheader "Instalación de ZSH"
+
+    print_message_with_animation "Instalando $package" "$COLOR_TERNARY" 2
+    eval "sudo apt install -y --install-recommends zsh $REDIRECT"  
+    print_message "$package instalado" "$COLOR_SUCCESS" 3        
 
     chsh -s $(which zsh)
 
@@ -325,6 +296,7 @@ zsh_config(){
 
 tmux_config(){
     print_semiheader "Creación del archivo de configuración de TMUX"
+    
     {
         echo 'set -g mouse on'
         echo '# To copy, left click and drag to highlight text in yellow, '
@@ -367,6 +339,28 @@ tlp_config(){
     sudo tlp start     
     sudo systemctl enable tlp.service      
     
+}
+
+trus_config(){
+    {
+        echo 'TERMINAL_WIDTH=40'
+        echo 'TERMINAL_HEIGHT=135'
+        echo 'COLOR_PRIMARY="32C5ED"'
+        echo 'COLOR_SECONDARY="ED8E32"'
+        echo 'COLOR_TERNARY="5099AD"'
+        echo 'COLOR_QUATERNARY="EDAA32"'
+        echo 'COLOR_SUCCESS="9DED32"'
+        echo 'COLOR_WARNING="EDDE32"'
+        echo 'COLOR_ERROR="ED5732"   '
+        echo 'COLOR_BACKRGROUND="6E6B4E"'
+        echo 'BASH_PATH_CONFIG=~/.bashrc'
+        echo 'ZSH_PATH_CONFIG=~/.zshrc'
+        echo 'TMUX_PATH_CONFIG=~/.tmux.conf'
+        echo 'TLP_PATH_CONFIG=/etc/tlp.conf'
+        echo 'INSTALLATION_PACKAGES="redis-tools screen tmux unzip curl vim build-essential git libssl-dev automake autoconf libncurses5 libncurses5-dev awscli docker.io postgresql-client-14 jq gedit wmctrl xclip google-chrome-stable code snapd xdotool x11-utils"'
+        echo 'INSTALLATION_PACKAGES_EXTRA="winehq-stable gdebi-core libvulkan1 libvulkan1:i386 fonts-powerline plymouth plymouth-themes ckb-next pavucontrol gnome-boxes virt-manager stress bluez bluez-tools tlp lm-sensors psensor"'
+        echo 'KONG=false'
+    } > $TRUS_PATH_CONFIG 
 }
 
 configurations(){  
@@ -454,12 +448,17 @@ installation_main_menu(){
             install_trus
             swap
             ;;
+            
         "Salir")
             clear
             tput reset
             exit 0
             ;;
     esac
+}
+
+help(){
+    echo "mierda"
 }
 
 #########################################
@@ -470,8 +469,8 @@ variables
 
 install_tools
 
-set_terminal_config
+source tools "Bienvenido al equipo de Core de Truedat" "Preparación del entorno" "DOT" true "" "$0"
 
-source tools "Bienvenido al equipo de Core de Truedat" "Preparación del entorno" "DOT" true "" "" $HEADER_LOGO
+set_terminal_config
 
 installation_main_menu

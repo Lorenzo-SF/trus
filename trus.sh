@@ -27,8 +27,14 @@ general_vars(){
         "--start"
         "--kill-truedat"
         "--ddbb"
-        "--reindex"
         "--update-repos"
+        "--help"
+        "Más..."
+    )
+
+     SECONDARY_MENU_OPTIONS=(
+        "Volver"
+        "--reindex"        
         "--create_ssh"
         "--kong-routes"
         "--link-modules"
@@ -37,16 +43,15 @@ general_vars(){
         "--load-lineage"
         "--rest"
         "--attach"
-        "--detach"
-        "--help"
+        "--detach"        
     )
 
     START_MENU_SUBOPTIONS=(
         "Volver"
+        "--all"
         "--start-containers"
         "--start-services"
         "--start-front"
-        "--all"
     )
 
     DDBB_MENU_SUBOPTIONS=(
@@ -59,10 +64,10 @@ general_vars(){
 
     REPO_MENU_SUBOPTIONS=(
         "Volver"
+        "--all"
         "--back"
         "--front"
         "--libs"
-        "--all"
     )
 }
  
@@ -116,7 +121,8 @@ system_name_vars(){
     #########################################
     #  DOCKER
 
-    CONTAINERS=("elasticsearch" "redis" "kong" "redis_test" "vault")
+    # CONTAINERS=("elasticsearch" "redis" "kong" "redis_test" "vault")
+    CONTAINERS=("elasticsearch" "redis" "redis_test" "vault")
     CONTAINERS_SETUP=("kong_create" "kong_migrate" "kong_setup" )
 
 
@@ -267,6 +273,8 @@ download_test_backup(){
         eval "kubectl --context ${CONTEXT} cp \"${PSQL}:/${DATABASE}.sql\" \"./${FILENAME}\"  $REDIRECT"
         print_message "Descarga backup (HECHO)"  "$COLOR_SUCCESS" 2  
 
+        print_message " Backup descargado en $SERVICE_PATH/$FILENAME" "$COLOR_WARNING" 2
+
         print_message_with_animation "Borrando fichero generado en el POD"  "$COLOR_SECONDARY" 2
         eval "kubectl --context \"${CONTEXT}\" exec \"${PSQL}\" -- rm \"/${DATABASE}.sql\"  $REDIRECT"
         print_message "Borrando fichero generado en el POD (HECHO)"  "$COLOR_SUCCESS" 2  
@@ -278,11 +286,9 @@ download_test_backup(){
         print_message_with_animation "Moviendo fichero $FILENAME a backup"  "$COLOR_SECONDARY" 2
         eval "mv \"$FILENAME\" \"$DDBB_BACKUP_PATH\"  $REDIRECT"
         print_message "Moviendo fichero $FILENAME a backup (HECHO)" "$COLOR_SUCCESS" 2  
-
-        print_message " Backup descargado en $SERVICE_PATH/$FILENAME" "$COLOR_WARNING" 2
     done   
 
-    print_message "Descarga de backup de test terminada" "$COLOR_SUCCESS" 1  
+    print_message "Descarga de backup de test terminada" "$COLOR_SUCCESS" 3 "both"  
 }
 
 update_ddbb(){
@@ -556,22 +562,170 @@ install(){
             ddbb "-du"
 
             cd "~/workspace/truedat/front/td-web"
+            
             touch "./dev.config.js"
+            
             {
+                echo 'const target = host => ({'
+                echo '  target: host,'
+                echo '  secure: false,'
+                echo '  proxyTimeout: 5 * 60 * 1000,'
+                echo '  timeout: 5 * 60 * 1000,'
+                echo '  onProxyReq: (proxyReq, req, res) => req.setTimeout(5 * 60 * 1000),'
+                echo '  changeOrigin: true'
+                echo '});'
+                echo '// const defaultHost = "https://test.truedat.io";'
+                echo 'const defaultHost = "http://localhost:4001";'
+                echo 'const defaultTargets = {'
+                echo '  ai: target(defaultHost),'
+                echo '  audit: target(defaultHost),'
+                echo '  auth: target(defaultHost),'
+                echo '  bg: target(defaultHost),'
+                echo '  cx: target(defaultHost),'
+                echo '  dd: target(defaultHost),'
+                echo '  df: target(defaultHost),'
+                echo '  dq: target(defaultHost),'
+                echo '  ie: target(defaultHost),'
+                echo '  lm: target(defaultHost),'
+                echo '  se: target(defaultHost),'
+                echo '  i18n: target(defaultHost),'
+                echo '  qx: target(defaultHost)'
+                echo '};'
+                echo 'const targets = {'
+                echo '  ...defaultTargets,'
+                echo '  ai: target("http://localhost:4015"),'
+                echo '  audit: target("http://localhost:4007"),'
+                echo '  auth: target("http://localhost:4001"),'
+                echo '  bg: target("http://localhost:4002"),'
+                echo '  cx: target("http://localhost:4008"),'
+                echo '  dd: target("http://localhost:4005"),'
+                echo '  df: target("http://localhost:4013"),'
+                echo '  dq: target("http://localhost:4004"),'
+                echo '  ie: target("http://localhost:4014"),'
+                echo '  lm: target("http://localhost:4012"),'
+                echo '  se: target("http://localhost:4006"),'
+                echo '  i18n: target("http://localhost:4003"),'
+                echo '  qx: target("http://localhost:4010")'
+                echo '};'
+                echo 'const ai = {'
+                echo '  "/api/resource_mappings": targets.ai,'
+                echo '  "/api/prompts": targets.ai'
+                echo '};'
+                echo 'const audit = {'
+                echo '  "/api/events": targets.audit,'
+                echo '  "/api/notifications": targets.audit,'
+                echo '  "/api/subscribers": targets.audit,'
+                echo '  "/api/subscriptions": targets.audit'
+                echo '};'
+                echo 'const auth = {'
+                echo '  "/api/acl_entries": targets.auth,'
+                echo '  "/api/auth": targets.auth,'
+                echo '  "/api/groups": targets.auth,'
+                echo '  "/api/init": targets.auth,'
+                echo '  "/api/password": targets.auth,'
+                echo '  "/api/permission_groupss": targets.auth,'
+                echo '  "/api/permissions": targets.auth,'
+                echo '  "/api/roles": targets.auth,'
+                echo '  "/api/sessions": targets.auth,'
+                echo '  "/api/users": targets.auth'
+                echo '};'
+                echo 'const bg = {'
+                echo '  "/api/business_concept_filters": targets.bg,'
+                echo '  "/api/business_concept_user_filters": targets.bg,'
+                echo '  "/api/business_concept_versions": targets.bg,'
+                echo '  "/api/business_concepts": targets.bg,'
+                echo '  "/api/domains": targets.bg'
+                echo '};'
+                echo 'const cx = {'
+                echo '  "/api/configurations": targets.cx,'
+                echo '  "/api/job_filters": targets.cx,'
+                echo '  "/api/jobs": targets.cx,'
+                echo '  "/api/sources": targets.cx'
+                echo '};'
+                echo 'const dd = {'
+                echo '  "/api/accesses": targets.dd,'
+                echo '  "/api/buckets/structures": targets.dd,'
+                echo '  "/api/data_structure_filters": targets.dd,'
+                echo '  "/api/data_structure_notes": targets.dd,'
+                echo '  "/api/data_structure_tags": targets.dd,'
+                echo '  "/api/data_structure_types": targets.dd,'
+                echo '  "/api/data_structure_versions": targets.dd,'
+                echo '  "/api/data_structures": targets.dd,'
+                echo '  "/api/grant_filters": targets.dd,'
+                echo '  "/api/grant_request_groups": targets.dd,'
+                echo '  "/api/grant_requests": targets.dd,'
+                echo '  "/api/grants": targets.dd,'
+                echo '  "/api/graphs": targets.dd,'
+                echo '  "/api/lineage_events": targets.dd,'
+                echo '  "/api/nodes": targets.dd,'
+                echo '  "/api/profile_execution_groups": targets.dd,'
+                echo '  "/api/profile_executions": targets.dd,'
+                echo '  "/api/profiles": targets.dd,'
+                echo '  "/api/reference_data": targets.dd,'
+                echo '  "/api/relation_types": targets.dd,'
+                echo '  "/api/systems": targets.dd,'
+                echo '  "/api/units": targets.dd,'
+                echo '  "/api/user_search_filters": targets.dd,'
+                echo '  "/api/v2": targets.dd'
+                echo '};'
+                echo 'const df = {'
+                echo '  "/api/templates": targets.df,'
+                echo '  "/api/hierarchies": targets.df'
+                echo '};'
+                echo 'const dq = {'
+                echo '  "/api/execution_groups": targets.dq,'
+                echo '  "/api/executions": targets.dq,'
+                echo '  "/api/rule_filters": targets.dq,'
+                echo '  "/api/rule_implementation_filters": targets.dq,'
+                echo '  "/api/rule_implementations": targets.dq,'
+                echo '  "/api/rule_results": targets.dq,'
+                echo '  "/api/rules": targets.dq'
+                echo '};'
+                echo 'const ie = {'
+                echo '  "/api/ingests": targets.ie,'
+                echo '  "/api/ingest_filters": targets.ie,'
+                echo '  "/api/ingest_versions": targets.ie'
+                echo '};'
+                echo 'const lm = {'
+                echo '  "/api/relations": targets.lm,'
+                echo '  "/api/tags": targets.lm'
+                echo '};'
+                echo 'const se = {'
+                echo '  "/api/global_search": targets.se'
+                echo '};'
+                echo 'const i18n = {'
+                echo '  "/api/messages": targets.i18n,'
+                echo '  "/api/locales": targets.i18n'
+                echo '};'
+                echo 'const qx = {'
+                echo '  "/api/data_views": targets.qx,'
+                echo '  "/api/quality_functions": targets.qx,'
+                echo '  "/api/quality_controls": targets.qx'
+                echo '};'
+                echo ''
                 echo 'module.exports = {'
-                echo '    devServer: {'
-                echo '        historyApiFallback: true,'
-                echo '        proxy: {'
-                echo '        "/api": {'
-                echo '            target: "http://localhost:8000",'
-                echo '            secure: true,'
-                echo '            changeOrigin: true,'
-                echo '        },'
-                echo '        "/callback": {'
-                echo '            target: "http://localhost:8000",'
-                echo '        },'
-                echo '        },'
-                echo '    },'
+                echo '  devtool: "cheap-module-eval-source-map",'
+                echo '  devServer: {'
+                echo '    host: "0.0.0.0",'
+                echo '    disableHostCheck: true,'
+                echo '    historyApiFallback: true,'
+                echo '    proxy: {'
+                echo '      ...ai,'
+                echo '      ...audit,'
+                echo '      ...auth,'
+                echo '      ...bg,'
+                echo '      ...cx,'
+                echo '      ...dd,'
+                echo '      ...df,'
+                echo '      ...dq,'
+                echo '      ...ie,'
+                echo '      ...lm,'
+                echo '      ...se,'
+                echo '      ...i18n,'
+                echo '      ...qx,'
+                echo '      "/api": target(defaultHost)'
+                echo '    }'
+                echo '  }'
                 echo '};'
             } > "./dev.config.js"
            
@@ -597,7 +751,6 @@ ddbb(){
     if [ "$options" = "-d" ] || [ "$options" = "--download-test" ] || [ "$options" = "-du" ] || [ "$options" = "--download-update" ] ; then
         download_test_backup
         backup_path=$DDBB_BACKUP_PATH
-        echo $backup_path
     fi
         
     if [ "$options" = "-lu" ] || [ "$options" = "--local-update" ] ; then
@@ -1074,16 +1227,15 @@ load_linages(){
 help(){
     local option=$(normalize_text "${1:-""}")
 
-
     case "$option" in
-        "salir"  | " volver" | "")
-            print_message "Posicionate en una opcion para ver una descripción de lo que hace" "$COLOR_PRIMARY"
+        "salir"  | " volver")
+            print_message "Posicionate en una opcion para ver una descripción de lo que hace" "$COLOR_SECONDARY"
             ;;
 
          "--start")
-            print_message "Arranca Truedat." "$COLOR_PRIMARY"
-            print_message "Levanta los contenedores de Docker, crea una sesion de Screen por servicio y arranca el frontal." "$COLOR_PRIMARY"
-            print_message "Todo en una sesion de Tmux" "$COLOR_PRIMARY"
+            print_message "Arranca Truedat." "$COLOR_SECONDARY"
+            print_message "Levanta los contenedores de Docker, crea una sesion de Screen por servicio y arranca el frontal." "$COLOR_SECONDARY"
+            print_message "Todo en una sesion de Tmux" "$COLOR_SECONDARY"
             ;;
 
         "--start-containers")
@@ -1106,6 +1258,7 @@ help(){
         "--start")
             print_message "Levanta Truedat" "$COLOR_SECONDARY"
             ;;
+
         "--kill-truedat")
             print_message "Mata las sesiones creadas con --start (Screen, Tmux) y los procesos de mix que haya" "$COLOR_SECONDARY"
             ;;
@@ -1178,10 +1331,6 @@ help(){
             print_message "<rest_method>: Verbo de la llamada del API" "$COLOR_SECONDARY" 2
             print_message "<params>: Parámetros de la llamada (opcional)" "$COLOR_SECONDARY" 2 "after"
             ;;
-            
-        "--help")
-            print_message "Muestra la ayuda completa. Si se le pasa algun parámetro princial de TrUs, mostrará la ayuda de ese parámetro" "$COLOR_SECONDARY"
-            ;;
 
         "--start-containers")
             print_message "Levanta los contenedores de Truedat" "$COLOR_SECONDARY"
@@ -1227,7 +1376,7 @@ help(){
              print_message "Actualiza los repositorios de libreriass" "$COLOR_SECONDARY"
             ;;
 
-        "*")
+        "*"| "")
             print_header "Ayuda"    
             print_semiheader "Acciones principales"
 
@@ -1255,7 +1404,6 @@ help(){
 
             print_message "-k | --kill: " "$COLOR_SECONDARY" 1 "no"
             print_message "Mata las sesiones creadas con --start (Screen, Tmux) y los procesos de mix que haya" "$COLOR_TERNARY" 
-
 
             print_semiheader "Instalación, actualización y mantenimiento"
 
@@ -1328,7 +1476,7 @@ help(){
 
 main_menu(){
     local option=$(print_menu "${MAIN_MENU_OPTIONS[@]}")
-    
+ 
     case "$option" in
         "--start")
             start_menu
@@ -1342,13 +1490,31 @@ main_menu(){
             repo_menu
             ;;
 
-        "--kill" | "--reindex" | "--create_ssh" | "--kong-routes" | "--link-modules" | "--yarn-test" | "--load-structures" | "--load-linage" | "--rest" | "--attach" | "--detach")
+        "--kill" | "--help" )
             trus "$option"
             ;;
+            
+        "Más..." )
+            secondary_menu
+            ;;
+                        
         "Salir")
             clear
             tput reset
             exit 0
+            ;;
+    esac
+}
+
+secondary_menu(){
+    local option=$(print_menu "${SECONDARY_MENU_OPTIONS[@]}")
+
+    case "$option" in
+        "--reindex" | "--create_ssh" | "--kong-routes" | "--link-modules" | "--yarn-test" | "--load-structures" | "--load-linage" | "--rest" | "--attach" | "--detach")
+            trus "$option"
+            ;;
+        "Volver")
+            main_menu
             ;;
     esac
 }
@@ -1518,7 +1684,7 @@ check_parameters() {
 #########################################
 
 # para mostrar mensajes, descomentar el false, para que solo salgan los mensajes propios de trus, comentarlo (o poner true)
-source tools "Truedat Utils (TrUs)" "" "DOT" true "F5A400" "000000" $HEADER_LOGO
+source tools "Truedat Utils (TrUs)" "" "DOT" true "$HEADER_LOGO" "trus"
 
 set_vars
 set_terminal_config
