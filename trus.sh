@@ -11,7 +11,7 @@ general_vars(){
     DATE_NOW=$(date +%Y%m%d_%H%M%S)
     USER_HOME=$(eval echo ~"$SUDO_USER")
     TRUS_INSTALLATION_PATH=$USER_HOME/.tools
-
+    TRUS_PATH_CONFIG=$USER_HOME/.trus.conf
     TRUS_PATH=$TRUS_INSTALLATION_PATH/trus.sh
     HEADER_LOGO=(   "  _________   ______     __  __    ______       "
                     " /________/\ /_____/\   /_/\/_/\  /_____/\      "
@@ -121,8 +121,7 @@ system_name_vars(){
     #########################################
     #  DOCKER
 
-    # CONTAINERS=("elasticsearch" "redis" "kong" "redis_test" "vault")
-    CONTAINERS=("elasticsearch" "redis" "redis_test" "vault")
+    CONTAINERS=("elasticsearch" "redis" "kong" "redis_test" "vault")
     CONTAINERS_SETUP=("kong_create" "kong_migrate" "kong_setup" )
 
 
@@ -371,10 +370,6 @@ create_backup_local_ddbb(){
 # Install
 
 install_docker(){
-    USER_HOME=$(eval echo ~"$SUDO_USER")
-    ROOTPATH=$USER_HOME/workspace/truedat
-    DEVPATH=$ROOTPATH/true-dev
-    CONTAINERS_SETUP=("kong_create" "kong_migrate" "kong_setup" )
     aws ecr get-login-password --profile truedat --region eu-west-1 | docker login --username AWS --password-stdin 576759405678.dkr.ecr.eu-west-1.amazonaws.com
 
     set -e
@@ -385,9 +380,11 @@ install_docker(){
     echo SERVICES_HOST="$ip" > local_ip.env
     sudo chmod 666 /var/run/docker.sock
 
-    for container in "${CONTAINERS_SETUP[@]}"; do
-        docker-compose up -d "${container}"    
-    done  
+    if [ "$USE_KONG" = true ]; then            
+        for container in "${CONTAINERS_SETUP[@]}"; do
+            docker-compose up -d "${container}"    
+        done  
+    fi    
     
     start_containers 
     
@@ -424,7 +421,24 @@ install(){
         print_header "Instalación Truedat"
        
         if [ -f "$SSH_PUBLIC_FILE" ]; then 
- 
+
+            print_message "¿Quieres utilizar Kong o que sea td-web quien enrute? (S/N)" "$COLOR_PRIMARY" 1
+            read -r install_kong
+
+            continue_install_kong=$(normalize_text "$install_kong")
+
+            if [ ! "$continue_install_kong" = "" ] || [ "$continue_install_kong" = "si" ] || [ "$continue_install_kong" = "s" ] || [ "$continue_install_kong" = "y" ] || [ "$continue_install_kong" = "yes" ]; then            
+                {
+                    echo 'USE_KONG=true'
+                } >> $TRUS_PATH_CONFIG 
+            else
+                {
+                    echo 'USE_KONG=false'
+                } >> $TRUS_PATH_CONFIG 
+            fi 
+
+            source $TRUS_PATH_CONFIG
+
             print_message "ATENCIÓN, SE VA A SOLICITAR LA CONFIGURACIÓN DE AWS 2 VECES" "$COLOR_WARNING" 2 "before"
             print_message "Una para el perfil predeterminado y otra para el de truedat" "$COLOR_WARNING" 2 "both"
             print_message "Estos datos te los debe dar tu responsable" "$COLOR_SECONDARY" 2 "both"
@@ -533,7 +547,10 @@ install(){
             git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-i18n.git
             git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-lm.git
             git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-se.git
-            git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/kong-setup.git
+                        
+            if [ "$USE_KONG" = true ]; then            
+                git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/kong-setup.git
+            fi
 
             git clone git@gitlab.bluetab.net:dgs-core/true-dat/td-helm.git
             git clone git@gitlab.bluetab.net:dgs-core/true-dat/clients/demo/k8s.git
@@ -556,8 +573,14 @@ install(){
             print_message "Truedat descargado" "$COLOR_SUCCESS" 3 "before"                  
 
             update_repositories "-a"
-            install_docker
-            kong_routes
+            
+            if [ "$USE_KONG" = true ]; then            
+                install_docker "$USE_KONG"
+                kong_routes
+            fi
+            
+            
+
             link_web_modules
             ddbb "-du"
 
@@ -1074,10 +1097,13 @@ kong_routes(){
 start_containers(){
     print_header "Contenedores"
     print_semiheader "Arrancando..."
+    
     cd "$DEVPATH"
-
-    for container in "${CONTAINERS[@]}"; do
-        docker-compose up -d "${container}"    
+    
+    for container in "${CONTAINERS[@]}"; do        
+        if [[ "$USE_KONG" = true ]] || { [[ "$USE_KONG" = false ]] && [[ "$container" != "kong" ]]; }; then
+            docker-compose up -d "${container}"    
+        fi
     done    
 }
 
@@ -1373,10 +1399,10 @@ help(){
             ;;
             
         "--libs")
-             print_message "Actualiza los repositorios de libreriass" "$COLOR_SECONDARY"
+             print_message "Actualiza los repositorios de librerias" "$COLOR_SECONDARY"
             ;;
 
-        "*"| "")
+        "*" | "")
             print_header "Ayuda"    
             print_semiheader "Acciones principales"
 
@@ -1389,10 +1415,9 @@ help(){
             print_message "Levanta los contenedores de Docker de Truedat" "$COLOR_TERNARY"
 
             print_message "-ss | --start-services: " "$COLOR_SECONDARY" 1 "no"
-            print_message "Levanta los servicios de Truedat" "$COLOR_TERNARY"
-            print_message "<vacío>: Levanta todos los servicios" "$COLOR_QUATERNARY" 2 
-            print_message "<servicio> | <servicio1> <servicio2> <servicio3>...: Uno o varios servicios (sin el prefijo 'td-') levanta todo" "$COLOR_QUATERNARY" 2 
-            print_message "Para cada uno de esos servicios, añade terminales separadas" "$COLOR_QUATERNARY" 2  "after"
+            print_message "Levanta los servicios de Truedat. Los parámetros disponibles son:" "$COLOR_TERNARY"
+            print_message "<vacío> | <servicio> | <servicio1> <servicio2> <servicio3>...:" "$COLOR_QUATERNARY" 2 
+            print_message "Sin nada, levanta todos los servicios. Con uno o varios servicios (sin el prefijo 'td-') levanta todos los servicios, IGNORANDO los servicios indicados (para poder arrancarlos manualmente)" "$COLOR_QUATERNARY" 2 
 
             print_message "-st | --stop-services":   "$COLOR_SECONDARY" 1 "no"
             print_message "Para los servicios de Truedat" "$COLOR_TERNARY" 
@@ -1685,11 +1710,13 @@ check_parameters() {
 
 # para mostrar mensajes, descomentar el false, para que solo salgan los mensajes propios de trus, comentarlo (o poner true)
 source tools "Truedat Utils (TrUs)" "" "DOT" true "$HEADER_LOGO" "trus"
+source $TRUS_PATH_CONFIG
 
 set_vars
 set_terminal_config
 
 clear
+
 
 if ! [ -e "$TRUS_PATH" ]; then 
     print_message "Trus no está instalado" "$COLOR_ERROR" 4 "both"

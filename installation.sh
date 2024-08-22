@@ -359,7 +359,6 @@ trus_config(){
         echo 'TLP_PATH_CONFIG=/etc/tlp.conf'
         echo 'INSTALLATION_PACKAGES="redis-tools screen tmux unzip curl vim build-essential git libssl-dev automake autoconf libncurses5 libncurses5-dev awscli docker.io postgresql-client-14 jq gedit wmctrl xclip google-chrome-stable code snapd xdotool x11-utils"'
         echo 'INSTALLATION_PACKAGES_EXTRA="winehq-stable gdebi-core libvulkan1 libvulkan1:i386 fonts-powerline plymouth plymouth-themes ckb-next pavucontrol gnome-boxes virt-manager stress bluez bluez-tools tlp lm-sensors psensor"'
-        echo 'KONG=false'
     } > $TRUS_PATH_CONFIG 
 }
 
@@ -405,8 +404,7 @@ installation_main_menu(){
     fi
 
     case "$option" in
-        "1")
-            
+        "1")            
             package_installation
             ;;
 
@@ -458,7 +456,57 @@ installation_main_menu(){
 }
 
 help(){
-    echo "mierda"
+    local option=$1
+
+    case $opton in
+        "1")
+            print_message "Instalación de paquetes:" "$COLOR_SECONDARY"
+            
+            for package in "${INSTALLATION_PACKAGES[@]}"; do     
+                print_message "- $package" "$COLOR_TERNARY" 2
+            done     
+            ;;
+
+        "2")
+            print_message "Instalación de paquetes extra:" "$COLOR_SECONDARY"
+            
+            for package in "${INSTALLATION_PACKAGES_EXTRA[@]}"; do     
+                print_message "- $package" "$COLOR_TERNARY" 2
+            done     
+            ;;
+
+       "3")
+            print_message "Instalación de la terminal ZSH y Oh My Zsh." "$COLOR_SECONDARY"
+            ;;
+
+       "4")
+            print_message "Modificación del prompt de Bash para añadirle nuevo estilo y la visualizacion de la rama de git." "$COLOR_SECONDARY"
+            ;;
+
+        "5")
+            print_message "Modificación de la animacion de la animación de arranque del SO (solo linux)." "$COLOR_SECONDARY"
+            ;;
+
+        "6")
+            print_message "Creación de los archivos de confiuración de ZSH, TMUX y TLP" "$COLOR_SECONDARY"
+            ;;
+
+        "7")
+            print_message "Instalación de Truedat Utils (TrUs)." "$COLOR_SECONDARY"
+            ;;
+
+        "8")
+            print_message "Modificación del tamaño del archivo de intercambio. Se configura al doble del tamaño de la ram del equipo." "$COLOR_SECONDARY"
+            ;;
+
+        "9")
+            print_message "Instalación completa. Se lanzan todas las opciones." "$COLOR_SECONDARY"
+            ;;
+
+        "*" | "")
+            print_message "Introduzca una opción válida." "$COLOR_SECONDARY"
+            ;;
+    esac
 }
 
 #########################################
@@ -473,4 +521,5 @@ source tools "Bienvenido al equipo de Core de Truedat" "Preparación del entorno
 
 set_terminal_config
 
-installation_main_menu
+    help $((extract_start_option "$2"))
+    # installation_main_menu
