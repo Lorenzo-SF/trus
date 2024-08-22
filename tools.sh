@@ -489,7 +489,8 @@ print_menu(){
                                 --margin=0,5 \
                                 --padding=1 \
                                 --layout=reverse \
-                                --preview="$HELP_SCRIPT"
+                                --preview="$HELP_SCRIPT" \
+                                --preview-window=right,70%
 }
  
  

@@ -1371,7 +1371,9 @@ help(){
             ;;
             
         "--all")
-            print_message "Todas las anteriores" "$COLOR_SECONDARY"
+            print_message "Se lanzan todas las opciones abajo descritas." "$COLOR_SECONDARY"
+            print_message "Si se desea lanzar Truedat completo, pero se necesita visualizar terminales de servicios en concreto" "$COLOR_SECONDARY"
+            print_message "Hay que lanzar 'trus -s <servicio1>, <servicio2> ...' (sin el prefijo 'td-')" "$COLOR_SECONDARY"
             ;;
             
         "--download-test")
