@@ -458,7 +458,7 @@ installation_main_menu(){
 help(){
     local option=$1
 
-    case $opton in
+    case $option in
         "1")
             print_message "Instalación de paquetes:" "$COLOR_SECONDARY"
             
@@ -522,4 +522,4 @@ source tools "Bienvenido al equipo de Core de Truedat" "Preparación del entorno
 set_terminal_config
 
     help $((extract_start_option "$2"))
-    # installation_main_menu
+    installation_main_menu
