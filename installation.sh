@@ -45,8 +45,10 @@ install_tools(){
         eval "git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf $REDIRECT"
         ~/.fzf/install
     fi
+    
+    eval "sudo apt install -y --install-recommends wmctrl $REDIRECT"  
 
-   sudo sh -c '{
+    sudo sh -c '{
         echo "127.0.0.1 localhost"
         echo "127.0.0.1 $(uname -n).bluetab.net $(uname -n)"
         echo "127.0.0.1 redis"
@@ -69,7 +71,6 @@ install_trus(){
   
     print_message "Truedat Utils (TrUs) instalado con éxito" "$COLOR_SUCCESS" 3 "both"     
 }
-
 
 package_installation(){
     print_semiheader "Instalación de origenes de software"
@@ -357,7 +358,7 @@ trus_config(){
         echo 'ZSH_PATH_CONFIG=~/.zshrc'
         echo 'TMUX_PATH_CONFIG=~/.tmux.conf'
         echo 'TLP_PATH_CONFIG=/etc/tlp.conf'
-        echo 'INSTALLATION_PACKAGES="redis-tools screen tmux unzip curl vim build-essential git libssl-dev automake autoconf libncurses5 libncurses5-dev awscli docker.io postgresql-client-14 jq gedit wmctrl xclip google-chrome-stable code snapd xdotool x11-utils"'
+        echo 'INSTALLATION_PACKAGES="redis-tools screen tmux unzip curl vim build-essential git libssl-dev automake autoconf libncurses5 libncurses5-dev awscli docker.io postgresql-client-14 jq gedit xclip google-chrome-stable code snapd xdotool x11-utils"'
         echo 'INSTALLATION_PACKAGES_EXTRA="winehq-stable gdebi-core libvulkan1 libvulkan1:i386 fonts-powerline plymouth plymouth-themes ckb-next pavucontrol gnome-boxes virt-manager stress bluez bluez-tools tlp lm-sensors psensor"'
     } > $TRUS_PATH_CONFIG 
 }
