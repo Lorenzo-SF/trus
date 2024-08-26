@@ -1737,9 +1737,8 @@ check_parameters() {
 ####         Lógica inicial
 #########################################
 
-# para mostrar mensajes, descomentar el false, para que solo salgan los mensajes propios de trus, comentarlo (o poner true)
-source tools "Truedat Utils (TrUs)" "" "DOT" false "$HEADER_LOGO" "trus"
 source $TRUS_PATH_CONFIG
+source tools "Truedat Utils (TrUs)" "" "DOT" $HIDE_OUTPUT "$HEADER_LOGO" "trus"
 
 set_vars
 set_terminal_config

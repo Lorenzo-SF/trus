@@ -531,20 +531,25 @@ do_api_call(){
     local params="${4:-""}"
     local sudo="${5:-""}"
     
-    local command="curl -s -l --globoff \"$url\" -h \"Content-Type: application/json\" "
+    local command="curl --silent --globoff --fail "
 
     if [ ! -z "$token" ]; then
         command+="'header: Bearer ${token}' "
     fi
 
-    if [ ! -z "$rest_method" ]; then
-        command+="-X $rest_method "
+    if [ ! -z "$rest_method" ] ; then
+        command+="--request $rest_method "
+        if [[ "$rest_method" == "POST" || "$rest_method" == "PUT" || "$rest_method" == "PATCH" ]]; then
+            command+="--header \"Content-Type: application/json\" "
+        fi
     fi
-    
+
     if [ ! -z "$params" ]; then
         command+="$params "
     fi
-    
+
+    command+="--location \"$url\" "
+
     eval "$command $REDIRECT"
 }
 
