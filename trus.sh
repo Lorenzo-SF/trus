@@ -79,15 +79,16 @@ path_vars(){
     SSH_PUBLIC_FILE=$SSH_PATH/truedat.pub
     SSH_PRIVATE_FILE=$SSH_PATH/truedat
     SSH_BACKUP_FOLDER=$SSH_PATH"/backup_$DATE_NOW"
-    ROOTPATH=$USER_HOME/workspace/truedat
-    BACKPATH=$ROOTPATH/back
-    KONG_PATH=$BACKPATH/kong-setup/data
-    FRONTPATH=$ROOTPATH/front 
-    DEVPATH=$ROOTPATH/true-dev
-    DDBB_BACKUP_PATH=$ROOTPATH"/ddbb_truedat/$DATE_NOW"
-    DDBB_LOCAL_BACKUP_PATH=$ROOTPATH"/ddbb_truedat/local_backups/$DATE_NOW"
+    TRUEDAT_ROOT_PATH=$USER_HOME/workspace/truedat
+    BACK_PATH=$TRUEDAT_ROOT_PATH/back
+    FRONT_PATH=$TRUEDAT_ROOT_PATH/front 
+    DEV_PATH=$TRUEDAT_ROOT_PATH/true-dev
+    KONG_PATH=$BACK_PATH/kong-setup/data
+    DDBB_BACKUP_PATH=$TRUEDAT_ROOT_PATH"/ddbb_truedat/$DATE_NOW"
+    DDBB_LOCAL_BACKUP_PATH=$TRUEDAT_ROOT_PATH"/ddbb_truedat/local_backups/$DATE_NOW"
     AWSCONFIG=~/.aws/config
     KUBECONFIG=~/.kube/config
+    TD_WEB_DEV_CONFIG=$FRONT_PATH/td-web/dev.config.js
 }   
 
 comands_and_context_vars(){
@@ -138,6 +139,11 @@ set_vars(){
     path_vars
     comands_and_context_vars
     system_name_vars
+
+    if [[ "$USE_KONG" = "" ]]; then
+        config_kong_use 
+    fi
+
 }
 
 
@@ -153,7 +159,7 @@ update_services(){
     set_elixir_versions
 
     for SERVICE in "${SERVICES[@]}"; do        
-        cd "$BACKPATH/$SERVICE"
+        cd "$BACK_PATH/$SERVICE"
         
         print_message "Actualizando $SERVICE" "$COLOR_SECONDARY" 2 "before" 
         checkout "develop"
@@ -191,7 +197,7 @@ update_libraries(){
     for LIBRARY in "${LIBRARIES[@]}"; do
         print_message "Actualizando ${LIBRARY}" "$COLOR_TERNARY" 2 "before" 
 
-        cd "$BACKPATH/$LIBRARY"
+        cd "$BACK_PATH/$LIBRARY"
         
         checkout "main"
         update_git
@@ -202,7 +208,7 @@ update_libraries(){
 }
 
 update_web(){
-    cd "$FRONTPATH/td-web"
+    cd "$FRONT_PATH/td-web"
     
     print_semiheader "Actualizando frontal"
 
@@ -214,7 +220,7 @@ update_web(){
 
     cd ..
       
-    cd "$FRONTPATH/td-web-modules"
+    cd "$FRONT_PATH/td-web-modules"
     print_message "Actualizando td-web-modules" "$COLOR_QUATERNARY" 2 "before" 
 
     checkout "main"
@@ -234,7 +240,7 @@ yarn_test(){
     for package in "${packages[@]}"; do
         print_header "Front test" "yarn test $package" 
         
-        cd $FRONTPATH/td-web-modules/packages/$package
+        cd $FRONT_PATH/td-web-modules/packages/$package
         yarn test
         sleep 2
     done     
@@ -258,7 +264,7 @@ download_test_backup(){
         local SERVICE_NAME="${DATABASE//_/-}"
         local SERVICE_PODNAME="${DATABASE//-/_}"
         local SERVICE_DBNAME="${DATABASE}_dev"
-        local SERVICE_PATH="$BACKPATH/$SERVICE_NAME"
+        local SERVICE_PATH="$BACK_PATH/$SERVICE_NAME"
         local FILENAME=$SERVICE_DBNAME".sql"
         local PASSWORD=$(kubectl --context ${CONTEXT} get secrets postgres -o json | jq -r '.data.PGPASSWORD' | base64 -d)
         local USER=$(kubectl --context ${CONTEXT} get secrets postgres -o json | jq -r '.data.PGUSER' | base64 -d)
@@ -322,7 +328,7 @@ update_ddbb_from_backup(){
         SERVICE_DBNAME=$(basename "$FILENAME" ".sql")
         SERVICE_NAME=$(basename "$FILENAME" "_dev.sql" | sed 's/_dev//g; s/_/-/g')
 
-        cd "$BACKPATH"/"$SERVICE_NAME"
+        cd "$BACK_PATH"/"$SERVICE_NAME"
 
         print_message "-->  Actualizando $SERVICE_DBNAME"  "$COLOR_SECONDARY" 1 "before" 
         update_ddbb "$FILENAME" "$SERVICE_DBNAME" 
@@ -374,7 +380,7 @@ install_docker(){
 
     set -e
     set -o pipefail
-    cd "$DEVPATH"
+    cd "$DEV_PATH"
 
     ip=$(ip -4 addr show docker0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
     echo SERVICES_HOST="$ip" > local_ip.env
@@ -421,24 +427,6 @@ install(){
         print_header "Instalación Truedat"
        
         if [ -f "$SSH_PUBLIC_FILE" ]; then 
-
-            print_message "¿Quieres utilizar Kong o que sea td-web quien enrute? (S/N)" "$COLOR_PRIMARY" 1
-            read -r install_kong
-
-            continue_install_kong=$(normalize_text "$install_kong")
-
-            if [ ! "$continue_install_kong" = "" ] || [ "$continue_install_kong" = "si" ] || [ "$continue_install_kong" = "s" ] || [ "$continue_install_kong" = "y" ] || [ "$continue_install_kong" = "yes" ]; then            
-                {
-                    echo 'USE_KONG=true'
-                } >> $TRUS_PATH_CONFIG 
-            else
-                {
-                    echo 'USE_KONG=false'
-                } >> $TRUS_PATH_CONFIG 
-            fi 
-
-            source $TRUS_PATH_CONFIG
-
             print_message "ATENCIÓN, SE VA A SOLICITAR LA CONFIGURACIÓN DE AWS 2 VECES" "$COLOR_WARNING" 2 "before"
             print_message "Una para el perfil predeterminado y otra para el de truedat" "$COLOR_WARNING" 2 "both"
             print_message "Estos datos te los debe dar tu responsable" "$COLOR_SECONDARY" 2 "both"
@@ -526,6 +514,8 @@ install(){
             asdf global yarn latest
             print_message "Configurando ASDF (HECHO)" "$COLOR_SUCCESS" 3 "before"      
 
+            #Este eval está porque si se instala el entorno en el WSL de windows, el agente no se mantiene levantado
+            #En linux no es necesario pero no molesta 
             eval "$(ssh-agent -s)"        
             ssh-add $SSH_PRIVATE_FILE
 
@@ -535,7 +525,7 @@ install(){
             mkdir "$USER_HOME/workspace/truedat/back/logs"
             mkdir "$USER_HOME/workspace/truedat/front"
 
-            cd "$USER_HOME/workspace/truedat/back"
+            cd $BACK_PATH
             git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-ai.git
             git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-audit.git
             git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-auth.git
@@ -547,11 +537,6 @@ install(){
             git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-i18n.git
             git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-lm.git
             git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-se.git
-                        
-            if [ "$USE_KONG" = true ]; then            
-                git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/kong-setup.git
-            fi
-
             git clone git@gitlab.bluetab.net:dgs-core/true-dat/td-helm.git
             git clone git@gitlab.bluetab.net:dgs-core/true-dat/clients/demo/k8s.git
 
@@ -560,12 +545,11 @@ install(){
             git clone git@github.com:Bluetab/td-core.git
             git clone git@github.com:Bluetab/td-cluster.git
 
-
-            cd "$USER_HOME/workspace/truedat/front"
+            cd $FRONT_PATH
             git clone git@gitlab.bluetab.net:dgs-core/true-dat/front-end/td-web-modules.git
             git clone git@gitlab.bluetab.net:dgs-core/true-dat/front-end/td-web.git
 
-            cd "$USER_HOME/workspace/truedat/"
+            cd $TRUEDAT_ROOT_PATH
             git clone git@gitlab.bluetab.net:dgs-core/true-dat/true-dev.git
             cd true-dev
             sudo sysctl -w vm.max_map_count=262144
@@ -573,21 +557,74 @@ install(){
             print_message "Truedat descargado" "$COLOR_SUCCESS" 3 "before"                  
 
             update_repositories "-a"
-            
-            if [ "$USE_KONG" = true ]; then            
-                install_docker "$USE_KONG"
-                kong_routes
-            fi
-            
-            
-
             link_web_modules
             ddbb "-du"
+            config_kong_use           
+            
+            touch "/tmp/truedat_installation"
+            print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3
 
-            cd "~/workspace/truedat/front/td-web"
+        else
+            print_message "- Claves SSH (NO CREADAS): Tienes que tener creada una clave SSH (el script chequea que la clave se llame 'truedat') en la carpeta ~/.ssh"  "$COLOR_ERROR" 3 "before"
+            print_message "RECUERDA que tiene que estar registrada en el equipo y en Gitlab. Si no, debes crearla con 'trus -cr' y registarla en la web'"  "$COLOR_WARNING" 3 "after" 
+        fi
+    else
+        print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3
+    fi        
+     
+}
+
+config_kong_use(){
+        cd "~/workspace/truedat/front/td-web"
             
-            touch "./dev.config.js"
+        print_message "¿Quieres utilizar Kong o que sea td-web quien enrute? (S/N)" "$COLOR_PRIMARY" 1
+        read -r install_kong
+
+        continue_install_kong=$(normalize_text "$install_kong")
+
+        if [ ! "$continue_install_kong" = "" ] || [ "$continue_install_kong" = "si" ] || [ "$continue_install_kong" = "s" ] || [ "$continue_install_kong" = "y" ] || [ "$continue_install_kong" = "yes" ]; then            
+            {
+                echo 'USE_KONG=true'
+            } >> $TRUS_PATH_CONFIG 
+        else
+            {
+                echo 'USE_KONG=false'
+            } >> $TRUS_PATH_CONFIG 
+        fi 
+
+        source $TRUS_PATH_CONFIG
+
+        touch $TD_WEB_DEV_CONFIG
+        
+        if [[ "$USE_KONG" = "true" ]]; then
+            install_docker
             
+            cd "$USER_HOME/workspace/truedat/back"                  
+            git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/kong-setup.git
+
+            kong_routes
+
+            # target: "https://test.truedat.io:443",       -> Se utilizarán los servicios del entorno test
+            # target: "http://localhost:8000",             -> Se utilizarán los servicios de nuestro local
+            {
+                echo 'module.exports = {'
+                echo '  devServer: {'
+                echo '    historyApiFallback: true,'
+                echo ''
+                echo '    proxy: {'
+                echo '      "/api": {'
+                echo '        target: "http://localhost:8000",'
+                echo '        secure: true,'
+                echo '        changeOrigin: true,'
+                echo '      },'
+                echo '      "/callback": {'
+                echo '        target: "http://localhost:8000",'
+                echo '      },'
+                echo '    },'
+                echo '  },'
+                echo '};'
+            }
+        else
             {
                 echo 'const target = host => ({'
                 echo '  target: host,'
@@ -750,22 +787,10 @@ install(){
                 echo '    }'
                 echo '  }'
                 echo '};'
-            } > "./dev.config.js"
-           
-            
-            touch "/tmp/truedat_installation"
-            print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3
-
-        else
-            print_message "- Claves SSH (NO CREADAS): Tienes que tener creada una clave SSH (el script chequea que la clave se llame 'truedat') en la carpeta ~/.ssh"  "$COLOR_ERROR" 3 "before"
-            print_message "RECUERDA que tiene que estar registrada en el equipo y en Gitlab. Si no, debes crearla con 'trus -cr' y registarla en la web'"  "$COLOR_WARNING" 3 "after" 
+            } > $TD_WEB_DEV_CONFIG
         fi
-    else
-        print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3
-    fi        
-     
 }
- 
+
 ddbb(){
     local options=$1
     backup_path=""
@@ -822,7 +847,7 @@ reindex_one() {
     local service=$1
     local SILENT=${2:-""}  
 
-    cd "$BACKPATH/td-$service"
+    cd "$BACK_PATH/td-$service"
     print_message "Reindexando servicios de td-$service" "$COLOR_PRIMARY" 1 
 
     case "$service" in        
@@ -925,6 +950,8 @@ create_ssh(){
         eval "yes | ssh-keygen -t ed25519 -f $SSH_PRIVATE_FILE -q -N \"\" $REDIRECT"
         print_message "Clave creada correctamente"  "$COLOR_SUCCESS" 3 "before"
         
+        #Este eval está porque si se instala el entorno en el WSL de windows, el agente no se mantiene levantado
+        #En linux no es necesario pero no molesta 
         eval "$(ssh-agent -s)"        
         ssh_add_result=$(ssh-add $SSH_PRIVATE_FILE 2>&1)        
 
@@ -981,10 +1008,10 @@ link_web_modules(){
 
     if [ "$continue_relink" = "si" ] || [ "$continue_relink" = "s" ] || [ "$continue_relink" = "y" ] || [ "$continue_relink" = "yes" ]; then            
         for d in "${FRONT_PACKAGES[@]}"; do
-            cd "$FRONTPATH/td-web-modules/packages/$d"
+            cd "$FRONT_PATH/td-web-modules/packages/$d"
             eval "yarn unlink $REDIRECT"
             eval "yarn link $REDIRECT"
-            cd "$FRONTPATH/td-web"
+            cd "$FRONT_PATH/td-web"
             yarn link "@truedat/$d"
         done
     fi 
@@ -1098,7 +1125,7 @@ start_containers(){
     print_header "Contenedores"
     print_semiheader "Arrancando..."
     
-    cd "$DEVPATH"
+    cd "$DEV_PATH"
     
     for container in "${CONTAINERS[@]}"; do        
         if [[ "$USE_KONG" = true ]] || { [[ "$USE_KONG" = false ]] && [[ "$container" != "kong" ]]; }; then
@@ -1110,7 +1137,7 @@ start_containers(){
 stop_docker(){
     print_header "Contenedores"
     print_semiheader "Apagando..."
-    cd "$DEVPATH"
+    cd "$DEV_PATH"
 
     for container in "${CONTAINERS[@]}"; do
         docker-compose down "${container}"    
@@ -1129,7 +1156,7 @@ start_services(){
     done
  
     for SERVICE in "${SERVICES_TO_START[@]}"; do        
-        screen -h 10000 -mdS "$SERVICE" bash -c "cd $BACKPATH/$SERVICE && iex --sname ${SERVICE#td-} -S mix phx.server" 
+        screen -h 10000 -mdS "$SERVICE" bash -c "cd $BACK_PATH/$SERVICE && iex --sname ${SERVICE#td-} -S mix phx.server" 
     done
 
     print_message "Servicios arrancados:" "$COLOR_PRIMARY" 1
@@ -1137,7 +1164,7 @@ start_services(){
 }
 
 start_front(){
-    cd "$FRONTPATH"/td-web
+    cd "$FRONT_PATH"/td-web
     yarn start     
 }
 
@@ -1196,7 +1223,7 @@ start_truedat() {
 
             SERVICE="${TMUX_SERVICES[$i]}"
             SERVICE_NAME="td-${SERVICE}"
-            COMMAND="cd $BACKPATH/$SERVICE_NAME && iex --sname ${SERVICE} -S mix phx.server"
+            COMMAND="cd $BACK_PATH/$SERVICE_NAME && iex --sname ${SERVICE} -S mix phx.server"
             
             add_terminal_to_tmux_session "$i" "$COMMAND"
         done    
@@ -1711,7 +1738,7 @@ check_parameters() {
 #########################################
 
 # para mostrar mensajes, descomentar el false, para que solo salgan los mensajes propios de trus, comentarlo (o poner true)
-source tools "Truedat Utils (TrUs)" "" "DOT" true "$HEADER_LOGO" "trus"
+source tools "Truedat Utils (TrUs)" "" "DOT" false "$HEADER_LOGO" "trus"
 source $TRUS_PATH_CONFIG
 
 set_vars
