@@ -317,6 +317,7 @@ print_message() {
     local tabs=${3:-0}
     local new_line_before_or_after=${4:-"normal"}
     local transformed_color=$(get_color "$color")
+    local transformed_no_color=$(get_color "$NO_COLOR")
 
     for ((i = 1; i <= tabs; i++)); do
         message="\t"$message
@@ -325,7 +326,7 @@ print_message() {
     if [ ! "$SIMPLE_ECHO" = "" ]; then
         echo -ne "$message\n"
     else
-        message=$transformed_color$message
+        message=$transformed_color$message$transformed_no_color
 
         if [ "$new_line_before_or_after" = "after" ]; then
             message="$message\n\n"
@@ -470,9 +471,9 @@ print_menu() {
     fi
 
     printf '%s\n' "${items[@]}" | fzf \
-        --height="$((${#items[@]} + 6))" \
+        --height="$((${#items[@]} + 16))" \
         --border \
-        --margin=0,5 \
+        --margin=0,3 \
         --padding=1 \
         --layout=reverse \
         --preview="$HELP_SCRIPT" \
