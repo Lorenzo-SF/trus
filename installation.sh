@@ -356,14 +356,15 @@ trus_config(){
     {
         echo 'TERMINAL_WIDTH=40'
         echo 'TERMINAL_HEIGHT=135'
-        echo 'COLOR_PRIMARY="8D9B43"'
-        echo 'COLOR_SECONDARY="945296"'
-        echo 'COLOR_TERNARY="E6B77D"'
-        echo 'COLOR_QUATERNARY="2F5266"'
-        echo 'COLOR_SUCCESS="9DED32"'
-        echo 'COLOR_WARNING="EDDE32"'
-        echo 'COLOR_ERROR="ED5732"   '
-        echo 'COLOR_BACKRGROUND="305367"'
+        echo 'NO_COLOR="FFFCE2"'
+        echo 'COLOR_PRIMARY="BED5E8"'
+        echo 'COLOR_SECONDARY="DEE0B7"'
+        echo 'COLOR_TERNARY="937F5F"'
+        echo 'COLOR_QUATERNARY="808F9C"'
+        echo 'COLOR_SUCCESS="10C90A"'
+        echo 'COLOR_WARNING="FFCE00"'
+        echo 'COLOR_ERROR="C90D0A"   '
+        echo 'COLOR_BACKRGROUND="324F69"'
         echo 'BASH_PATH_CONFIG=~/.bashrc'
         echo 'ZSH_PATH_CONFIG=~/.zshrc'
         echo 'TMUX_PATH_CONFIG=~/.tmux.conf'
@@ -371,6 +372,7 @@ trus_config(){
         echo 'INSTALLATION_PACKAGES="redis-tools screen tmux unzip curl vim build-essential git libssl-dev automake autoconf libncurses5 libncurses5-dev awscli docker.io postgresql-client-14 jq gedit xclip google-chrome-stable code snapd xdotool x11-utils"'
         echo 'INSTALLATION_PACKAGES_EXTRA="winehq-stable gdebi-core libvulkan1 libvulkan1:i386 fonts-powerline plymouth plymouth-themes ckb-next pavucontrol gnome-boxes virt-manager stress bluez bluez-tools tlp lm-sensors psensor"'
         echo 'HIDE_OUTPUT=false'
+        echo 'USE_KONG=false'
     } > $PATH_GLOBAL_CONFIG 
 }
 
@@ -409,7 +411,7 @@ main_menu(){
     print_header
     local option=$(print_menu "${INSTALL_OPTIONS[@]}")
     
-    option=$(extract_start_option "$option")
+    option=$(extract_option "$option")
 
     case "$option" in
         "1")            
@@ -465,12 +467,8 @@ main_menu(){
 
 help(){
     local option=$1
-    case $option in
-        "0")
-            print_message "Selecciona una opción" "$COLOR_SECONDARY"
-            ;;
-
-        "1")
+    case $option in        
+        1)
             print_message "Instalación de paquetes:" "$COLOR_SECONDARY"
             
             for package in "${INSTALLATION_PACKAGES[@]}"; do     
@@ -478,7 +476,7 @@ help(){
             done     
             ;;
 
-        "2")
+        2)
             print_message "Instalación de paquetes extra:" "$COLOR_SECONDARY"
             
             for package in "${INSTALLATION_PACKAGES_EXTRA[@]}"; do     
@@ -486,35 +484,35 @@ help(){
             done     
             ;;
 
-        "3")
+        3)
             print_message "Instalación de la terminal ZSH y Oh My Zsh." "$COLOR_SECONDARY"
             ;;
 
-        "4")
+        4)
             print_message "Modificación del prompt de Bash para añadirle nuevo estilo y la visualizacion de la rama de git." "$COLOR_SECONDARY"
             ;;
 
-        "5")
+        5)
             print_message "Modificación de la animacion de la animación de arranque del SO (solo linux)." "$COLOR_SECONDARY"
             ;;
 
-        "6")
+        6)
             print_message "Creación de los archivos de confiuración de ZSH, TMUX y TLP" "$COLOR_SECONDARY"
             ;;
 
-        "7")
+        7)
             print_message "Modificación del tamaño del archivo de intercambio. Se crea con un tamaño del 150% de la RAM actual del equipo." "$COLOR_SECONDARY"
             ;;
 
-        "8")
+        8)
             print_message "Instalación de Truedat Utils (TrUs)." "$COLOR_SECONDARY"
             ;;
 
-        "9")
+        9)
             print_message "Instalación completa. Se lanzan todas las opciones." "$COLOR_SECONDARY"
             ;;
 
-        "volver")
+        volver)
             print_message "Vuelve al menú anterior" "$COLOR_PRIMARY"
             ;;
 
@@ -533,7 +531,7 @@ help(){
 #########################################
 
 variables
-
+source tools "Bienvenido al equipo de Core de Truedat" "Preparación del entorno" "DOT" "$HIDE_OUTPUT" "" "$0"
 
 if [ "$1" == "--help" ]; then
     help $2

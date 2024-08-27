@@ -1005,11 +1005,11 @@ deactivate_kong() {
     print_message "Se va a actualizar el archivo de configuracion para reflejar que se debe utilizar Kong a partir de ahora" "$COLOR_SECONDARY" 3
     print_message "Se va a borrar el proyecto de kong, que se encuentra en $BACK_PATH/kong-setup" "$COLOR_SECONDARY" 3
     print_message "Se va a eliminar los siguientes contenedores" "$COLOR_SECONDARY" 3
-    
+
     for container in "${CONTAINERS_SETUP[@]}"; do
         print_message "${container[@]}" "$COLOR_TERNARY" 4
     done
-    
+
     print_message "Kong" "$COLOR_TERNARY" 4
     print_message "Se va a actualizar el archivo $TD_WEB_DEV_CONFIG para que se encargue de enrutar td-web" "$COLOR_SECONDARY" 3
 
@@ -1359,166 +1359,165 @@ help() {
 
     case "$option" in
     "--start")
-        print_message "Arranca Truedat." "$COLOR_PRIMARY"
-        print_message "Levanta los contenedores de Docker, crea una sesion de Screen por servicio y arranca el frontal." "$COLOR_PRIMARY"
-        print_message "Todo en una sesion de Tmux" "$COLOR_PRIMARY"
+        print_message "Arranca Truedat." "$COLOR_SECONDARY"
+        print_message "Levanta los contenedores de Docker, crea una sesion de Screen por servicio y arranca el frontal." "$COLOR_SECONDARY"
+        print_message "Todo en una sesion de Tmux" "$COLOR_SECONDARY"
         ;;
 
     "--start-containers")
-        print_message "Levanta los contenedores de Docker de Truedat" "$COLOR_PRIMARY"
+        print_message "Levanta los contenedores de Docker de Truedat" "$COLOR_SECONDARY"
         ;;
 
     "--start-services")
-        print_message "Levanta los servicios de Truedat" "$COLOR_PRIMARY"
+        print_message "Levanta los servicios de Truedat" "$COLOR_SECONDARY"
         ;;
 
     "--stop-containers")
-        print_message "Para los servicios de Truedat" "$COLOR_PRIMARY"
+        print_message "Para los servicios de Truedat" "$COLOR_SECONDARY"
         ;;
 
     "--start-front")
-        print_message "Levanta el frontal de Docker de Truedat" "$COLOR_PRIMARY"
+        print_message "Levanta el frontal de Docker de Truedat" "$COLOR_SECONDARY"
         ;;
 
     "--start")
-        print_message "Levanta Truedat" "$COLOR_PRIMARY"
+        print_message "Levanta Truedat" "$COLOR_SECONDARY"
         ;;
 
     "--kill-truedat")
-        print_message "Mata las sesiones creadas con --start (Screen, Tmux) y los procesos de mix que haya" "$COLOR_PRIMARY"
+        print_message "Finaliza forzosamente todos los procesos lanzados para Truedat (screen, tmux, mix y yarn)" "$COLOR_SECONDARY"
         ;;
 
     "--install")
-        print_message "Instala Truedat en el equipo. " "$COLOR_PRIMARY"
+        print_message "Instala Truedat en el equipo. " "$COLOR_SECONDARY"
         ;;
 
     "--ddbb")
-        print_message "Operaciones de BDD:" "$COLOR_PRIMARY"
-        print_message "--download-test: Descarga SOLO el backup de la bdd de test" "$COLOR_SECONDARY" 1
-        print_message "--download-update: Además de descargar el backup de test, lo aplica a las bdd locales" "$COLOR_SECONDARY" 1
-        print_message "--local-update: Aplica a las bdd locales el backup de una carpeta indicada" "$COLOR_SECONDARY" 1
-        print_message "--local-backup: Crea un backup de la bdd local" "$COLOR_SECONDARY" 1
+        print_message "Operaciones de BDD:" "$COLOR_SECONDARY"
+        print_message "--download-test: Descarga SOLO el backup de la bdd de test" "$COLOR_TERNARY" 1
+        print_message "--download-update: Además de descargar el backup de test, lo aplica a las bdd locales" "$COLOR_TERNARY" 1
+        print_message "--local-update: Aplica a las bdd locales el backup de una carpeta indicada" "$COLOR_TERNARY" 1
+        print_message "--local-backup: Crea un backup de la bdd local" "$COLOR_TERNARY" 1
         ;;
 
     "--reindex")
-        print_message "Reindexa los indices de Elasticsearch." "$COLOR_PRIMARY"
+        print_message "Reindexa los indices de Elasticsearch." "$COLOR_SECONDARY"
         ;;
 
     "--update-repos")
-        print_message "Actualiza todos los repositorios de Truedat (front y back)." "$COLOR_PRIMARY"
-        print_message "--back" "$COLOR_SECONDARY" 1
-        print_message "--front" "$COLOR_SECONDARY" 1
-        print_message "--libs" "$COLOR_SECONDARY" 1
-        print_message "--all" "$COLOR_SECONDARY" 1
+        print_message "Actualiza todos los repositorios de Truedat." "$COLOR_SECONDARY"
+        print_message "--back" "$COLOR_TERNARY" 1
+        print_message "--front" "$COLOR_TERNARY" 1
+        print_message "--libs" "$COLOR_TERNARY" 1
+        print_message "--all" "$COLOR_TERNARY" 1
         ;;
 
     "--create-ssh")
-        print_message "Hace backup de las claves ssh existentes en ~/.ssh, crea unas nuevas y las registra" "$COLOR_PRIMARY"
+        print_message "Hace backup de las claves ssh existentes en ~/.ssh, crea unas nuevas y las registra" "$COLOR_SECONDARY"
         ;;
 
     "--kong")
-        print_message "Sección para la gestion de Kong" "$COLOR_PRIMARY"
+        print_message "Sección para la gestion de Kong" "$COLOR_SECONDARY"
         ;;
 
     "--kong-routes")
-        print_message "Actualiza las rutas de Kong (solo disponible si kong está habilitado)" "$COLOR_PRIMARY"
+        print_message "Actualiza las rutas de Kong (solo disponible si kong está habilitado)" "$COLOR_SECONDARY"
         ;;
 
     "--config-kong")
-        print_message "Habilita/deshabilita Kong (usar con cuidaito)" "$COLOR_PRIMARY"
+        print_message "Habilita/deshabilita Kong (usar con cuidaito)" "$COLOR_SECONDARY"
         ;;
 
     "--link-modules")
-        print_message "Linkea los modulos de td-web-modules con td-web" "$COLOR_PRIMARY"
+        print_message "Linkea los modulos de td-web-modules con td-web" "$COLOR_SECONDARY"
         ;;
 
     "--yarn-test")
-        print_message "Lanza los test del frontal paquete a paquete (EN CONSTRUCCION)" "$COLOR_PRIMARY"
+        print_message "Lanza los test del frontal paquete a paquete (EN CONSTRUCCION)" "$COLOR_SECONDARY"
         ;;
 
     "--load-structures")
-        print_message "Carga estructuras a partir de csv. Los parámetros son:" "$COLOR_PRIMARY"
-        print_message "<path>: Ruta de la carpeta de los csv. Debe haber 2, uno llamado 'relations.csv' y otro llamado 'structures.csv'" "$COLOR_SECONDARY" 2
-        print_message "<system>: El external id del sistema en Truedat" "$COLOR_SECONDARY" 2 "after"
+        print_message "Carga estructuras a partir de csv. Los parámetros son:" "$COLOR_SECONDARY"
+        print_message "<path>: Ruta de la carpeta de los csv. Debe haber 2, uno llamado 'relations.csv' y otro llamado 'structures.csv'" "$COLOR_TERNARY" 1
+        print_message "<system>: El external id del sistema en Truedat" "$COLOR_TERNARY" 1 "after"
         ;;
 
     "--load-lineage")
-        print_message "Carga linages a partir de csv. Los parámetros son:" "$COLOR_PRIMARY"
-        print_message "<path>: Ruta de la carpeta de los csv. Debe haber 2, uno llamado 'nodes.csv' y otro llamado 'rels.csv'" "$COLOR_SECONDARY" 2 "after"
-        print_message "--rest: " "$COLOR_SECONDARY" 1 "no"
+        print_message "Carga linages a partir de csv. Los parámetros son:" "$COLOR_SECONDARY"
+        print_message "<path>: Ruta de la carpeta de los csv. Debe haber 2, uno llamado 'nodes.csv' y otro llamado 'rels.csv'" "$COLOR_TERNARY" 1 "after"
         ;;
 
     "--attach")
-        print_message "Si se ha arrancado Truedat (con '-s' o '--start') entra en la session de tmux" "$COLOR_PRIMARY"
+        print_message "Si se ha arrancado Truedat (con '-s' o '--start') entra en la session de tmux" "$COLOR_SECONDARY"
         ;;
 
     "--detach")
-        print_message "Si se ha arrancado Truedat (con '-s' o '--start'), para salir de la sesion de tmux sin cerrarla " "$COLOR_PRIMARY"
+        print_message "Si se ha arrancado Truedat (con '-s' o '--start'), para salir de la sesion de tmux sin cerrarla " "$COLOR_SECONDARY"
         ;;
 
     "--rest")
-        print_message "Hace una llamada REST a un api de Truedat que necesite token de login" "$COLOR_PRIMARY"
-        print_message "<url>: URL del API" "$COLOR_SECONDARY" 2
-        print_message "<rest_method>: Verbo de la llamada del API" "$COLOR_SECONDARY" 2
-        print_message "<params>: Parámetros de la llamada (opcional)" "$COLOR_SECONDARY" 2 "after"
+        print_message "Hace una llamada REST a un api de Truedat que necesite token de login" "$COLOR_SECONDARY"
+        print_message "<url>: URL del API" "$COLOR_TERNARY" 1
+        print_message "<rest_method>: Verbo de la llamada del API" "$COLOR_TERNARY" 1
+        print_message "<params>: Parámetros de la llamada (opcional)" "$COLOR_TERNARY" 1 "after"
         ;;
 
     "--start-containers")
-        print_message "Levanta los contenedores de Truedat" "$COLOR_PRIMARY"
+        print_message "Levanta los contenedores de Truedat" "$COLOR_SECONDARY"
         ;;
 
     "--start-services")
-        print_message "Levanta los servicios de Truedat" "$COLOR_PRIMARY"
+        print_message "Levanta los servicios de Truedat" "$COLOR_SECONDARY"
         ;;
 
     "--start-front")
-        print_message "Levanta el frontal de Truedat" "$COLOR_PRIMARY"
+        print_message "Levanta el frontal de Truedat" "$COLOR_SECONDARY"
         ;;
 
     "--all")
-        print_message "Se lanzan todas las opciones abajo descritas." "$COLOR_PRIMARY"
-        print_message "Si se desea lanzar Truedat completo, pero se necesita visualizar terminales de servicios en concreto" "$COLOR_SECONDARY"
-        print_message "Hay que lanzar 'trus -s <servicio1>, <servicio2> ...' (sin el prefijo 'td-')" "$COLOR_SECONDARY"
+        print_message "Se lanzan todas las opciones." "$COLOR_SECONDARY"
+        print_message "Si se desea lanzar Truedat completo, pero se necesita visualizar terminales de servicios en concreto" "$COLOR_TERNARY"
+        print_message "Hay que lanzar 'trus -s <servicio1>, <servicio2> ...' (sin el prefijo 'td-')" "$COLOR_TERNARY"
         ;;
 
     "--download-test")
-        print_message "Descarga SOLO el backup de la bdd de test" "$COLOR_PRIMARY"
+        print_message "Descarga SOLO el backup de la bdd de test" "$COLOR_SECONDARY"
         ;;
 
     "--download-update")
-        print_message "Además de descargar el backup de test, lo aplica a las bdd locales" "$COLOR_PRIMARY"
+        print_message "Además de descargar el backup de test, lo aplica a las bdd locales" "$COLOR_SECONDARY"
         ;;
 
     "--local-update")
-        print_message "Aplica a las bdd locales el backup de una carpeta indicada" "$COLOR_PRIMARY"
+        print_message "Aplica a las bdd locales el backup de una carpeta indicada" "$COLOR_SECONDARY"
         ;;
 
     "--local-backup")
-        print_message "Crea un backup de la bdd local" "$COLOR_PRIMARY"
+        print_message "Crea un backup de la bdd local" "$COLOR_SECONDARY"
         ;;
 
     "--back")
-        print_message "Actualiza los repositorios de back" "$COLOR_PRIMARY"
+        print_message "Actualiza los repositorios de back" "$COLOR_SECONDARY"
         ;;
 
     "--front")
-        print_message "Actualiza los repositorios de front" "$COLOR_PRIMARY"
+        print_message "Actualiza los repositorios de front" "$COLOR_SECONDARY"
         ;;
 
     "--libs")
-        print_message "Actualiza los repositorios de librerias" "$COLOR_PRIMARY"
+        print_message "Actualiza los repositorios de librerias" "$COLOR_SECONDARY"
         ;;
 
     "--help")
-        print_message "Muestra la ayuda completa" "$COLOR_PRIMARY"
+        print_message "Muestra la ayuda completa" "$COLOR_SECONDARY"
         ;;
 
     "volver")
-        print_message "Vuelve al menú anterior" "$COLOR_PRIMARY"
+        print_message "Vuelve al menú anterior" "$COLOR_SECONDARY"
         ;;
 
     "salir")
-        print_message "Salir de TrUs" "$COLOR_PRIMARY"
+        print_message "Salir de TrUs" "$COLOR_SECONDARY"
         ;;
 
     "*" | "")
@@ -1548,7 +1547,7 @@ help() {
         print_message "Levanta el frontal de Truedat" "$COLOR_SECONDARY" 0 "after"
 
         print_message "-k | --kill: " "$COLOR_PRIMARY" 1 "no"
-        print_message "Mata las sesiones creadas con --start (Screen, Tmux) y los procesos de mix que haya" "$COLOR_SECONDARY" 0 "after"
+        print_message "Finaliza forzosamente todos los procesos lanzados para Truedat (screen, tmux, mix y yarn)" "$COLOR_SECONDARY" 0 "after"
 
         print_semiheader "Instalación, actualización y mantenimiento"
 
@@ -1573,7 +1572,7 @@ help() {
         print_message " -r: Borra los indices existentes antes de reindexar" "$COLOR_TERNARY" 2 "after"
 
         print_message "-ur | --update-repos: " "$COLOR_PRIMARY" 1 "no"
-        print_message "Actualiza todos los repositorios de Truedat (front y back)." "$COLOR_SECONDARY"
+        print_message "Actualiza todos los repositorios de Truedat." "$COLOR_SECONDARY"
         print_message "-b | --back | -f | --front | -l | --libs | -a | --all: Actualiza los repos indicados (Elegir una opción)" "$COLOR_TERNARY" 2 "after"
 
         print_semiheader "Importantes, pero no tanto"
@@ -1636,7 +1635,7 @@ main_menu() {
         repo_menu
         ;;
 
-    "--kill" | "--help")
+    "--º" | "--help")
         trus "$option"
         ;;
 

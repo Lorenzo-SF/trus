@@ -162,7 +162,7 @@ test_colores() {
 
     set_terminal_config "$background_color_test" "$foreground_color_test"
     print_header "$HEADER_MESSAGE"
-    print_message "MENSAJE PRUEBA COLORES => NO_COLOR"
+    print_message "MENSAJE PRUEBA COLORES => NO_COLOR" "$NO_COLOR"
     print_message "MENSAJE PRUEBA COLORES => COLOR_PRIMARY" "$COLOR_PRIMARY" 1
     print_message "MENSAJE PRUEBA COLORES => COLOR_SECONDARY" "$COLOR_SECONDARY" 2
     print_message "MENSAJE PRUEBA COLORES => COLOR_TERNARY" "$COLOR_TERNARY" 3 ""
@@ -383,10 +383,10 @@ print_header() {
     print_message "   &&&&                      &&&&&   ${HEADER_LOGO[2]}"
     print_message "   &&&                     &&& &&&   ${HEADER_LOGO[3]}   Usuario: $(echo "$(getent passwd $USER)" | cut -d ':' -f 5 | cut -d ',' -f 1) ($USER)"
     print_message "  &&&&                  &&&&&  &&&&  ${HEADER_LOGO[4]}   Equipo: $HOSTNAME"
-    print_message "  &&&&         &&&&&&&&&&&     &&&&  ${HEADER_LOGO[5]}   $DESCRIPTION_MESSAGE"
-    print_message "   &&&&&  &&&&&&&&&&         &&&&&   ${HEADER_LOGO[6]}"
-    print_message "    &&&&&&&&&&&            &&&&&&    $separador"
-    print_message "      &&&&&&&           &&&&&&       "
+    print_message "  &&&&         &&&&&&&&&&&     &&&&  ${HEADER_LOGO[5]}"
+    print_message "   &&&&&  &&&&&&&&&&         &&&&&   ${HEADER_LOGO[6]}   $DESCRIPTION_MESSAGE"
+    print_message "    &&&&&&&&&&&            &&&&&&    "
+    print_message "      &&&&&&&           &&&&&&       $separador"
     print_message "         &&&&&&&&   &&&&&&&&         "
     print_message "             &&&&&&&&&&&             "
     print_message "                 &&                  "
@@ -611,25 +611,19 @@ go_out_session() {
 #########################################
 # Otros
 
-extract_start_option() {
-    local text=$(normalize_text "$1")
+extract_option() {
+    local input="$1"
+    
+    # Usa cut para dividir la cadena en base al delimitador ' - ' y toma la primera parte
+    local first_value=$(echo "$input" | cut -d' ' -f1)
+    
+    # Verifica si la cadena contenía ' - ' para devolver la primera parte antes de ese delimitador
+    if [[ "$input" == *" - "* ]]; then
+        first_value=$(echo "$input" | cut -d' ' -f1)
+    fi
 
-
-    if [[ "$text" =~ ^([0-9]+)\ -.* ]] ||        
-       [[ "$text" =~ ^(--[a-zA-Z]+) ]] ||        
-       [[ "$text" =~ ^(--[a-zA-Z0-9-]+) ]] ||    
-       [[ "$text" =~ ^(volver)\ .* ]] ||         
-       [[ "$text" =~ ^(salir)\ .* ]]; then       
-
-        echo "${BASH_REMATCH[1]}"
-    else
-        echo "Opción no válida: $text"
-    fi    
+    echo "$first_value"
 }
-
-# Prueba de la función
-extract_start_option "1 - Instalacion de paquetes y dependencias"
-
 
 #########################################
 # Principal
