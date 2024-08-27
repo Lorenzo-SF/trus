@@ -588,15 +588,15 @@ config-kong() {
     print_message "¿Quién quieres que enrute, Kong(k) o td-web(w)? (k/w)" "$COLOR_PRIMARY" 1
     read -r install_kong
 
-    local local router=$(normalize_text "$install_kong")
+    local router=$(normalize_text "$install_kong")
 
-    if [ ! "$router" = "" ] || [ "$router" = "k" ]; then
-        activate_kong
-    fi
-
-    if [ ! "$router" = "" ] || [ "$router" = "w" ]; then
-        deactivate_kong
-    fi
+    if [ ! "$router" == "" ]; then
+        if [ "$router" == "k" ]; then
+            activate_kong
+        elif [ "$router" == "w" ]; then
+            deactivate_kong
+        fi
+    fi 
 }
 
 ddbb() {
@@ -948,7 +948,7 @@ activate_kong() {
     print_message "Se va a actualizar el archivo $TD_WEB_DEV_CONFIG para que apunte a Kong" "$COLOR_SECONDARY" 3
     print_message "Se van a actualizar las rutas de Kong" "$COLOR_SECONDARY" 3
 
-    print_message "¿Quieres habilitar Kong? (S/N)" "$COLOR_PRIMARY" 1
+    print_message "¿Quieres habilitar Kong? (S/N)" "$COLOR_WARNING" 3 "both"
     read -r activate
 
     local continue=$(normalize_text "$activate")
@@ -967,7 +967,7 @@ activate_kong() {
 
         # target: "https://test.truedat.io:443",       -> Se utilizarán los servicios del entorno test
         # target: "http://localhost:8000",             -> Se utilizarán los servicios de nuestro local
-        cd "~/workspace/truedat/front/td-web"
+        cd $FRONT_PATH
 
         touch $TD_WEB_DEV_CONFIG
 
@@ -1013,7 +1013,7 @@ deactivate_kong() {
     print_message "Kong" "$COLOR_TERNARY" 4
     print_message "Se va a actualizar el archivo $TD_WEB_DEV_CONFIG para que se encargue de enrutar td-web" "$COLOR_SECONDARY" 3
 
-    print_message "¿Quieres deshabilitar Kong? (S/N)" "$COLOR_PRIMARY" 1
+    print_message "¿Quieres deshabilitar Kong? (S/N)" "$COLOR_WARNING" 3 "both"
     read -r deactivate
 
     local continue=$(normalize_text "$deactivate")
@@ -1024,9 +1024,13 @@ deactivate_kong() {
 
         rm -f $BACK_PATH/kong_routes
 
-        docker rm $(docker ps -q --filter "name=kong")
+        local kong_id=$(docker ps -q --filter "name=kong")
 
-        cd "~/workspace/truedat/front/td-web"
+        stop_docker
+
+        docker rm $kong_id
+
+        cd $FRONT_PATH
 
         touch $TD_WEB_DEV_CONFIG
 
@@ -1206,7 +1210,7 @@ start_containers() {
 
     for container in "${CONTAINERS[@]}"; do
         if [[ "$USE_KONG" = true ]] || { [[ "$USE_KONG" = false ]] && [[ "$container" != "kong" ]]; }; then
-            docker-compose up -d "${container}"
+            eval "docker-compose up -d '${container}' $REDIRECT"            
         fi
     done
 }
@@ -1217,7 +1221,7 @@ stop_docker() {
     cd "$DEV_PATH"
 
     for container in "${CONTAINERS[@]}"; do
-        docker-compose down "${container}"
+        eval "docker stop '${container}' $REDIRECT"                    
     done
 }
 
