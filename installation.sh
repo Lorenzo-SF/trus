@@ -2,18 +2,18 @@
 
 variables(){
     SWAP_FILE="/swapfile"
-    SWAP_SIZE_MB=$(free --mega | awk '/^Mem:/ {print $2*2}')
+    SWAP_SIZE_MB=$(free --giga | awk '/^Mem:/ {print int($2 + ($2))}')
     USER_HOME=$(eval echo ~"$SUDO_USER")
-    TOOLS_DIRECTORY=$USER_HOME/.tools/
+    TRUS_DIRECTORY=$USER_HOME/.trus/
     
     TOOLS_ACTUAL_PATH=./tools.sh
-    TOOLS_PATH=$TOOLS_DIRECTORY/tools.sh
+    TOOLS_PATH=$TRUS_DIRECTORY/tools.sh
     TOOLS_LINK_PATH=/usr/local/bin/tools
 
     TRUS_ACTUAL_PATH=./trus.sh
-    TRUS_PATH=$TOOLS_DIRECTORY/trus.sh
+    TRUS_PATH=$TRUS_DIRECTORY/trus.sh
     TRUS_LINK_PATH="/usr/local/bin/trus"
-    TRUS_PATH_CONFIG=~/.trus.conf
+    PATH_GLOBAL_CONFIG=~/.trus.conf
  
     INSTALL_OPTIONS=(
         "Salir"
@@ -23,42 +23,52 @@ variables(){
         "4 - Actualizar prompt de BASH"
         "5 - Actualizar splash loader"
         "6 - Creación de archivos de configuracion (ZSH, TMUX y TLP)"
-        "7 - Actualizar la memoria SWAP (a $((SWAP_SIZE_MB / 1024))GB)"
+        "7 - Actualizar la memoria SWAP (a $SWAP_SIZE_MB GB)"
         "8 - Instala TrUs (Truedat Utils)"
         "9 - Todo"
-        )
+    )
+
+    if [ ! -d "$PATH_GLOBAL_CONFIG" ]; then        
+        trus_config
+    fi
 }
 
 install_tools(){
-    trus_config
-    
-    if [ ! -d "$TOOLS_DIRECTORY" ]; then
-        mkdir -p "$TOOLS_DIRECTORY" 
+    if [ ! -d "$TOOLS_LINK_PATH" ]; then        
+        if [ ! -d "$TRUS_DIRECTORY" ]; then
+            mkdir -p "$TRUS_DIRECTORY" 
+        fi
+
+        cp -f "$TOOLS_ACTUAL_PATH" "$TOOLS_PATH" 
+
+        sudo rm -f "$TOOLS_LINK_PATH"
+        sudo ln -s "$TOOLS_PATH" "$TOOLS_LINK_PATH" 
+        
+        if [ ! command -v fzf &> /dev/null ]; then
+            eval "git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf $REDIRECT"
+            ~/.fzf/install
+        fi
+        
+        eval "sudo apt install -qqq -y --install-recommends wmctrl $REDIRECT"  
+
+        sudo sh -c '{
+            echo "##################"
+            echo "# Añadido por trus"
+            echo "##################"
+            echo "127.0.0.1 localhost"
+            echo "127.0.0.1 $(uname -n).bluetab.net $(uname -n)"
+            echo "127.0.0.1 redis"
+            echo "127.0.0.1 postgres"
+            echo "127.0.0.1 elastic"
+            echo "127.0.0.1 kong"
+            echo "127.0.0.1 neo"
+            echo "127.0.0.1 vault"
+            echo "0.0.0.0 local"
+            echo "##################"
+            echo "# Añadido por trus"
+            echo "##################"
+        } >> /etc/hosts'
     fi
-
-    cp -f "$TOOLS_ACTUAL_PATH" "$TOOLS_PATH" 
-
-    sudo rm -f "$TOOLS_LINK_PATH"
-    sudo ln -s "$TOOLS_PATH" "$TOOLS_LINK_PATH" 
-    
-    if ! command -v fzf &> /dev/null; then
-        eval "git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf $REDIRECT"
-        ~/.fzf/install
-    fi
-    
-    eval "sudo apt install -y --install-recommends wmctrl $REDIRECT"  
-
-    sudo sh -c '{
-        echo "127.0.0.1 localhost"
-        echo "127.0.0.1 $(uname -n).bluetab.net $(uname -n)"
-        echo "127.0.0.1 redis"
-        echo "127.0.0.1 postgres"
-        echo "127.0.0.1 elastic"
-        echo "127.0.0.1 kong"
-        echo "127.0.0.1 neo"
-        echo "127.0.0.1 vault"
-        echo "0.0.0.0 local"
-    } > /etc/hosts'
 }
 
 install_trus(){
@@ -346,14 +356,14 @@ trus_config(){
     {
         echo 'TERMINAL_WIDTH=40'
         echo 'TERMINAL_HEIGHT=135'
-        echo 'COLOR_PRIMARY="32C5ED"'
-        echo 'COLOR_SECONDARY="ED8E32"'
-        echo 'COLOR_TERNARY="EDAA32"'
-        echo 'COLOR_QUATERNARY="5099AD"'
+        echo 'COLOR_PRIMARY="8D9B43"'
+        echo 'COLOR_SECONDARY="945296"'
+        echo 'COLOR_TERNARY="E6B77D"'
+        echo 'COLOR_QUATERNARY="2F5266"'
         echo 'COLOR_SUCCESS="9DED32"'
         echo 'COLOR_WARNING="EDDE32"'
         echo 'COLOR_ERROR="ED5732"   '
-        echo 'COLOR_BACKRGROUND="6E6B4E"'
+        echo 'COLOR_BACKRGROUND="305367"'
         echo 'BASH_PATH_CONFIG=~/.bashrc'
         echo 'ZSH_PATH_CONFIG=~/.zshrc'
         echo 'TMUX_PATH_CONFIG=~/.tmux.conf'
@@ -361,7 +371,7 @@ trus_config(){
         echo 'INSTALLATION_PACKAGES="redis-tools screen tmux unzip curl vim build-essential git libssl-dev automake autoconf libncurses5 libncurses5-dev awscli docker.io postgresql-client-14 jq gedit xclip google-chrome-stable code snapd xdotool x11-utils"'
         echo 'INSTALLATION_PACKAGES_EXTRA="winehq-stable gdebi-core libvulkan1 libvulkan1:i386 fonts-powerline plymouth plymouth-themes ckb-next pavucontrol gnome-boxes virt-manager stress bluez bluez-tools tlp lm-sensors psensor"'
         echo 'HIDE_OUTPUT=false'
-    } > $TRUS_PATH_CONFIG 
+    } > $PATH_GLOBAL_CONFIG 
 }
 
 configurations(){  
@@ -395,15 +405,11 @@ swap(){
     print_message "Memoria SWAP ampliada a $((SWAP_SIZE_MB / 1024))GB" "$COLOR_SUCCESS" 3 "both"
 }
  
-installation_main_menu(){
+main_menu(){
     print_header
     local option=$(print_menu "${INSTALL_OPTIONS[@]}")
     
-    if  [ "$option" = "Salir" ] || [ "$option" = "Volver" ]; then 
-        echo "$option"
-    else
-        option=$(extract_start_option "$option")
-    fi
+    option=$(extract_start_option "$option")
 
     case "$option" in
         "1")            
@@ -459,13 +465,16 @@ installation_main_menu(){
 
 help(){
     local option=$1
-
     case $option in
+        "0")
+            print_message "Selecciona una opción" "$COLOR_SECONDARY"
+            ;;
+
         "1")
             print_message "Instalación de paquetes:" "$COLOR_SECONDARY"
             
             for package in "${INSTALLATION_PACKAGES[@]}"; do     
-                print_message "- $package" "$COLOR_TERNARY" 2
+                print_message "- $package" "$COLOR_TERNARY" 1
             done     
             ;;
 
@@ -473,15 +482,15 @@ help(){
             print_message "Instalación de paquetes extra:" "$COLOR_SECONDARY"
             
             for package in "${INSTALLATION_PACKAGES_EXTRA[@]}"; do     
-                print_message "- $package" "$COLOR_TERNARY" 2
+                print_message "- $package" "$COLOR_TERNARY" 1
             done     
             ;;
 
-       "3")
+        "3")
             print_message "Instalación de la terminal ZSH y Oh My Zsh." "$COLOR_SECONDARY"
             ;;
 
-       "4")
+        "4")
             print_message "Modificación del prompt de Bash para añadirle nuevo estilo y la visualizacion de la rama de git." "$COLOR_SECONDARY"
             ;;
 
@@ -494,17 +503,25 @@ help(){
             ;;
 
         "7")
-            print_message "Instalación de Truedat Utils (TrUs)." "$COLOR_SECONDARY"
+            print_message "Modificación del tamaño del archivo de intercambio. Se crea con un tamaño del 150% de la RAM actual del equipo." "$COLOR_SECONDARY"
             ;;
 
         "8")
-            print_message "Modificación del tamaño del archivo de intercambio. Se configura al doble del tamaño de la ram del equipo." "$COLOR_SECONDARY"
+            print_message "Instalación de Truedat Utils (TrUs)." "$COLOR_SECONDARY"
             ;;
 
         "9")
             print_message "Instalación completa. Se lanzan todas las opciones." "$COLOR_SECONDARY"
             ;;
 
+        "volver")
+            print_message "Vuelve al menú anterior" "$COLOR_PRIMARY"
+            ;;
+
+        "salir")
+            print_message "Salir de TrUs" "$COLOR_PRIMARY"
+            ;;
+            
         "*" | "")
             print_message "Introduzca una opción válida." "$COLOR_SECONDARY"
             ;;
@@ -517,11 +534,11 @@ help(){
 
 variables
 
-install_tools
 
-source tools "Bienvenido al equipo de Core de Truedat" "Preparación del entorno" "DOT" $HIDE_OUTPUT "" "$0"
-
-set_terminal_config
-
-    help $((extract_start_option "$2"))
-    installation_main_menu
+if [ "$1" == "--help" ]; then
+    help $2
+else
+    install_tools
+    set_terminal_config
+    main_menu
+fi

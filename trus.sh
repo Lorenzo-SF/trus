@@ -4,23 +4,23 @@
 ####   Variables Configuracion
 #########################################
 
-general_vars(){
+general_vars() {
     #########################################
     # General
-    
+
     DATE_NOW=$(date +%Y%m%d_%H%M%S)
     USER_HOME=$(eval echo ~"$SUDO_USER")
     TRUS_INSTALLATION_PATH=$USER_HOME/.tools
-    TRUS_PATH_CONFIG=$USER_HOME/.trus.conf
+    PATH_GLOBAL_CONFIG=$USER_HOME/.trus.conf
     TRUS_PATH=$TRUS_INSTALLATION_PATH/trus.sh
-    HEADER_LOGO=(   "  _________   ______     __  __    ______       "
-                    " /________/\ /_____/\   /_/\/_/\  /_____/\      "
-                    " \__.::.__\/ \:::_ \ \  \:\ \:\ \ \::::_\/_     "
-                    "     \::\ \   \:(_) ) )  \:\ \:\ \ \:\/___/\    "
-                    "      \::\ \   \: __ ´\ \ \:\ \:\ \ \_::._\:\   "
-                    "       \::\ \   \ \ ´\ \ \ \:\_\:\ \  /____\:\  "
-                    "        \__\/    \_\/ \_\/  \_____\/  \_____\/  "
-                )
+    HEADER_LOGO=("  _________   ______     __  __    ______       "
+        " /________/\ /_____/\   /_/\/_/\  /_____/\      "
+        " \__.::.__\/ \:::_ \ \  \:\ \:\ \ \::::_\/_     "
+        "     \::\ \   \:(_) ) )  \:\ \:\ \ \:\/___/\    "
+        "      \::\ \   \: __ ´\ \ \:\ \:\ \ \_::._\:\   "
+        "       \::\ \   \ \ ´\ \ \ \:\_\:\ \  /____\:\  "
+        "        \__\/    \_\/ \_\/  \_____\/  \_____\/  "
+    )
 
     MAIN_MENU_OPTIONS=(
         "Salir"
@@ -32,9 +32,9 @@ general_vars(){
         "Más..."
     )
 
-     SECONDARY_MENU_OPTIONS=(
+    SECONDARY_MENU_OPTIONS=(
         "Volver"
-        "--reindex"        
+        "--reindex"
         "--create-ssh"
         "--kong"
         "--link-modules"
@@ -43,7 +43,7 @@ general_vars(){
         "--load-lineage"
         "--rest"
         "--attach"
-        "--detach"        
+        "--detach"
     )
 
     START_MENU_SUBOPTIONS=(
@@ -69,7 +69,7 @@ general_vars(){
         "--front"
         "--libs"
     )
-    
+
     KONG_MENU_SUBOPTIONS=(
         "Volver"
         "--kong-routes"
@@ -77,8 +77,8 @@ general_vars(){
     )
 
 }
- 
-path_vars(){
+
+path_vars() {
     #########################################
     #  PATHS
 
@@ -89,7 +89,7 @@ path_vars(){
     WORKSPACE_PATH=$USER_HOME/workspace
     TRUEDAT_ROOT_PATH=$WORKSPACE_PATH/truedat
     BACK_PATH=$TRUEDAT_ROOT_PATH/back
-    FRONT_PATH=$TRUEDAT_ROOT_PATH/front 
+    FRONT_PATH=$TRUEDAT_ROOT_PATH/front
     DEV_PATH=$TRUEDAT_ROOT_PATH/true-dev
     KONG_PATH=$BACK_PATH/kong-setup/data
     DDBB_BACKUP_PATH=$TRUEDAT_ROOT_PATH"/ddbb_truedat/$DATE_NOW"
@@ -97,9 +97,9 @@ path_vars(){
     AWSCONFIG=~/.aws/config
     KUBECONFIG=~/.kube/config
     TD_WEB_DEV_CONFIG=$FRONT_PATH/td-web/dev.config.js
-}   
+}
 
-comands_and_context_vars(){
+comands_and_context_vars() {
     #########################################
     #  DATA
 
@@ -108,9 +108,9 @@ comands_and_context_vars(){
     #########################################
     # Tmux y Screen
 
-    TRUEDAT="truedat" 
+    TRUEDAT="truedat"
     TMUX_CONF=~/.tmux.conf
-    
+
     #########################################
     # kong
     DOCKER_LOCALHOST="172.17.0.1"
@@ -119,20 +119,18 @@ comands_and_context_vars(){
 
 }
 
-system_name_vars(){
+system_name_vars() {
     #########################################
     #  td_auth no se incluye para que no interfiera con los usuarios que tenemos creados ne local
 
-    DATABASES=("td_audit" "td_bg" "td_dd" "td_df" "td_ie" "td_lm" "td_i18n" "td_qx" "td_ai") 
+    DATABASES=("td_audit" "td_bg" "td_dd" "td_df" "td_ie" "td_lm" "td_i18n" "td_qx" "td_ai")
     INDEXES=("dd" "bg" "ie" "qx")
-
 
     #########################################
     #  DOCKER
 
     CONTAINERS=("elasticsearch" "redis" "kong" "redis_test" "vault")
-    CONTAINERS_SETUP=("kong_create" "kong_migrate" "kong_setup" )
-
+    CONTAINERS_SETUP=("kong_create" "kong_migrate" "kong_setup")
 
     #########################################
     #  PROJECTS
@@ -142,94 +140,93 @@ system_name_vars(){
     LIBRARIES=("td-cache" "td-cluster" "td-core" "td-df-lib")
 }
 
-set_vars(){
+set_vars() {
     general_vars
     path_vars
     comands_and_context_vars
     system_name_vars
 
     if [[ "$USE_KONG" = "" ]]; then
-        config-kong 
+        config-kong
     fi
 
 }
-
 
 #########################################
 ####       Operaciones
 #########################################
 
-update_services(){
+update_services() {
     local create_dbb=${1:-""}
-    
+
     print_semiheader "Actualizando servicios"
-    
+
     set_elixir_versions
 
-    for SERVICE in "${SERVICES[@]}"; do        
+    for SERVICE in "${SERVICES[@]}"; do
         cd "$BACK_PATH/$SERVICE"
-        
-        print_message "Actualizando $SERVICE" "$COLOR_SECONDARY" 2 "before" 
+
+        print_message "Actualizando $SERVICE" "$COLOR_SECONDARY" 2 "before"
         checkout "develop"
-        update_git 
-        
+        update_git
+
         compile_elixir "$create_dbb"
-    done 
+    done
 
     if [ -n "$create_ddbb" ]; then
-        trus -d -du        
+        trus -d -du
     fi
 }
 
-compile_elixir(){
+compile_elixir() {
     local create_ddbb=${1:-""}
- 
-    print_message_with_animation "Actualizando dependencias Elixir..."  "$COLOR_SECONDARY" 3
+
+    print_message_with_animation "Actualizando dependencias Elixir..." "$COLOR_SECONDARY" 3
     eval "mix deps.get --force $REDIRECT"
-    print_message "Actualizando dependencias Elixir (HECHO)" "$COLOR_SUCCESS" 3  
+    print_message "Actualizando dependencias Elixir (HECHO)" "$COLOR_SUCCESS" 3
 
     print_message_with_animation "Compilando Elixir..." "$COLOR_SECONDARY" 3
     eval "mix compile $REDIRECT"
-    print_message "Compilando Elixir (HECHO)" "$COLOR_SUCCESS" 3  
- 
+    print_message "Compilando Elixir (HECHO)" "$COLOR_SUCCESS" 3
+
     if [ ! "$create_ddbb" = "" ]; then
-        print_message_with_animation "Creando bdd..."  "$COLOR_SECONDARY" 3
+        print_message_with_animation "Creando bdd..." "$COLOR_SECONDARY" 3
         eval "yes | mix ecto.create $REDIRECT"
-        print_message "Creacion de bdd (HECHO)" "$COLOR_SUCCESS" 3  
+        print_message "Creacion de bdd (HECHO)" "$COLOR_SUCCESS" 3
     fi
 }
 
-update_libraries(){    
+update_libraries() {
     print_semiheader "Actualizando librerias"
 
     for LIBRARY in "${LIBRARIES[@]}"; do
-        print_message "Actualizando ${LIBRARY}" "$COLOR_TERNARY" 2 "before" 
+        print_message "Actualizando ${LIBRARY}" "$COLOR_TERNARY" 2 "before"
 
         cd "$BACK_PATH/$LIBRARY"
-        
+
         checkout "main"
         update_git
         compile_elixir
 
         cd ..
-    done 
+    done
 }
 
-update_web(){
+update_web() {
     cd "$FRONT_PATH/td-web"
-    
+
     print_semiheader "Actualizando frontal"
 
-    print_message "Actualizando td-web"  "$COLOR_QUATERNARY" 2 "before" 
+    print_message "Actualizando td-web" "$COLOR_QUATERNARY" 2 "before"
 
     checkout "develop"
     update_git
     compile_web
 
     cd ..
-      
+
     cd "$FRONT_PATH/td-web-modules"
-    print_message "Actualizando td-web-modules" "$COLOR_QUATERNARY" 2 "before" 
+    print_message "Actualizando td-web-modules" "$COLOR_QUATERNARY" 2 "before"
 
     checkout "main"
     update_git
@@ -238,39 +235,38 @@ update_web(){
     cd ..
 }
 
-yarn_test(){ 
+yarn_test() {
     local packages=("$@")
-    
+
     if [ ${#packages[@]} -eq 0 ]; then
         packages=$FRONT_PACKAGES
     fi
 
     for package in "${packages[@]}"; do
         print_header
-        
+
         cd $FRONT_PATH/td-web-modules/packages/$package
         yarn test
         sleep 2
-    done     
+    done
 }
-
 
 #########################################
 # ddbb
 
-download_test_backup(){
+download_test_backup() {
     print_header
     print_semiheader "Creación y descarga de backup de test "
-    
+
     local PSQL
 
-    PSQL=$(kubectl get pods -l run=psql -o name | cut -d/ -f2)    
+    PSQL=$(kubectl get pods -l run=psql -o name | cut -d/ -f2)
 
     mkdir -p "$DDBB_BACKUP_PATH"
 
-    print_message "Ruta de backup creada: $DDBB_BACKUP_PATH"  "$COLOR_SECONDARY" 1 "before" 
+    print_message "Ruta de backup creada: $DDBB_BACKUP_PATH" "$COLOR_SECONDARY" 1 "before"
     for DATABASE in "${DATABASES[@]}"; do
-        print_message "-->  Descargando $DATABASE"  "$COLOR_SECONDARY" 1 "before" 
+        print_message "-->  Descargando $DATABASE" "$COLOR_SECONDARY" 1 "before"
 
         local SERVICE_NAME="${DATABASE//_/-}"
         local SERVICE_PODNAME="${DATABASE//-/_}"
@@ -279,59 +275,59 @@ download_test_backup(){
         local FILENAME=$SERVICE_DBNAME".sql"
         local PASSWORD=$(kubectl --context ${CONTEXT} get secrets postgres -o json | jq -r '.data.PGPASSWORD' | base64 -d)
         local USER=$(kubectl --context ${CONTEXT} get secrets postgres -o json | jq -r '.data.PGUSER' | base64 -d)
- 
-        cd "$SERVICE_PATH"
-        print_message_with_animation "Creación de backup"  "$COLOR_SECONDARY" 2
-        kubectl --context ${CONTEXT} exec ${PSQL} -- bash -c "PGPASSWORD='${PASSWORD}' pg_dump -d ${SERVICE_PODNAME} -U ${USER} -f ${DATABASE}.sql -x -O"
-        print_message "Creación de backup (HECHO)"  "$COLOR_SUCCESS" 2  
 
-        print_message_with_animation "Descarga backup"  "$COLOR_SECONDARY" 2
+        cd "$SERVICE_PATH"
+        print_message_with_animation "Creación de backup" "$COLOR_SECONDARY" 2
+        kubectl --context ${CONTEXT} exec ${PSQL} -- bash -c "PGPASSWORD='${PASSWORD}' pg_dump -d ${SERVICE_PODNAME} -U ${USER} -f ${DATABASE}.sql -x -O"
+        print_message "Creación de backup (HECHO)" "$COLOR_SUCCESS" 2
+
+        print_message_with_animation "Descarga backup" "$COLOR_SECONDARY" 2
         eval "kubectl --context ${CONTEXT} cp \"${PSQL}:/${DATABASE}.sql\" \"./${FILENAME}\"  $REDIRECT"
-        print_message "Descarga backup (HECHO)"  "$COLOR_SUCCESS" 2  
+        print_message "Descarga backup (HECHO)" "$COLOR_SUCCESS" 2
 
         print_message " Backup descargado en $SERVICE_PATH/$FILENAME" "$COLOR_WARNING" 2
 
-        print_message_with_animation "Borrando fichero generado en el POD"  "$COLOR_SECONDARY" 2
+        print_message_with_animation "Borrando fichero generado en el POD" "$COLOR_SECONDARY" 2
         eval "kubectl --context \"${CONTEXT}\" exec \"${PSQL}\" -- rm \"/${DATABASE}.sql\"  $REDIRECT"
-        print_message "Borrando fichero generado en el POD (HECHO)"  "$COLOR_SUCCESS" 2  
+        print_message "Borrando fichero generado en el POD (HECHO)" "$COLOR_SUCCESS" 2
 
-        print_message_with_animation "Comentado de 'CREATE PUBLICATION'"  "$COLOR_SECONDARY" 2
+        print_message_with_animation "Comentado de 'CREATE PUBLICATION'" "$COLOR_SECONDARY" 2
         eval "sed -i 's/CREATE PUBLICATION/--CREATE PUBLICATION/g' \"./${FILENAME}\"  $REDIRECT"
-        print_message "Comentado de 'CREATE PUBLICATION' (HECHO)"  "$COLOR_SUCCESS" 2  
+        print_message "Comentado de 'CREATE PUBLICATION' (HECHO)" "$COLOR_SUCCESS" 2
 
-        print_message_with_animation "Moviendo fichero $FILENAME a backup"  "$COLOR_SECONDARY" 2
+        print_message_with_animation "Moviendo fichero $FILENAME a backup" "$COLOR_SECONDARY" 2
         eval "mv \"$FILENAME\" \"$DDBB_BACKUP_PATH\"  $REDIRECT"
-        print_message "Moviendo fichero $FILENAME a backup (HECHO)" "$COLOR_SUCCESS" 2  
-    done   
+        print_message "Moviendo fichero $FILENAME a backup (HECHO)" "$COLOR_SUCCESS" 2
+    done
 
-    print_message "Descarga de backup de test terminada" "$COLOR_SUCCESS" 3 "both"  
+    print_message "Descarga de backup de test terminada" "$COLOR_SUCCESS" 3 "both"
 }
 
-update_ddbb(){
+update_ddbb() {
     local FILENAME=$1
     local SERVICE_DBNAME=$2
- 
-    print_message_with_animation " Borrado de bdd $SERVICE_DBNAME"  "$COLOR_SECONDARY" 2
+
+    print_message_with_animation " Borrado de bdd $SERVICE_DBNAME" "$COLOR_SECONDARY" 2
     eval "mix ecto.drop $REDIRECT"
-    print_message " Borrado de bdd $SERVICE_DBNAME (HECHO)"  "$COLOR_SUCCESS" 2  
+    print_message " Borrado de bdd $SERVICE_DBNAME (HECHO)" "$COLOR_SUCCESS" 2
 
-    print_message_with_animation " Creacion de bdd $SERVICE_DBNAME"  "$COLOR_SECONDARY" 2
+    print_message_with_animation " Creacion de bdd $SERVICE_DBNAME" "$COLOR_SECONDARY" 2
     eval "mix ecto.create $REDIRECT"
-    print_message " Creacion de bdd $SERVICE_DBNAME (HECHO)"  "$COLOR_SUCCESS" 2  
+    print_message " Creacion de bdd $SERVICE_DBNAME (HECHO)" "$COLOR_SUCCESS" 2
 
-    print_message_with_animation " Volcado de datos del backup de test"  "$COLOR_SECONDARY" 2
+    print_message_with_animation " Volcado de datos del backup de test" "$COLOR_SECONDARY" 2
     eval "PGPASSWORD=postgres psql -d \"${SERVICE_DBNAME}\" -U postgres  -h localhost < \"${FILENAME}\" $REDIRECT"
-    print_message " Volcado de datos del backup de test (HECHO)"  "$COLOR_SUCCESS" 2  
+    print_message " Volcado de datos del backup de test (HECHO)" "$COLOR_SUCCESS" 2
 
-    print_message_with_animation " Aplicando migraciones"  "$COLOR_SECONDARY" 2
+    print_message_with_animation " Aplicando migraciones" "$COLOR_SECONDARY" 2
     eval "mix ecto.migrate $REDIRECT"
-    print_message " Aplicando migraciones (HECHO)" "$COLOR_SUCCESS" 2   
+    print_message " Aplicando migraciones (HECHO)" "$COLOR_SUCCESS" 2
 }
 
-update_ddbb_from_backup(){
+update_ddbb_from_backup() {
     local path_backup=$1
     local files=${path_backup}"/*"
-    
+
     print_header
     print_semiheader "Actualizando bdd desde el backup -> $path_backup"
 
@@ -344,21 +340,21 @@ update_ddbb_from_backup(){
 
         cd "$BACK_PATH"/"$SERVICE_NAME"
 
-        print_message "-->  Actualizando $SERVICE_DBNAME"  "$COLOR_SECONDARY" 1 "before" 
-        update_ddbb "$FILENAME" "$SERVICE_DBNAME" 
+        print_message "-->  Actualizando $SERVICE_DBNAME" "$COLOR_SECONDARY" 1 "before"
+        update_ddbb "$FILENAME" "$SERVICE_DBNAME"
     done
 
-    print_message "Actualizacion de bdd local terminada" "$COLOR_SUCCESS" 1  
+    print_message "Actualizacion de bdd local terminada" "$COLOR_SUCCESS" 1
 }
 
-get_local_backup_path(){
+get_local_backup_path() {
     print_header
     print_semiheader "Aplicando un backup de bdd desde una ruta de local"
 
     local contador=0
-    
+
     while [ $contador -lt 5 ]; do
-        print_message "Por favor, indica la carpeta donde está el backup que deseas aplicar" "$COLOR_SECONDARY" 1 "both" 
+        print_message "Por favor, indica la carpeta donde está el backup que deseas aplicar" "$COLOR_SECONDARY" 1 "both"
         read -r path_backup
 
         if [ -d "$path_backup" ]; then
@@ -373,28 +369,27 @@ get_local_backup_path(){
     done
 }
 
-create_backup_local_ddbb(){
+create_backup_local_ddbb() {
     print_header
     print_semiheader "Creando backup de la bdd"
 
     mkdir -p "$DDBB_LOCAL_BACKUP_PATH"
 
     cd "$DDBB_LOCAL_BACKUP_PATH"
-    
+
     for DATABASE in "${DATABASES[@]}"; do
         FILENAME=${DATABASE}"_dev.sql"
-        print_message_with_animation " Creación de backup de $DATABASE"  "$COLOR_SECONDARY" 2
-        PGPASSWORD=postgres pg_dump -U postgres -h localhost "${DATABASE}_dev"  > "${FILENAME}"
-        print_message " Creación de backup de $DATABASE (HECHO)"  "$COLOR_SUCCESS" 2  
-    done   
+        print_message_with_animation " Creación de backup de $DATABASE" "$COLOR_SECONDARY" 2
+        PGPASSWORD=postgres pg_dump -U postgres -h localhost "${DATABASE}_dev" >"${FILENAME}"
+        print_message " Creación de backup de $DATABASE (HECHO)" "$COLOR_SUCCESS" 2
+    done
     print_message " Backup creado en $DDBB_LOCAL_BACKUP_PATH" "$COLOR_WARNING" 1 "both"
 }
- 
 
 #########################################
 # Install
 
-install_docker(){
+install_docker() {
     aws ecr get-login-password --profile truedat --region eu-west-1 | docker login --username AWS --password-stdin 576759405678.dkr.ecr.eu-west-1.amazonaws.com
 
     set -e
@@ -402,16 +397,16 @@ install_docker(){
     cd "$DEV_PATH"
 
     ip=$(ip -4 addr show docker0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
-    echo SERVICES_HOST="$ip" > local_ip.env
+    echo SERVICES_HOST="$ip" >local_ip.env
     sudo chmod 666 /var/run/docker.sock
 
-    start_containers 
-    
-    print_message "Contenedores instalados y arrancados" "$COLOR_SECONDARY" 1 "before" 
+    start_containers
+
+    print_message "Contenedores instalados y arrancados" "$COLOR_SECONDARY" 1 "before"
 }
 
-set_elixir_versions(){
-    print_message_with_animation "Configurando versiones específicas de Elixir..."  "$COLOR_SECONDARY" 3
+set_elixir_versions() {
+    print_message_with_animation "Configurando versiones específicas de Elixir..." "$COLOR_SECONDARY" 3
     eval "cd $BACK_PATH/td-auth && asdf local elixir 1.14.5-otp-25 $REDIRECT"
     eval "cd $BACK_PATH/td-audit && asdf local elixir 1.14.5-otp-25 $REDIRECT"
     eval "cd $BACK_PATH/td-ai && asdf local elixir 1.15 $REDIRECT"
@@ -425,21 +420,20 @@ set_elixir_versions(){
     eval "cd $BACK_PATH/td-lm && asdf local elixir 1.14.5-otp-25 $REDIRECT"
     eval "cd $BACK_PATH/td-qx && asdf local elixir 1.14.5-otp-25 $REDIRECT"
     eval "cd $BACK_PATH/td-se && asdf local elixir 1.16 $REDIRECT"
-    print_message "Configurando versiones específicas de Elixir (HECHO)" "$COLOR_SUCCESS" 3 "both"  
+    print_message "Configurando versiones específicas de Elixir (HECHO)" "$COLOR_SUCCESS" 3 "both"
 }
-
 
 #########################################
 # Acciones Principales
 
-install(){
+install() {
     print_header
-    print_message "Guia de instalación: https://confluence.bluetab.net/pages/viewpage.action?pageId=136022683"  "$COLOR_QUATERNARY" 0 "before" 
-   
+    print_message "Guia de instalación: https://confluence.bluetab.net/pages/viewpage.action?pageId=136022683" "$COLOR_QUATERNARY" 0 "before"
+
     if [ ! -e "/tmp/truedat_installation" ]; then
         print_header
-       
-        if [ -f "$SSH_PUBLIC_FILE" ]; then 
+
+        if [ -f "$SSH_PUBLIC_FILE" ]; then
             print_message "ATENCIÓN, SE VA A SOLICITAR LA CONFIGURACIÓN DE AWS 2 VECES" "$COLOR_WARNING" 2 "before"
             print_message "Una para el perfil predeterminado y otra para el de truedat" "$COLOR_WARNING" 2 "both"
             print_message "Estos datos te los debe dar tu responsable" "$COLOR_SECONDARY" 2 "both"
@@ -448,8 +442,8 @@ install(){
                 aws configure
                 aws configure --profile truedat
                 aws ecr get-login-password --profile truedat --region eu-west-1 | docker login --username AWS --password-stdin 576759405678.dkr.ecr.eu-west-1.amazonaws.com
-                print_message "Configuración de aws (HECHO)" "$COLOR_SUCCESS" 3 "before"  
-            fi            
+                print_message "Configuración de aws (HECHO)" "$COLOR_SUCCESS" 3 "before"
+            fi
 
             if [ ! -e "~/.kube" ]; then
                 mkdir ~/.kube
@@ -504,32 +498,32 @@ install(){
                 echo '      - --cluster-name'
                 echo '      - test-truedat-eks'
                 echo '      command: aws               '
-            } > $KUBECONFIG
-            
-            print_message "Instalación de kubectl (HECHO)" "$COLOR_SUCCESS" 3 "both"      
-            
-            asdf plugin add erlang https://github.com/asdf-vm/asdf-erlang.git 
-            asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git 
-            asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git 
-            asdf plugin-add yarn 
-            KERL_BUILD_DOCS=yes asdf install erlang 25.3 
-            asdf install elixir 1.13.4 
-            asdf install elixir 1.14.5-otp-25 
-            asdf install elixir 1.15 
-            asdf install elixir 1.16 
-            asdf install nodejs 18.20.3 
-            asdf install yarn latest     
-            print_message "Instalando plugins y librerias de ASDF (HECHO)" "$COLOR_SUCCESS" 3 "before"      
+            } >$KUBECONFIG
+
+            print_message "Instalación de kubectl (HECHO)" "$COLOR_SUCCESS" 3 "both"
+
+            asdf plugin add erlang https://github.com/asdf-vm/asdf-erlang.git
+            asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git
+            asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
+            asdf plugin-add yarn
+            KERL_BUILD_DOCS=yes asdf install erlang 25.3
+            asdf install elixir 1.13.4
+            asdf install elixir 1.14.5-otp-25
+            asdf install elixir 1.15
+            asdf install elixir 1.16
+            asdf install nodejs 18.20.3
+            asdf install yarn latest
+            print_message "Instalando plugins y librerias de ASDF (HECHO)" "$COLOR_SUCCESS" 3 "before"
 
             asdf global erlang 25.3
             asdf global elixir 1.13.4
             asdf global nodejs 18.20.3
             asdf global yarn latest
-            print_message "Configurando ASDF (HECHO)" "$COLOR_SUCCESS" 3 "before"      
+            print_message "Configurando ASDF (HECHO)" "$COLOR_SUCCESS" 3 "before"
 
             #Este eval está porque si se instala el entorno en el WSL de windows, el agente no se mantiene levantado
-            #En linux no es necesario pero no molesta 
-            eval "$(ssh-agent -s)"        
+            #En linux no es necesario pero no molesta
+            eval "$(ssh-agent -s)"
             ssh-add $SSH_PRIVATE_FILE
 
             mkdir $WORKSPACE_PATH
@@ -568,61 +562,61 @@ install(){
             cd true-dev
             sudo sysctl -w vm.max_map_count=262144
             sudo cp elastic-search/999-map-count.conf /etc/sysctl.d/
-            print_message "Truedat descargado" "$COLOR_SUCCESS" 3 "before"                  
+            print_message "Truedat descargado" "$COLOR_SUCCESS" 3 "before"
 
             update_repositories "-a"
             link_web_modules
             ddbb "-du"
-            config-kong           
-            
+            config-kong
+
             touch "/tmp/truedat_installation"
             print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3
 
         else
-            print_message "- Claves SSH (NO CREADAS): Tienes que tener creada una clave SSH (el script chequea que la clave se llame 'truedat') en la carpeta ~/.ssh"  "$COLOR_ERROR" 3 "before"
-            print_message "RECUERDA que tiene que estar registrada en el equipo y en Gitlab. Si no, debes crearla con 'trus -cr' y registarla en la web'"  "$COLOR_WARNING" 3 "after" 
+            print_message "- Claves SSH (NO CREADAS): Tienes que tener creada una clave SSH (el script chequea que la clave se llame 'truedat') en la carpeta ~/.ssh" "$COLOR_ERROR" 3 "before"
+            print_message "RECUERDA que tiene que estar registrada en el equipo y en Gitlab. Si no, debes crearla con 'trus -cr' y registarla en la web'" "$COLOR_WARNING" 3 "after"
         fi
     else
         print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3
-    fi        
-     
+    fi
+
 }
 
-config-kong(){
-        print_header
-        print_semiheader "Kong"
-        print_message "¿Quién quieres que enrute, Kong(k) o td-web(w)? (k/w)" "$COLOR_PRIMARY" 1
-        read -r install_kong
- 
-        local local router=$(normalize_text "$install_kong")
+config-kong() {
+    print_header
+    print_semiheader "Kong"
+    print_message "¿Quién quieres que enrute, Kong(k) o td-web(w)? (k/w)" "$COLOR_PRIMARY" 1
+    read -r install_kong
 
-        if [ ! "$router" = "" ] || [ "$router" = "k" ]; then
-            activate_kong
-        fi 
+    local local router=$(normalize_text "$install_kong")
 
-        if [ ! "$router" = "" ] || [ "$router" = "w" ]; then
-            deactivate_kong
-        fi 
+    if [ ! "$router" = "" ] || [ "$router" = "k" ]; then
+        activate_kong
+    fi
+
+    if [ ! "$router" = "" ] || [ "$router" = "w" ]; then
+        deactivate_kong
+    fi
 }
 
-ddbb(){
+ddbb() {
     local options=$1
     local backup_path=""
-     
-    if [ "$options" = "-d" ] || [ "$options" = "--download-test" ] || [ "$options" = "-du" ] || [ "$options" = "--download-update" ] ; then
+
+    if [ "$options" = "-d" ] || [ "$options" = "--download-test" ] || [ "$options" = "-du" ] || [ "$options" = "--download-update" ]; then
         download_test_backup
         backup_path=$DDBB_BACKUP_PATH
     fi
-        
-    if [ "$options" = "-lu" ] || [ "$options" = "--local-update" ] ; then
+
+    if [ "$options" = "-lu" ] || [ "$options" = "--local-update" ]; then
         get_local_backup_path
     fi
 
-    if [ "$options" = "-lb" ] || [ "$options" = "--local-backup" ] ; then
+    if [ "$options" = "-lb" ] || [ "$options" = "--local-backup" ]; then
         create_backup_local_ddbb
     fi
 
-    if { [ -d "$backup_path" ] && [ "$options" = "-du" ] || [ "$options" = "--download-update" ] || [ "$options" = "-lu" ] || [ "$options" = "--local-update" ]; } ; then
+    if { [ -d "$backup_path" ] && [ "$options" = "-du" ] || [ "$options" = "--download-update" ] || [ "$options" = "-lu" ] || [ "$options" = "--local-update" ]; }; then
         local continue_reindex
 
         remove_all_redis
@@ -631,107 +625,107 @@ ddbb(){
 
         print_message "Se ha realizado la actualizacion de las bbdd correctamente. Es recomendable reindexar ¿deseas hacerlo? (S/N)" "$COLOR_PRIMARY" 1
         read -r reindex
- 
+
         local continue_reindex=$(normalize_text "$reindex")
 
         if [ "$continue_reindex" = "si" ] || [ "$continue_reindex" = "s" ] || [ "$continue_reindex" = "y" ] || [ "$continue_reindex" = "yes" ]; then
             reindex_all
-        fi 
-    fi  
+        fi
+    fi
 }
 
-reindex_all(){
-    local remove_all_indexes=${1:-""}  
-    print_header               
-    
+reindex_all() {
+    local remove_all_indexes=${1:-""}
+    print_header
+
     remove_all_index "$remove_all_indexes"
 
     for service in "${INDEXES[@]}"; do
         local normalized_service
-        
+
         normalized_service=$(normalize_text "$service")
 
         reindex_one "$normalized_service" "$SILENT"
-    done     
+    done
 }
 
 reindex_one() {
     local service=$1
-    local SILENT=${2:-""}  
+    local SILENT=${2:-""}
 
     cd "$BACK_PATH/td-$service"
-    print_message "Reindexando servicios de td-$service" "$COLOR_PRIMARY" 1 
+    print_message "Reindexando servicios de td-$service" "$COLOR_PRIMARY" 1
 
-    case "$service" in        
-        "dd" )            
-            print_message_with_animation " Reindexando :jobs" "$COLOR_SECONDARY" 2 
-            eval "mix run -e \"TdCore.Search.Indexer.reindex(:jobs, :all)\" $REDIRECT"
-            print_message " Reindexando :jobs (HECHO)"  "$COLOR_SUCCESS" 2
+    case "$service" in
+    "dd")
+        print_message_with_animation " Reindexando :jobs" "$COLOR_SECONDARY" 2
+        eval "mix run -e \"TdCore.Search.Indexer.reindex(:jobs, :all)\" $REDIRECT"
+        print_message " Reindexando :jobs (HECHO)" "$COLOR_SUCCESS" 2
 
-            print_message_with_animation " Reindexando :structures"  "$COLOR_SECONDARY" 2  
-            eval "mix run -e \"TdCore.Search.Indexer.reindex(:structures, :all)\" $REDIRECT"
-            print_message " Reindexando :structures (HECHO)"  "$COLOR_SUCCESS" 2
+        print_message_with_animation " Reindexando :structures" "$COLOR_SECONDARY" 2
+        eval "mix run -e \"TdCore.Search.Indexer.reindex(:structures, :all)\" $REDIRECT"
+        print_message " Reindexando :structures (HECHO)" "$COLOR_SUCCESS" 2
 
-            print_message_with_animation " Reindexando :grants"  "$COLOR_SECONDARY" 2 
-            eval "mix run -e \"TdCore.Search.Indexer.reindex(:grants, :all)\" $REDIRECT"
-            print_message " Reindexando :grants (HECHO)"  "$COLOR_SUCCESS" 2
+        print_message_with_animation " Reindexando :grants" "$COLOR_SECONDARY" 2
+        eval "mix run -e \"TdCore.Search.Indexer.reindex(:grants, :all)\" $REDIRECT"
+        print_message " Reindexando :grants (HECHO)" "$COLOR_SUCCESS" 2
 
-            print_message_with_animation " Reindexando :grant_requests" "$COLOR_SECONDARY" 2 
-            eval "mix run -e \"TdCore.Search.Indexer.reindex(:grant_requests, :all)\" $REDIRECT"
-            print_message " Reindexando :grant_requests (HECHO)"  "$COLOR_SUCCESS" 2
+        print_message_with_animation " Reindexando :grant_requests" "$COLOR_SECONDARY" 2
+        eval "mix run -e \"TdCore.Search.Indexer.reindex(:grant_requests, :all)\" $REDIRECT"
+        print_message " Reindexando :grant_requests (HECHO)" "$COLOR_SUCCESS" 2
 
-            print_message_with_animation " Reindexando :implementations"  "$COLOR_SECONDARY" 2   
-            eval "mix run -e \"TdCore.Search.Indexer.reindex(:implementations, :all)\" $REDIRECT"
-            print_message " Reindexando :implementations (HECHO)"  "$COLOR_SUCCESS" 2
+        print_message_with_animation " Reindexando :implementations" "$COLOR_SECONDARY" 2
+        eval "mix run -e \"TdCore.Search.Indexer.reindex(:implementations, :all)\" $REDIRECT"
+        print_message " Reindexando :implementations (HECHO)" "$COLOR_SUCCESS" 2
 
-            print_message_with_animation " Reindexando :rules"  "$COLOR_SECONDARY" 2 
-            eval "mix run -e \"TdCore.Search.Indexer.reindex(:rules, :all)\" $REDIRECT"
-            print_message " Reindexando :rules (HECHO)" "$COLOR_SUCCESS" 2 "after"
+        print_message_with_animation " Reindexando :rules" "$COLOR_SECONDARY" 2
+        eval "mix run -e \"TdCore.Search.Indexer.reindex(:rules, :all)\" $REDIRECT"
+        print_message " Reindexando :rules (HECHO)" "$COLOR_SUCCESS" 2 "after"
 
-            ;;     
+        ;;
 
-        "bg" )            
-            print_message_with_animation " Reindexando :concepts"  "$COLOR_SECONDARY" 2 
-            eval "mix run -e \"TdCore.Search.Indexer.reindex(:concepts, :all)\" $REDIRECT"
-            print_message " Reindexando :concepts (HECHO)"  "$COLOR_SUCCESS" 2 "after"
-                                            
-            ;;
+    "bg")
+        print_message_with_animation " Reindexando :concepts" "$COLOR_SECONDARY" 2
+        eval "mix run -e \"TdCore.Search.Indexer.reindex(:concepts, :all)\" $REDIRECT"
+        print_message " Reindexando :concepts (HECHO)" "$COLOR_SUCCESS" 2 "after"
 
-        "ie" )            
-            print_message_with_animation " Reindexando :ingests"  "$COLOR_SECONDARY" 2   
-            eval "mix run -e \"TdCore.Search.Indexer.reindex(:ingests, :all)\" $REDIRECT"
-            print_message " Reindexando :ingests (HECHO)"  "$COLOR_SUCCESS" 2 "after"
-            
-            ;;
+        ;;
 
-        "qx" )            
-            print_message_with_animation " Reindexando :quality_controls"  "$COLOR_SECONDARY" 2   
-            eval "mix run -e \"TdCore.Search.Indexer.reindex(:quality_controls, :all)\" $REDIRECT"
-            print_message " Reindexando :quality_controls (HECHO)"  "$COLOR_SUCCESS" 2 "after"
+    "ie")
+        print_message_with_animation " Reindexando :ingests" "$COLOR_SECONDARY" 2
+        eval "mix run -e \"TdCore.Search.Indexer.reindex(:ingests, :all)\" $REDIRECT"
+        print_message " Reindexando :ingests (HECHO)" "$COLOR_SUCCESS" 2 "after"
 
-            ;;
+        ;;
+
+    "qx")
+        print_message_with_animation " Reindexando :quality_controls" "$COLOR_SECONDARY" 2
+        eval "mix run -e \"TdCore.Search.Indexer.reindex(:quality_controls, :all)\" $REDIRECT"
+        print_message " Reindexando :quality_controls (HECHO)" "$COLOR_SUCCESS" 2 "after"
+
+        ;;
 
     esac
 }
 
-kill_truedat(){
+kill_truedat() {
     #back - mix
     eval "pkill -9 mix $REDIRECT"
-    
+
     # back - tmux
     eval "tmux kill-server $REDIRECT"
-         
+
     # back - screen
     eval "screen -ls | grep -oP \"^\s*\K\d+\.(?=[^\t])\" | xargs -I {} screen -X -S {} quit $REDIRECT"
     eval "screen -wipe $REDIRECT"
-    
+
     # front
     eval "pkill -9 $(pgrep -f \"yarn\") $REDIRECT"
 
     print_header
 }
 
-create_ssh(){
+create_ssh() {
     local continue_ssh_normalized
     print_header
     print_centered_message "SE VA A PROCEDER HACER BACKUP DE LAS CLAVES '$TRUEDAT' ACTUALES, BORRAR LA CLAVE EXISTENTE Y CREAR UNA NUEVA HOMONIMA" "$COLOR_ERROR"
@@ -742,7 +736,7 @@ create_ssh(){
 
     if [ "$continue_ssh_normalized" = "si" ] || [ "$continue_ssh_normalized" = "s" ]; then
         cd $SSH_PATH
-        
+
         if [ -f "$SSH_PUBLIC_FILE" ] || [ -f "$SSH_PRIVATE_FILE" ]; then
             print_message "Haciendo backup del contenido de ~/.ssh..." "$COLOR_SECONDARY" 1
             mkdir -p "$SSH_BACKUP_FOLDER"
@@ -755,20 +749,20 @@ create_ssh(){
 
             if [ -f "$SSH_PRIVATE_FILE" ]; then
                 mv "$SSH_PRIVATE_FILE" "$SSH_BACKUP_FOLDER"
-                print_message "Guardado archivo: $SSH_PRIVATE_FILE" "$COLOR_TERNARY" 3 
-            fi    
+                print_message "Guardado archivo: $SSH_PRIVATE_FILE" "$COLOR_TERNARY" 3
+            fi
         fi
 
         eval "yes | ssh-keygen -t ed25519 -f $SSH_PRIVATE_FILE -q -N \"\" $REDIRECT"
-        print_message "Clave creada correctamente"  "$COLOR_SUCCESS" 3 "before"
-        
+        print_message "Clave creada correctamente" "$COLOR_SUCCESS" 3 "before"
+
         #Este eval está porque si se instala el entorno en el WSL de windows, el agente no se mantiene levantado
-        #En linux no es necesario pero no molesta 
-        eval "$(ssh-agent -s)"        
-        ssh_add_result=$(ssh-add $SSH_PRIVATE_FILE 2>&1)        
+        #En linux no es necesario pero no molesta
+        eval "$(ssh-agent -s)"
+        ssh_add_result=$(ssh-add $SSH_PRIVATE_FILE 2>&1)
 
         if [[ "$ssh_add_result" == *"Identity added"* ]]; then
-            print_message "Clave registrada correctamente"  "$COLOR_SUCCESS" 3 "both"
+            print_message "Clave registrada correctamente" "$COLOR_SUCCESS" 3 "both"
             print_message "Por favor, registra la siguiente clave en gitlab: $(cat $SSH_PUBLIC_FILE)" "$COLOR_PRIMARY" 1 "after"
         else
             print_centered_message "Hubo un problema al registrar la clave: $ssh_add_result" "$COLOR_ERROR"
@@ -776,40 +770,40 @@ create_ssh(){
     fi
 }
 
-update_repositories(){
+update_repositories() {
     local updated_option=${1:-"-a"}
     local create_dbb=${2:-""}
 
     print_header
 
     case "$updated_option" in
-        "-b" | "--back" )
-            update_services "$create_dbb"
-            updated_option="de back"
-            ;;
+    "-b" | "--back")
+        update_services "$create_dbb"
+        updated_option="de back"
+        ;;
 
-        "-f" | "--front")
-            update_web
-            updated_option="de front"
-            ;;
+    "-f" | "--front")
+        update_web
+        updated_option="de front"
+        ;;
 
-        "-l" | "--libs")
-            update_libraries
-            updated_option="de librerias"
-            ;;
-        
-        "-a" | "--all" | "")
-            update_services "$create_dbb"
-            update_libraries
-            update_web
-            updated_option="de back, librerias y front"
-            ;;
+    "-l" | "--libs")
+        update_libraries
+        updated_option="de librerias"
+        ;;
+
+    "-a" | "--all" | "")
+        update_services "$create_dbb"
+        update_libraries
+        update_web
+        updated_option="de back, librerias y front"
+        ;;
     esac
 
-    print_centered_message "REPOSITORIOS $updated_option ACTUALIZADOS" "$COLOR_SUCCESS" "both" 
+    print_centered_message "REPOSITORIOS $updated_option ACTUALIZADOS" "$COLOR_SUCCESS" "both"
 }
 
-link_web_modules(){
+link_web_modules() {
     print_header
     print_semiheader "Linkado de modulos"
 
@@ -826,95 +820,95 @@ link_web_modules(){
             cd "$FRONT_PATH/td-web"
             yarn link "@truedat/$d"
         done
-    fi 
+    fi
 }
 
-get_service_port(){
+get_service_port() {
     local SERVICE_NAME=$1
     local PORT
 
     case "$SERVICE_NAME" in
-        "td_audit")
-            PORT=4007
-            ;;
+    "td_audit")
+        PORT=4007
+        ;;
 
-        "td_auth")
-            PORT=4001
-            ;;
+    "td_auth")
+        PORT=4001
+        ;;
 
-        "td_bg")
-            PORT=4002
-            ;;
+    "td_bg")
+        PORT=4002
+        ;;
 
-        "td_dd")
-            PORT=4005
-            ;;
+    "td_dd")
+        PORT=4005
+        ;;
 
-        "td_dq")
-            PORT=4004
-            ;;
+    "td_dq")
+        PORT=4004
+        ;;
 
-        "td_lm")
-            PORT=4012
-            ;;
+    "td_lm")
+        PORT=4012
+        ;;
 
-        "td_qe")
-            PORT=4009
-            ;;
+    "td_qe")
+        PORT=4009
+        ;;
 
-        "td_qx")
-            PORT=4010
-            ;;
+    "td_qx")
+        PORT=4010
+        ;;
 
-        "td_se")
-            PORT=4006
-            ;;
+    "td_se")
+        PORT=4006
+        ;;
 
-        "td_df")
-            PORT=4013
-            ;;
+    "td_df")
+        PORT=4013
+        ;;
 
-        "td_ie")
-            PORT=4014
-            ;;
+    "td_ie")
+        PORT=4014
+        ;;
 
-        "td_i18n")
-            PORT=4003
-            ;;
+    "td_i18n")
+        PORT=4003
+        ;;
 
-        "health")
-            PORT=9999
-            ;;
+    "health")
+        PORT=9999
+        ;;
 
-        "td_cx")
-            PORT=4008
-            ;;
+    "td_cx")
+        PORT=4008
+        ;;
 
-        "td_ai")
-            PORT=4015
-            ;;
+    "td_ai")
+        PORT=4015
+        ;;
     esac
 
     echo $PORT
-} 
- 
-kong_routes(){
+}
+
+kong_routes() {
     print_header
     print_semiheader "Generación de rutas en Kong"
 
     if [[ "$USE_KONG" = false ]]; then
         print_message "Kong no está habilitado" "$COLOR_WARNING" 3
-        print_message "Si se desea habilitar, utiliza 'trus --config-kong'" "$COLOR_WARNING" 4        
+        print_message "Si se desea habilitar, utiliza 'trus --config-kong'" "$COLOR_WARNING" 4
     else
         cd $KONG_PATH
         set -o pipefail
-        
+
         for SERVICE in ${KONG_SERVICES[@]}; do
-            local PORT=$(get_service_port "$SERVICE") 
+            local PORT=$(get_service_port "$SERVICE")
             local SERVICE_ID=$(curl --silent -X GET "${KONG_ADMIN_URL}/services/${SERVICE}" | jq -r '.id // empty')
             local DATA='{ "name": "'${SERVICE}'", "host": "'${DOCKER_LOCALHOST}'", "port": '$PORT' }'
 
-            print_message_with_animation "Creando rutas para el servicio: $SERVICE (puerto: $PORT)" "$COLOR_SECONDARY" 2 
+            print_message_with_animation "Creando rutas para el servicio: $SERVICE (puerto: $PORT)" "$COLOR_SECONDARY" 2
 
             if [ -n "${SERVICE_ID}" ]; then
                 ROUTE_IDS=$(curl --silent -X GET "${KONG_ADMIN_URL}/services/${SERVICE}/routes" | jq -r '.data[].id')
@@ -927,45 +921,49 @@ kong_routes(){
             fi
 
             local API_ID=$(curl --fail --silent -H 'Content-Type: application/json' -X POST "${KONG_ADMIN_URL}/services" -d "$DATA" | jq -r '.id')
-            
+
             eval "sed -e \"s/%API_ID%/${API_ID}/\" ${SERVICE}.json | curl --silent -H \"Content-Type: application/json\" -X POST \"${KONG_ADMIN_URL}/routes\" -d @- | jq -r '.id' $REDIRECT"
-            
+
             print_message "Rutas servicio: $SERVICE (puerto: $PORT) creadas con éxito" "$COLOR_SUCCESS" 2
         done
-            
+
         eval "curl --silent -X POST \"${KONG_ADMIN_URL}/services/health/plugins\" --data \"name=request-termination\" --data \"config.status_code=200\" --data \"config.message=Kong is alive\"  | jq -r '.id' $REDIRECT"
         print_message "Creacion de rutas finalizada" "$COLOR_SUCCESS" 2 "both"
-        
-    fi  
+
+    fi
 }
 
-activate_kong(){
+activate_kong() {
     print_header
     print_semiheader "Habilitación de Kong"
     print_message "A continuación, se van a explicar los pasos que se van a seguir si sigues con este proceso" "$COLOR_PRIMARY" 2 "before"
     print_message "Se va a actualizar el archivo de configuracion para reflejar que se debe utilizar Kong a partir de ahora" "$COLOR_SECONDARY" 3
     print_message "Se va a descargar el repo de Kong en $BACK_PATH" "$COLOR_SECONDARY" 3
     print_message "Se van a descargar los siguientes contenedores: ${CONTAINERS_SETUP[@]}" "$COLOR_SECONDARY" 3
-    print_message "${CONTAINERS_SETUP[@]}" "$COLOR_TERNARY" 4
+
+    for container in "${CONTAINERS_SETUP[@]}"; do
+        print_message "${container[@]}" "$COLOR_TERNARY" 4
+    done
+
     print_message "Se va a actualizar el archivo $TD_WEB_DEV_CONFIG para que apunte a Kong" "$COLOR_SECONDARY" 3
     print_message "Se van a actualizar las rutas de Kong" "$COLOR_SECONDARY" 3
-    
+
     print_message "¿Quieres habilitar Kong? (S/N)" "$COLOR_PRIMARY" 1
     read -r activate
 
     local continue=$(normalize_text "$activate")
 
     if [ ! "$continue" = "" ] || [ "$continue" = "si" ] || [ "$continue" = "s" ] || [ "$continue" = "y" ] || [ "$continue" = "yes" ]; then
-        sed -i 's/USE_KONG=false/USE_KONG=true/' "$TRUS_PATH_CONFIG"
+        sed -i 's/USE_KONG=false/USE_KONG=true/' "$PATH_GLOBAL_CONFIG"
 
-        source $TRUS_PATH_CONFIG
+        source $PATH_GLOBAL_CONFIG
 
         cd $BACK_PATH
         git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/kong-setup.git
-        
+
         for container in "${CONTAINERS_SETUP[@]}"; do
-            docker-compose up -d "${container}"    
-        done  
+            docker-compose up -d "${container}"
+        done
 
         # target: "https://test.truedat.io:443",       -> Se utilizarán los servicios del entorno test
         # target: "http://localhost:8000",             -> Se utilizarán los servicios de nuestro local
@@ -990,237 +988,240 @@ activate_kong(){
             echo '    },'
             echo '  },'
             echo '};'
-        } > $TD_WEB_DEV_CONFIG
+        } >$TD_WEB_DEV_CONFIG
 
         start_containers
 
         kong_routes
-    else 
+    else
         print_centered_message "NO SE HAN REALIZADO MODIFICACIONES" "$COLOR_SUCCESS"
-    fi 
+    fi
 }
 
-deactivate_kong(){
+deactivate_kong() {
     print_header
     print_semiheader "Deshabilitación de Kong"
     print_message "A continuación, se van a explicar los pasos que se van a seguir si sigues con este proceso" "$COLOR_PRIMARY" 2 "before"
     print_message "Se va a actualizar el archivo de configuracion para reflejar que se debe utilizar Kong a partir de ahora" "$COLOR_SECONDARY" 3
     print_message "Se va a borrar el proyecto de kong, que se encuentra en $BACK_PATH/kong-setup" "$COLOR_SECONDARY" 3
     print_message "Se va a eliminar los siguientes contenedores" "$COLOR_SECONDARY" 3
-    print_message "${CONTAINERS_SETUP[@]}" "$COLOR_TERNARY" 4
-    print_message "Kong" "$COLOR_TERNARY" 4
-    print_message "Se va a actualizar el archivo $TD_WEB_DEV_CONFIG para que se encargue de enrutar td-web" "$COLOR_SECONDARY" 3   
     
+    for container in "${CONTAINERS_SETUP[@]}"; do
+        print_message "${container[@]}" "$COLOR_TERNARY" 4
+    done
+    
+    print_message "Kong" "$COLOR_TERNARY" 4
+    print_message "Se va a actualizar el archivo $TD_WEB_DEV_CONFIG para que se encargue de enrutar td-web" "$COLOR_SECONDARY" 3
+
     print_message "¿Quieres deshabilitar Kong? (S/N)" "$COLOR_PRIMARY" 1
     read -r deactivate
 
     local continue=$(normalize_text "$deactivate")
 
     if [ ! "$continue" = "" ] || [ "$continue" = "si" ] || [ "$continue" = "s" ] || [ "$continue" = "y" ] || [ "$continue" = "yes" ]; then
-    
-        sed -i 's/USE_KONG=true/USE_KONG=false/' "$TRUS_PATH_CONFIG"
-        source $TRUS_PATH_CONFIG
+        sed -i 's/USE_KONG=true/USE_KONG=false/' "$PATH_GLOBAL_CONFIG"
+        source $PATH_GLOBAL_CONFIG
 
         rm -f $BACK_PATH/kong_routes
-        
+
         docker rm $(docker ps -q --filter "name=kong")
-        
+
         cd "~/workspace/truedat/front/td-web"
 
         touch $TD_WEB_DEV_CONFIG
 
         {
-                    echo 'const target = host => ({'
-                    echo '  target: host,'
-                    echo '  secure: false,'
-                    echo '  proxyTimeout: 5 * 60 * 1000,'
-                    echo '  timeout: 5 * 60 * 1000,'
-                    echo '  onProxyReq: (proxyReq, req, res) => req.setTimeout(5 * 60 * 1000),'
-                    echo '  changeOrigin: true'
-                    echo '});'
-                    echo '// const defaultHost = "https://test.truedat.io";'
-                    echo 'const defaultHost = "http://localhost:4001";'
-                    echo 'const defaultTargets = {'
-                    echo '  ai: target(defaultHost),'
-                    echo '  audit: target(defaultHost),'
-                    echo '  auth: target(defaultHost),'
-                    echo '  bg: target(defaultHost),'
-                    echo '  cx: target(defaultHost),'
-                    echo '  dd: target(defaultHost),'
-                    echo '  df: target(defaultHost),'
-                    echo '  dq: target(defaultHost),'
-                    echo '  ie: target(defaultHost),'
-                    echo '  lm: target(defaultHost),'
-                    echo '  se: target(defaultHost),'
-                    echo '  i18n: target(defaultHost),'
-                    echo '  qx: target(defaultHost)'
-                    echo '};'
-                    echo 'const targets = {'
-                    echo '  ...defaultTargets,'
-                    echo '  ai: target("http://localhost:4015"),'
-                    echo '  audit: target("http://localhost:4007"),'
-                    echo '  auth: target("http://localhost:4001"),'
-                    echo '  bg: target("http://localhost:4002"),'
-                    echo '  cx: target("http://localhost:4008"),'
-                    echo '  dd: target("http://localhost:4005"),'
-                    echo '  df: target("http://localhost:4013"),'
-                    echo '  dq: target("http://localhost:4004"),'
-                    echo '  ie: target("http://localhost:4014"),'
-                    echo '  lm: target("http://localhost:4012"),'
-                    echo '  se: target("http://localhost:4006"),'
-                    echo '  i18n: target("http://localhost:4003"),'
-                    echo '  qx: target("http://localhost:4010")'
-                    echo '};'
-                    echo 'const ai = {'
-                    echo '  "/api/resource_mappings": targets.ai,'
-                    echo '  "/api/prompts": targets.ai'
-                    echo '};'
-                    echo 'const audit = {'
-                    echo '  "/api/events": targets.audit,'
-                    echo '  "/api/notifications": targets.audit,'
-                    echo '  "/api/subscribers": targets.audit,'
-                    echo '  "/api/subscriptions": targets.audit'
-                    echo '};'
-                    echo 'const auth = {'
-                    echo '  "/api/acl_entries": targets.auth,'
-                    echo '  "/api/auth": targets.auth,'
-                    echo '  "/api/groups": targets.auth,'
-                    echo '  "/api/init": targets.auth,'
-                    echo '  "/api/password": targets.auth,'
-                    echo '  "/api/permission_groupss": targets.auth,'
-                    echo '  "/api/permissions": targets.auth,'
-                    echo '  "/api/roles": targets.auth,'
-                    echo '  "/api/sessions": targets.auth,'
-                    echo '  "/api/users": targets.auth'
-                    echo '};'
-                    echo 'const bg = {'
-                    echo '  "/api/business_concept_filters": targets.bg,'
-                    echo '  "/api/business_concept_user_filters": targets.bg,'
-                    echo '  "/api/business_concept_versions": targets.bg,'
-                    echo '  "/api/business_concepts": targets.bg,'
-                    echo '  "/api/domains": targets.bg'
-                    echo '};'
-                    echo 'const cx = {'
-                    echo '  "/api/configurations": targets.cx,'
-                    echo '  "/api/job_filters": targets.cx,'
-                    echo '  "/api/jobs": targets.cx,'
-                    echo '  "/api/sources": targets.cx'
-                    echo '};'
-                    echo 'const dd = {'
-                    echo '  "/api/accesses": targets.dd,'
-                    echo '  "/api/buckets/structures": targets.dd,'
-                    echo '  "/api/data_structure_filters": targets.dd,'
-                    echo '  "/api/data_structure_notes": targets.dd,'
-                    echo '  "/api/data_structure_tags": targets.dd,'
-                    echo '  "/api/data_structure_types": targets.dd,'
-                    echo '  "/api/data_structure_versions": targets.dd,'
-                    echo '  "/api/data_structures": targets.dd,'
-                    echo '  "/api/grant_filters": targets.dd,'
-                    echo '  "/api/grant_request_groups": targets.dd,'
-                    echo '  "/api/grant_requests": targets.dd,'
-                    echo '  "/api/grants": targets.dd,'
-                    echo '  "/api/graphs": targets.dd,'
-                    echo '  "/api/lineage_events": targets.dd,'
-                    echo '  "/api/nodes": targets.dd,'
-                    echo '  "/api/profile_execution_groups": targets.dd,'
-                    echo '  "/api/profile_executions": targets.dd,'
-                    echo '  "/api/profiles": targets.dd,'
-                    echo '  "/api/reference_data": targets.dd,'
-                    echo '  "/api/relation_types": targets.dd,'
-                    echo '  "/api/systems": targets.dd,'
-                    echo '  "/api/units": targets.dd,'
-                    echo '  "/api/user_search_filters": targets.dd,'
-                    echo '  "/api/v2": targets.dd'
-                    echo '};'
-                    echo 'const df = {'
-                    echo '  "/api/templates": targets.df,'
-                    echo '  "/api/hierarchies": targets.df'
-                    echo '};'
-                    echo 'const dq = {'
-                    echo '  "/api/execution_groups": targets.dq,'
-                    echo '  "/api/executions": targets.dq,'
-                    echo '  "/api/rule_filters": targets.dq,'
-                    echo '  "/api/rule_implementation_filters": targets.dq,'
-                    echo '  "/api/rule_implementations": targets.dq,'
-                    echo '  "/api/rule_results": targets.dq,'
-                    echo '  "/api/rules": targets.dq'
-                    echo '};'
-                    echo 'const ie = {'
-                    echo '  "/api/ingests": targets.ie,'
-                    echo '  "/api/ingest_filters": targets.ie,'
-                    echo '  "/api/ingest_versions": targets.ie'
-                    echo '};'
-                    echo 'const lm = {'
-                    echo '  "/api/relations": targets.lm,'
-                    echo '  "/api/tags": targets.lm'
-                    echo '};'
-                    echo 'const se = {'
-                    echo '  "/api/global_search": targets.se'
-                    echo '};'
-                    echo 'const i18n = {'
-                    echo '  "/api/messages": targets.i18n,'
-                    echo '  "/api/locales": targets.i18n'
-                    echo '};'
-                    echo 'const qx = {'
-                    echo '  "/api/data_views": targets.qx,'
-                    echo '  "/api/quality_functions": targets.qx,'
-                    echo '  "/api/quality_controls": targets.qx'
-                    echo '};'
-                    echo ''
-                    echo 'module.exports = {'
-                    echo '  devtool: "cheap-module-eval-source-map",'
-                    echo '  devServer: {'
-                    echo '    host: "0.0.0.0",'
-                    echo '    disableHostCheck: true,'
-                    echo '    historyApiFallback: true,'
-                    echo '    proxy: {'
-                    echo '      ...ai,'
-                    echo '      ...audit,'
-                    echo '      ...auth,'
-                    echo '      ...bg,'
-                    echo '      ...cx,'
-                    echo '      ...dd,'
-                    echo '      ...df,'
-                    echo '      ...dq,'
-                    echo '      ...ie,'
-                    echo '      ...lm,'
-                    echo '      ...se,'
-                    echo '      ...i18n,'
-                    echo '      ...qx,'
-                    echo '      "/api": target(defaultHost)'
-                    echo '    }'
-                    echo '  }'
-                    echo '};'
-                } > $TD_WEB_DEV_CONFIG
-    else 
+            echo 'const target = host => ({'
+            echo '  target: host,'
+            echo '  secure: false,'
+            echo '  proxyTimeout: 5 * 60 * 1000,'
+            echo '  timeout: 5 * 60 * 1000,'
+            echo '  onProxyReq: (proxyReq, req, res) => req.setTimeout(5 * 60 * 1000),'
+            echo '  changeOrigin: true'
+            echo '});'
+            echo '// const defaultHost = "https://test.truedat.io";'
+            echo 'const defaultHost = "http://localhost:4001";'
+            echo 'const defaultTargets = {'
+            echo '  ai: target(defaultHost),'
+            echo '  audit: target(defaultHost),'
+            echo '  auth: target(defaultHost),'
+            echo '  bg: target(defaultHost),'
+            echo '  cx: target(defaultHost),'
+            echo '  dd: target(defaultHost),'
+            echo '  df: target(defaultHost),'
+            echo '  dq: target(defaultHost),'
+            echo '  ie: target(defaultHost),'
+            echo '  lm: target(defaultHost),'
+            echo '  se: target(defaultHost),'
+            echo '  i18n: target(defaultHost),'
+            echo '  qx: target(defaultHost)'
+            echo '};'
+            echo 'const targets = {'
+            echo '  ...defaultTargets,'
+            echo '  ai: target("http://localhost:4015"),'
+            echo '  audit: target("http://localhost:4007"),'
+            echo '  auth: target("http://localhost:4001"),'
+            echo '  bg: target("http://localhost:4002"),'
+            echo '  cx: target("http://localhost:4008"),'
+            echo '  dd: target("http://localhost:4005"),'
+            echo '  df: target("http://localhost:4013"),'
+            echo '  dq: target("http://localhost:4004"),'
+            echo '  ie: target("http://localhost:4014"),'
+            echo '  lm: target("http://localhost:4012"),'
+            echo '  se: target("http://localhost:4006"),'
+            echo '  i18n: target("http://localhost:4003"),'
+            echo '  qx: target("http://localhost:4010")'
+            echo '};'
+            echo 'const ai = {'
+            echo '  "/api/resource_mappings": targets.ai,'
+            echo '  "/api/prompts": targets.ai'
+            echo '};'
+            echo 'const audit = {'
+            echo '  "/api/events": targets.audit,'
+            echo '  "/api/notifications": targets.audit,'
+            echo '  "/api/subscribers": targets.audit,'
+            echo '  "/api/subscriptions": targets.audit'
+            echo '};'
+            echo 'const auth = {'
+            echo '  "/api/acl_entries": targets.auth,'
+            echo '  "/api/auth": targets.auth,'
+            echo '  "/api/groups": targets.auth,'
+            echo '  "/api/init": targets.auth,'
+            echo '  "/api/password": targets.auth,'
+            echo '  "/api/permission_groupss": targets.auth,'
+            echo '  "/api/permissions": targets.auth,'
+            echo '  "/api/roles": targets.auth,'
+            echo '  "/api/sessions": targets.auth,'
+            echo '  "/api/users": targets.auth'
+            echo '};'
+            echo 'const bg = {'
+            echo '  "/api/business_concept_filters": targets.bg,'
+            echo '  "/api/business_concept_user_filters": targets.bg,'
+            echo '  "/api/business_concept_versions": targets.bg,'
+            echo '  "/api/business_concepts": targets.bg,'
+            echo '  "/api/domains": targets.bg'
+            echo '};'
+            echo 'const cx = {'
+            echo '  "/api/configurations": targets.cx,'
+            echo '  "/api/job_filters": targets.cx,'
+            echo '  "/api/jobs": targets.cx,'
+            echo '  "/api/sources": targets.cx'
+            echo '};'
+            echo 'const dd = {'
+            echo '  "/api/accesses": targets.dd,'
+            echo '  "/api/buckets/structures": targets.dd,'
+            echo '  "/api/data_structure_filters": targets.dd,'
+            echo '  "/api/data_structure_notes": targets.dd,'
+            echo '  "/api/data_structure_tags": targets.dd,'
+            echo '  "/api/data_structure_types": targets.dd,'
+            echo '  "/api/data_structure_versions": targets.dd,'
+            echo '  "/api/data_structures": targets.dd,'
+            echo '  "/api/grant_filters": targets.dd,'
+            echo '  "/api/grant_request_groups": targets.dd,'
+            echo '  "/api/grant_requests": targets.dd,'
+            echo '  "/api/grants": targets.dd,'
+            echo '  "/api/graphs": targets.dd,'
+            echo '  "/api/lineage_events": targets.dd,'
+            echo '  "/api/nodes": targets.dd,'
+            echo '  "/api/profile_execution_groups": targets.dd,'
+            echo '  "/api/profile_executions": targets.dd,'
+            echo '  "/api/profiles": targets.dd,'
+            echo '  "/api/reference_data": targets.dd,'
+            echo '  "/api/relation_types": targets.dd,'
+            echo '  "/api/systems": targets.dd,'
+            echo '  "/api/units": targets.dd,'
+            echo '  "/api/user_search_filters": targets.dd,'
+            echo '  "/api/v2": targets.dd'
+            echo '};'
+            echo 'const df = {'
+            echo '  "/api/templates": targets.df,'
+            echo '  "/api/hierarchies": targets.df'
+            echo '};'
+            echo 'const dq = {'
+            echo '  "/api/execution_groups": targets.dq,'
+            echo '  "/api/executions": targets.dq,'
+            echo '  "/api/rule_filters": targets.dq,'
+            echo '  "/api/rule_implementation_filters": targets.dq,'
+            echo '  "/api/rule_implementations": targets.dq,'
+            echo '  "/api/rule_results": targets.dq,'
+            echo '  "/api/rules": targets.dq'
+            echo '};'
+            echo 'const ie = {'
+            echo '  "/api/ingests": targets.ie,'
+            echo '  "/api/ingest_filters": targets.ie,'
+            echo '  "/api/ingest_versions": targets.ie'
+            echo '};'
+            echo 'const lm = {'
+            echo '  "/api/relations": targets.lm,'
+            echo '  "/api/tags": targets.lm'
+            echo '};'
+            echo 'const se = {'
+            echo '  "/api/global_search": targets.se'
+            echo '};'
+            echo 'const i18n = {'
+            echo '  "/api/messages": targets.i18n,'
+            echo '  "/api/locales": targets.i18n'
+            echo '};'
+            echo 'const qx = {'
+            echo '  "/api/data_views": targets.qx,'
+            echo '  "/api/quality_functions": targets.qx,'
+            echo '  "/api/quality_controls": targets.qx'
+            echo '};'
+            echo ''
+            echo 'module.exports = {'
+            echo '  devtool: "cheap-module-eval-source-map",'
+            echo '  devServer: {'
+            echo '    host: "0.0.0.0",'
+            echo '    disableHostCheck: true,'
+            echo '    historyApiFallback: true,'
+            echo '    proxy: {'
+            echo '      ...ai,'
+            echo '      ...audit,'
+            echo '      ...auth,'
+            echo '      ...bg,'
+            echo '      ...cx,'
+            echo '      ...dd,'
+            echo '      ...df,'
+            echo '      ...dq,'
+            echo '      ...ie,'
+            echo '      ...lm,'
+            echo '      ...se,'
+            echo '      ...i18n,'
+            echo '      ...qx,'
+            echo '      "/api": target(defaultHost)'
+            echo '    }'
+            echo '  }'
+            echo '};'
+        } >$TD_WEB_DEV_CONFIG
+    else
         print_centered_message "NO SE HAN REALIZADO MODIFICACIONES" "$COLOR_SUCCESS"
-    fi 
+    fi
 }
 
-start_containers(){
+start_containers() {
     print_header
     print_semiheader "Arrancando..."
-    
+
     cd "$DEV_PATH"
-    
-    for container in "${CONTAINERS[@]}"; do        
+
+    for container in "${CONTAINERS[@]}"; do
         if [[ "$USE_KONG" = true ]] || { [[ "$USE_KONG" = false ]] && [[ "$container" != "kong" ]]; }; then
-            docker-compose up -d "${container}"    
+            docker-compose up -d "${container}"
         fi
-    done    
+    done
 }
 
-stop_docker(){
+stop_docker() {
     print_header
     print_semiheader "Apagando..."
     cd "$DEV_PATH"
 
     for container in "${CONTAINERS[@]}"; do
-        docker-compose down "${container}"    
-    done    
+        docker-compose down "${container}"
+    done
 }
 
-start_services(){
+start_services() {
     local SERVICES_TO_IGNORE=("$@")
     local SERVICES_TO_START=()
 
@@ -1230,25 +1231,25 @@ start_services(){
             SERVICES_TO_START+=("$SERVICE")
         fi
     done
- 
-    for SERVICE in "${SERVICES_TO_START[@]}"; do        
-        screen -h 10000 -mdS "$SERVICE" bash -c "cd $BACK_PATH/$SERVICE && iex --sname ${SERVICE#td-} -S mix phx.server" 
+
+    for SERVICE in "${SERVICES_TO_START[@]}"; do
+        screen -h 10000 -mdS "$SERVICE" bash -c "cd $BACK_PATH/$SERVICE && iex --sname ${SERVICE#td-} -S mix phx.server"
     done
 
     print_message "Servicios arrancados:" "$COLOR_PRIMARY" 1
-    screen -ls | awk '/\.td-/ {print $1}' | sed 's/\.\(td-[[:alnum:]]*\)/ => \1/'    
+    screen -ls | awk '/\.td-/ {print $1}' | sed 's/\.\(td-[[:alnum:]]*\)/ => \1/'
 }
 
-start_front(){
+start_front() {
     cd "$FRONT_PATH"/td-web
-    yarn start     
+    yarn start
 }
 
-add_terminal_to_tmux_session(){
+add_terminal_to_tmux_session() {
     local PANEL=$1
     local COMMAND=$2
     tmux select-pane -t truedat:0."$PANEL"
-    tmux send-keys -t truedat:0."$PANEL" "${COMMAND}" C-m             
+    tmux send-keys -t truedat:0."$PANEL" "${COMMAND}" C-m
 }
 
 start_truedat() {
@@ -1267,7 +1268,7 @@ start_truedat() {
     PRINCIPAL_TERMINAL_HEIGHT=$((WINDOW_TOTAL_HEIGHT / 4 * 3))
 
     kill_truedat
-    
+
     for SERVICE in "${SERVICES[@]}"; do
         local founded_service="false"
         SERVICE=${SERVICE/td-/}
@@ -1275,19 +1276,19 @@ start_truedat() {
             if [[ "${SERVICE/td-/}" = "$SPLIT" ]]; then
                 founded_service="true"
                 break
-            fi            
-        done  
-        
+            fi
+        done
+
         if [[ "$founded_service" = "false" ]]; then
-            SCREEN_SERVICES+=("${SERVICE}")        
-        fi      
+            SCREEN_SERVICES+=("${SERVICE}")
+        fi
     done
 
     start_containers
     start_services "${TMUX_SERVICES[@]}"
 
     tmux source-file $TMUX_CONF
-    tmux new-session -d -s $TRUEDAT -n "Truedat"     
+    tmux new-session -d -s $TRUEDAT -n "Truedat"
     tmux select-layout -t truedat:0 main-vertical
     tmux split-window -h -t truedat:0 -p 6
 
@@ -1295,14 +1296,14 @@ start_truedat() {
         TERMINAL_SIZE=$((WINDOW_TOTAL_HEIGHT / ${#TMUX_SERVICES[@]}))
 
         for i in "${!TMUX_SERVICES[@]}"; do
-            tmux split-window -v -t truedat:0 
+            tmux split-window -v -t truedat:0
 
             SERVICE="${TMUX_SERVICES[$i]}"
             SERVICE_NAME="td-${SERVICE}"
             COMMAND="cd $BACK_PATH/$SERVICE_NAME && iex --sname ${SERVICE} -S mix phx.server"
-            
+
             add_terminal_to_tmux_session "$i" "$COMMAND"
-        done    
+        done
     fi
 
     add_terminal_to_tmux_session "$(tmux list-panes -t truedat | awk 'END {print $1 + 0}')" "trus -sf"
@@ -1312,18 +1313,18 @@ start_truedat() {
     go_to_session $TRUEDAT
 }
 
-get_token(){
+get_token() {
     response=$(do_api_call \
-                    "" \
-                    "localhost:8080/api/sessions/" \
-                    "" \
-                    "--data '{\"access_method\": \"alternative_login\",\"user\": {\"user_name\": \"admin\",\"password\": \"patata\"}}'")
-                    token=$(echo "$response" | jq -r '.token')
+        "" \
+        "localhost:8080/api/sessions/" \
+        "" \
+        "--data '{\"access_method\": \"alternative_login\",\"user\": {\"user_name\": \"admin\",\"password\": \"patata\"}}'")
+    token=$(echo "$response" | jq -r '.token')
 
     echo "$token"
 }
 
-load_structures(){
+load_structures() {
     local path=$1
     local system="$2"
     local token
@@ -1337,7 +1338,7 @@ load_structures(){
         "-F \"data_structures=@structures.csv\" -F \"data_structure_relations=@relations.csv\""
 }
 
-load_linages(){
+load_linages() {
     local path=$
     local token
 
@@ -1350,514 +1351,518 @@ load_linages(){
         "$token" \
         "http://localhost:4005/api/units/test" \
         "PUT" \
-        "-F \"nodes=@nodes.csv\" -F \"rels=@rels.csv\""   
+        "-F \"nodes=@nodes.csv\" -F \"rels=@rels.csv\""
 }
 
-help(){
+help() {
     local option=$(normalize_text "${1:-""}")
 
     case "$option" in
-        "salir"  | " volver")
-            print_message "Posicionate en una opcion para ver una descripción de lo que hace" "$COLOR_PRIMARY"
-            ;;
-
-         "--start")
-            print_message "Arranca Truedat." "$COLOR_PRIMARY"
-            print_message "Levanta los contenedores de Docker, crea una sesion de Screen por servicio y arranca el frontal." "$COLOR_PRIMARY"
-            print_message "Todo en una sesion de Tmux" "$COLOR_PRIMARY"
-            ;;
-
-        "--start-containers")
-            print_message "Levanta los contenedores de Docker de Truedat" "$COLOR_PRIMARY"
-            ;;
-
-        "--start-services")
-            print_message "Levanta los servicios de Truedat" "$COLOR_PRIMARY"
-            ;;
-
-        "--stop-containers")
-            print_message "Para los servicios de Truedat" "$COLOR_PRIMARY"
-            ;;
-            
-        "--start-front")
-            print_message "Levanta el frontal de Docker de Truedat" "$COLOR_PRIMARY"
-            ;;
-
-        "--start")
-            print_message "Levanta Truedat" "$COLOR_PRIMARY"
-            ;;
-
-        "--kill-truedat")
-            print_message "Mata las sesiones creadas con --start (Screen, Tmux) y los procesos de mix que haya" "$COLOR_PRIMARY"
-            ;;
-
-        "--install")
-            print_message "Instala Truedat en el equipo. " "$COLOR_PRIMARY"
-            ;;
-
-        "--ddbb")
-            print_message "Operaciones de BDD:" "$COLOR_PRIMARY"
-            print_message "--download-test: Descarga SOLO el backup de la bdd de test" "$COLOR_SECONDARY" 1
-            print_message "--download-update: Además de descargar el backup de test, lo aplica a las bdd locales" "$COLOR_SECONDARY" 1
-            print_message "--local-update: Aplica a las bdd locales el backup de una carpeta indicada" "$COLOR_SECONDARY" 1 
-            print_message "--local-backup: Crea un backup de la bdd local" "$COLOR_SECONDARY" 1
-            ;;
-
-        "--reindex")
-            print_message "Reindexa los indices de Elasticsearch." "$COLOR_PRIMARY"
-            ;;
-
-        "--update-repos")
-            print_message "Actualiza todos los repositorios de Truedat (front y back)." "$COLOR_PRIMARY"
-            print_message "--back" "$COLOR_SECONDARY" 1
-            print_message "--front" "$COLOR_SECONDARY" 1
-            print_message "--libs" "$COLOR_SECONDARY" 1
-            print_message "--all" "$COLOR_SECONDARY" 1
-            ;; 
-
-        "--create-ssh")
-            print_message "Hace backup de las claves ssh existentes en ~/.ssh, crea unas nuevas y las registra" "$COLOR_PRIMARY"
-            ;;
-
-        "--kong")
-            print_message "Sección para la gestion de Kong" "$COLOR_PRIMARY"
-            ;;
-
-        "--kong-routes")
-            print_message "Actualiza las rutas de Kong (solo disponible si kong está habilitado)" "$COLOR_PRIMARY"
-            ;;
-
-        "--config-kong")
-            print_message "Habilita/deshabilita Kong (usar con cuidaito)" "$COLOR_PRIMARY"
-            ;;
-
-        "--link-modules")
-            print_message "Linkea los modulos de td-web-modules con td-web" "$COLOR_PRIMARY"
-            ;;
-
-        "--yarn-test")
-            print_message "Lanza los test del frontal paquete a paquete (EN CONSTRUCCION)" "$COLOR_PRIMARY"
-            ;;
-
-        "--load-structures")
-            print_message "Carga estructuras a partir de csv. Los parámetros son:" "$COLOR_PRIMARY"
-            print_message "<path>: Ruta de la carpeta de los csv. Debe haber 2, uno llamado 'relations.csv' y otro llamado 'structures.csv'" "$COLOR_SECONDARY" 2
-            print_message "<system>: El external id del sistema en Truedat" "$COLOR_SECONDARY" 2  "after"
-            ;;
-
-        "--load-lineage")
-            print_message "Carga linages a partir de csv. Los parámetros son:" "$COLOR_PRIMARY" 
-            print_message "<path>: Ruta de la carpeta de los csv. Debe haber 2, uno llamado 'nodes.csv' y otro llamado 'rels.csv'" "$COLOR_SECONDARY" 2 "after"
-            print_message "--rest: " "$COLOR_SECONDARY" 1 "no"
-            ;;
-
-        "--attach")
-            print_message "Si se ha arrancado Truedat (con '-s' o '--start') entra en la session de tmux" "$COLOR_PRIMARY"
-            ;;
-
-        "--detach")
-            print_message "Si se ha arrancado Truedat (con '-s' o '--start'), para salir de la sesion de tmux sin cerrarla " "$COLOR_PRIMARY"
-            ;;
-
-        "--rest")
-            print_message "Hace una llamada REST a un api de Truedat que necesite token de login" "$COLOR_PRIMARY"
-            print_message "<url>: URL del API" "$COLOR_SECONDARY" 2
-            print_message "<rest_method>: Verbo de la llamada del API" "$COLOR_SECONDARY" 2
-            print_message "<params>: Parámetros de la llamada (opcional)" "$COLOR_SECONDARY" 2 "after"
-            ;;
-
-        "--start-containers")
-            print_message "Levanta los contenedores de Truedat" "$COLOR_PRIMARY"
-            ;;
-            
-        "--start-services")
-            print_message "Levanta los servicios de Truedat" "$COLOR_PRIMARY"
-            ;;
-            
-        "--start-front")
-            print_message "Levanta el frontal de Truedat" "$COLOR_PRIMARY"
-            ;;
-            
-        "--all")
-            print_message "Se lanzan todas las opciones abajo descritas." "$COLOR_PRIMARY"
-            print_message "Si se desea lanzar Truedat completo, pero se necesita visualizar terminales de servicios en concreto" "$COLOR_SECONDARY"
-            print_message "Hay que lanzar 'trus -s <servicio1>, <servicio2> ...' (sin el prefijo 'td-')" "$COLOR_SECONDARY"
-            ;;
-            
-        "--download-test")
-             print_message "Descarga SOLO el backup de la bdd de test" "$COLOR_PRIMARY"
-            ;;
-            
-        "--download-update")
-             print_message "Además de descargar el backup de test, lo aplica a las bdd locales" "$COLOR_PRIMARY"
-            ;;
-            
-        "--local-update")
-             print_message "Aplica a las bdd locales el backup de una carpeta indicada" "$COLOR_PRIMARY"
-            ;;
-            
-        "--local-backup")
-             print_message "Crea un backup de la bdd local" "$COLOR_PRIMARY"
-            ;;
-            
-        "--back")
-             print_message "Actualiza los repositorios de back" "$COLOR_PRIMARY"
-            ;;
-            
-        "--front")
-             print_message "Actualiza los repositorios de front" "$COLOR_PRIMARY"
-            ;;
-            
-        "--libs")
-             print_message "Actualiza los repositorios de librerias" "$COLOR_PRIMARY"
-            ;;
-
-        "--help")
-             print_message "Muestra la ayuda completa" "$COLOR_PRIMARY"
-            ;;
-
-        "*" | "")
-            print_header
-            print_semiheader "Acciones principales"
-
-            print_message "-s | --start: "  "$COLOR_PRIMARY" 1 "no" 
-            print_message "Arranca Truedat." "$COLOR_SECONDARY" 
-            print_message "Levanta los contenedores de Docker, crea una sesion de Screen por servicio y arranca el frontal." "$COLOR_TERNARY" 2
-            print_message "Cada accion se realiza en una terminal creada con Tmux. Los parámetros disponibles son:" "$COLOR_TERNARY" 2
-            print_message "<servicios>: Lista de uno o mas servicios que arrancaran en consolas por separado en Tmux. El resto se lanzan en segundo plano con Screen" "$COLOR_QUATERNARY" 3 "after"
-
-            print_message "-sc | --start-containers: " "$COLOR_PRIMARY" 1 "no"
-            print_message "Levanta los contenedores de Docker de Truedat" "$COLOR_SECONDARY" 0 "after" 
-
-            print_message "-ss | --start-services: " "$COLOR_PRIMARY" 1 "no"
-            print_message "Levanta los servicios de Truedat. Los parámetros disponibles son:" "$COLOR_SECONDARY"
-            print_message "<vacío> | <servicio> | <servicio1> <servicio2> <servicio3>...:" "$COLOR_TERNARY" 2 
-            print_message "Sin nada, levanta todos los servicios. Con uno o varios servicios (sin el prefijo 'td-') levanta todos los servicios, IGNORANDO los servicios indicados (para poder arrancarlos manualmente)" "$COLOR_TERNARY" 2 "after" 
-
-            print_message "-st | --stop-services":   "$COLOR_PRIMARY" 1 "no"
-            print_message "Para los servicios de Truedat" "$COLOR_SECONDARY" 
-            print_message "<vacío>: Para todos los servicios" "$COLOR_TERNARY" 2 
-            print_message "<servicio> | <servicio1> <servicio2> <servicio3>...: Para uno o varios servicios indicados (sin el prefijo 'td-')" "$COLOR_TERNARY" 2  "after"
-
-            print_message "-sf | --start-front: " "$COLOR_PRIMARY" 1 "no"
-            print_message "Levanta el frontal de Truedat" "$COLOR_SECONDARY" 0 "after" 
-
-            print_message "-k | --kill: " "$COLOR_PRIMARY" 1 "no"
-            print_message "Mata las sesiones creadas con --start (Screen, Tmux) y los procesos de mix que haya" "$COLOR_SECONDARY" 0 "after" 
-
-            print_semiheader "Instalación, actualización y mantenimiento"
-
-            print_message  "-i | --install: " "$COLOR_PRIMARY" 1 "no" 
-            print_message "Instala Truedat en el equipo. " "$COLOR_SECONDARY" 0 "no"
-            print_message "Requisitos previos a la instalación: " "$COLOR_SECONDARY" 
-            print_message "- Configuración AWS: Un administrador de AWS te tiene que dar de alta y pasarte el 'Access Key' y el Secret Access Key'" "$COLOR_TERNARY" 2
-            print_message "- ~/.kube/config: Debido a que contiene info sensible, no se puede meter en el script para que se cree automaticamente." "$COLOR_TERNARY" 2
-            print_message "Alguien del equipo debe pasartelo" "$COLOR_WARNING" 3 "both"
-            print_message "- Claves SSH: Tienes que tener creada una clave SSH (el script chequea que la clave se llame 'truedat'). La puedes crear con 'trus -cr'" "$COLOR_TERNARY" 2
-            print_message "RECUERDA que tiene que estar registrada en el equipo y en Gitlab ANTES de la instalación." "$COLOR_ERROR" 3 "both"
-
-            print_message "-d | --ddbb: " "$COLOR_PRIMARY" 1 "no" 
-            print_message "Descarga la base de datos de test al equipo. Los parámetros disponibles son:" "$COLOR_SECONDARY"
-            print_message "-d | --download-test: Descarga SOLO el backup de la bdd de test" "$COLOR_TERNARY" 2 
-            print_message "-du | --download-update: Además de descargar el backup de test, lo aplica a las bdd locales" "$COLOR_TERNARY" 2
-            print_message "-lu | --local-update: Aplica a las bdd locales el backup de una carpeta indicada" "$COLOR_TERNARY" 2 
-            print_message "-lb | --local-backup: Crea un backup de la bdd local" "$COLOR_TERNARY" 2 "after" "after"
-
-            print_message "-r | --reindex: " "$COLOR_PRIMARY" 1 "no"
-            print_message "Reindexa los indices de Elasticsearch. Los parámetros disponibles son:" "$COLOR_SECONDARY"
-            print_message " -r: Borra los indices existentes antes de reindexar" "$COLOR_TERNARY" 2 "after"
-
-            print_message "-ur | --update-repos: " "$COLOR_PRIMARY" 1 "no"
-            print_message "Actualiza todos los repositorios de Truedat (front y back)." "$COLOR_SECONDARY"
-            print_message "-b | --back | -f | --front | -l | --libs | -a | --all: Actualiza los repos indicados (Elegir una opción)" "$COLOR_TERNARY" 2  "after"
-
-
-            print_semiheader "Importantes, pero no tanto"
-
-            print_message "-cs | --create-ssh: " "$COLOR_PRIMARY" 1 "no" 
-            print_message "Hace backup de las claves ssh existentes en ~/.ssh, crea unas nuevas y las registra" "$COLOR_SECONDARY"
-            print_message "Siempre busca las claves llamadas 'truedat'. Si ya exis te una, hace un backup, borra y crea una nueva." "$COLOR_ERROR" 2 "after" 
-
-            print_message "-kr | --kong-routes: " "$COLOR_PRIMARY" 1 "no"
-            print_message "Actualiza las rutas de Kong" "$COLOR_SECONDARY" 0 "after" 
-
-            print_message "--config-kong: " "$COLOR_PRIMARY" 1 "no"
-            print_message "Habilita/deshabilita Kong (usar con cuidaito)" "$COLOR_SECONDARY" 0 "after" 
-
-            print_message "-l | --link-modules: " "$COLOR_PRIMARY" 1 "no"
-            print_message "Linkea los modulos de td-web-modules con td-web" "$COLOR_SECONDARY" 0 "after" 
-
-            print_message "-yt | --yarn-test: " "$COLOR_PRIMARY" 1 "no"
-            print_message "Lanza los test del frontal paquete a paquete, Los parámetros disponibles son:" "$COLOR_SECONDARY" 
-            print_message "<paquetes>: Lista de uno o mas paquetes a los que lanzar los test. Si no se indica, se lanza en todos." "$COLOR_TERNARY" 2  "after"
-
-            print_message "-ls | --load-structures: " "$COLOR_PRIMARY" 1 "no"
-            print_message "Carga estructuras a partir de csv. Los parámetros son:" "$COLOR_SECONDARY" 
-            print_message "<path>: Ruta de la carpeta de los csv. Debe haber 2, uno llamado 'relations.csv' y otro llamado 'structures.csv'" "$COLOR_TERNARY" 2
-            print_message "<system>: El external id del sistema en Truedat" "$COLOR_TERNARY" 2  "after"
-
-            print_message "-ll | --load-linage: " "$COLOR_PRIMARY" 1 "no"
-            print_message "Carga linages a partir de csv. Los parámetros son:" "$COLOR_SECONDARY" 
-            print_message "<path>: Ruta de la carpeta de los csv. Debe haber 2, uno llamado 'nodes.csv' y otro llamado 'rels.csv'" "$COLOR_TERNARY" 2 "after"
-
-            print_message "--rest: " "$COLOR_PRIMARY" 1 "no"
-            print_message "Hace llamadas sencillas que necesitan token de login a APIs usando curl. Los parámetros son:" "$COLOR_SECONDARY" 
-            print_message "<url>: URL del API" "$COLOR_TERNARY" 2
-            print_message "<rest_method>: Verbo de la llamada del API" "$COLOR_TERNARY" 2
-            print_message "<params>: Parámetros de la llamada (opcional)" "$COLOR_TERNARY" 2 "after"
-
-            print_message "-at | --attach: " "$COLOR_PRIMARY" 1 "no"
-            print_message "Si se ha arrancado Truedat (con '-s' o '--start') entra en la session de tmux" "$COLOR_SECONDARY" 0 "after"
-
-            print_message "-dt | --detach: " "$COLOR_PRIMARY" 1 "no"
-            print_message "Si se ha arrancado Truedat (con '-s' o '--start'), para salir de la sesion de tmux sin cerrarla " "$COLOR_SECONDARY"  0 "after"
+    "--start")
+        print_message "Arranca Truedat." "$COLOR_PRIMARY"
+        print_message "Levanta los contenedores de Docker, crea una sesion de Screen por servicio y arranca el frontal." "$COLOR_PRIMARY"
+        print_message "Todo en una sesion de Tmux" "$COLOR_PRIMARY"
         ;;
-    esac 
-    
+
+    "--start-containers")
+        print_message "Levanta los contenedores de Docker de Truedat" "$COLOR_PRIMARY"
+        ;;
+
+    "--start-services")
+        print_message "Levanta los servicios de Truedat" "$COLOR_PRIMARY"
+        ;;
+
+    "--stop-containers")
+        print_message "Para los servicios de Truedat" "$COLOR_PRIMARY"
+        ;;
+
+    "--start-front")
+        print_message "Levanta el frontal de Docker de Truedat" "$COLOR_PRIMARY"
+        ;;
+
+    "--start")
+        print_message "Levanta Truedat" "$COLOR_PRIMARY"
+        ;;
+
+    "--kill-truedat")
+        print_message "Mata las sesiones creadas con --start (Screen, Tmux) y los procesos de mix que haya" "$COLOR_PRIMARY"
+        ;;
+
+    "--install")
+        print_message "Instala Truedat en el equipo. " "$COLOR_PRIMARY"
+        ;;
+
+    "--ddbb")
+        print_message "Operaciones de BDD:" "$COLOR_PRIMARY"
+        print_message "--download-test: Descarga SOLO el backup de la bdd de test" "$COLOR_SECONDARY" 1
+        print_message "--download-update: Además de descargar el backup de test, lo aplica a las bdd locales" "$COLOR_SECONDARY" 1
+        print_message "--local-update: Aplica a las bdd locales el backup de una carpeta indicada" "$COLOR_SECONDARY" 1
+        print_message "--local-backup: Crea un backup de la bdd local" "$COLOR_SECONDARY" 1
+        ;;
+
+    "--reindex")
+        print_message "Reindexa los indices de Elasticsearch." "$COLOR_PRIMARY"
+        ;;
+
+    "--update-repos")
+        print_message "Actualiza todos los repositorios de Truedat (front y back)." "$COLOR_PRIMARY"
+        print_message "--back" "$COLOR_SECONDARY" 1
+        print_message "--front" "$COLOR_SECONDARY" 1
+        print_message "--libs" "$COLOR_SECONDARY" 1
+        print_message "--all" "$COLOR_SECONDARY" 1
+        ;;
+
+    "--create-ssh")
+        print_message "Hace backup de las claves ssh existentes en ~/.ssh, crea unas nuevas y las registra" "$COLOR_PRIMARY"
+        ;;
+
+    "--kong")
+        print_message "Sección para la gestion de Kong" "$COLOR_PRIMARY"
+        ;;
+
+    "--kong-routes")
+        print_message "Actualiza las rutas de Kong (solo disponible si kong está habilitado)" "$COLOR_PRIMARY"
+        ;;
+
+    "--config-kong")
+        print_message "Habilita/deshabilita Kong (usar con cuidaito)" "$COLOR_PRIMARY"
+        ;;
+
+    "--link-modules")
+        print_message "Linkea los modulos de td-web-modules con td-web" "$COLOR_PRIMARY"
+        ;;
+
+    "--yarn-test")
+        print_message "Lanza los test del frontal paquete a paquete (EN CONSTRUCCION)" "$COLOR_PRIMARY"
+        ;;
+
+    "--load-structures")
+        print_message "Carga estructuras a partir de csv. Los parámetros son:" "$COLOR_PRIMARY"
+        print_message "<path>: Ruta de la carpeta de los csv. Debe haber 2, uno llamado 'relations.csv' y otro llamado 'structures.csv'" "$COLOR_SECONDARY" 2
+        print_message "<system>: El external id del sistema en Truedat" "$COLOR_SECONDARY" 2 "after"
+        ;;
+
+    "--load-lineage")
+        print_message "Carga linages a partir de csv. Los parámetros son:" "$COLOR_PRIMARY"
+        print_message "<path>: Ruta de la carpeta de los csv. Debe haber 2, uno llamado 'nodes.csv' y otro llamado 'rels.csv'" "$COLOR_SECONDARY" 2 "after"
+        print_message "--rest: " "$COLOR_SECONDARY" 1 "no"
+        ;;
+
+    "--attach")
+        print_message "Si se ha arrancado Truedat (con '-s' o '--start') entra en la session de tmux" "$COLOR_PRIMARY"
+        ;;
+
+    "--detach")
+        print_message "Si se ha arrancado Truedat (con '-s' o '--start'), para salir de la sesion de tmux sin cerrarla " "$COLOR_PRIMARY"
+        ;;
+
+    "--rest")
+        print_message "Hace una llamada REST a un api de Truedat que necesite token de login" "$COLOR_PRIMARY"
+        print_message "<url>: URL del API" "$COLOR_SECONDARY" 2
+        print_message "<rest_method>: Verbo de la llamada del API" "$COLOR_SECONDARY" 2
+        print_message "<params>: Parámetros de la llamada (opcional)" "$COLOR_SECONDARY" 2 "after"
+        ;;
+
+    "--start-containers")
+        print_message "Levanta los contenedores de Truedat" "$COLOR_PRIMARY"
+        ;;
+
+    "--start-services")
+        print_message "Levanta los servicios de Truedat" "$COLOR_PRIMARY"
+        ;;
+
+    "--start-front")
+        print_message "Levanta el frontal de Truedat" "$COLOR_PRIMARY"
+        ;;
+
+    "--all")
+        print_message "Se lanzan todas las opciones abajo descritas." "$COLOR_PRIMARY"
+        print_message "Si se desea lanzar Truedat completo, pero se necesita visualizar terminales de servicios en concreto" "$COLOR_SECONDARY"
+        print_message "Hay que lanzar 'trus -s <servicio1>, <servicio2> ...' (sin el prefijo 'td-')" "$COLOR_SECONDARY"
+        ;;
+
+    "--download-test")
+        print_message "Descarga SOLO el backup de la bdd de test" "$COLOR_PRIMARY"
+        ;;
+
+    "--download-update")
+        print_message "Además de descargar el backup de test, lo aplica a las bdd locales" "$COLOR_PRIMARY"
+        ;;
+
+    "--local-update")
+        print_message "Aplica a las bdd locales el backup de una carpeta indicada" "$COLOR_PRIMARY"
+        ;;
+
+    "--local-backup")
+        print_message "Crea un backup de la bdd local" "$COLOR_PRIMARY"
+        ;;
+
+    "--back")
+        print_message "Actualiza los repositorios de back" "$COLOR_PRIMARY"
+        ;;
+
+    "--front")
+        print_message "Actualiza los repositorios de front" "$COLOR_PRIMARY"
+        ;;
+
+    "--libs")
+        print_message "Actualiza los repositorios de librerias" "$COLOR_PRIMARY"
+        ;;
+
+    "--help")
+        print_message "Muestra la ayuda completa" "$COLOR_PRIMARY"
+        ;;
+
+    "volver")
+        print_message "Vuelve al menú anterior" "$COLOR_PRIMARY"
+        ;;
+
+    "salir")
+        print_message "Salir de TrUs" "$COLOR_PRIMARY"
+        ;;
+
+    "*" | "")
+        print_header
+        print_semiheader "Acciones principales"
+
+        print_message "-s | --start: " "$COLOR_PRIMARY" 1 "no"
+        print_message "Arranca Truedat." "$COLOR_SECONDARY"
+        print_message "Levanta los contenedores de Docker, crea una sesion de Screen por servicio y arranca el frontal." "$COLOR_TERNARY" 2
+        print_message "Cada accion se realiza en una terminal creada con Tmux. Los parámetros disponibles son:" "$COLOR_TERNARY" 2
+        print_message "<servicios>: Lista de uno o mas servicios que arrancaran en consolas por separado en Tmux. El resto se lanzan en segundo plano con Screen" "$COLOR_QUATERNARY" 3 "after"
+
+        print_message "-sc | --start-containers: " "$COLOR_PRIMARY" 1 "no"
+        print_message "Levanta los contenedores de Docker de Truedat" "$COLOR_SECONDARY" 0 "after"
+
+        print_message "-ss | --start-services: " "$COLOR_PRIMARY" 1 "no"
+        print_message "Levanta los servicios de Truedat. Los parámetros disponibles son:" "$COLOR_SECONDARY"
+        print_message "<vacío> | <servicio> | <servicio1> <servicio2> <servicio3>...:" "$COLOR_TERNARY" 2
+        print_message "Sin nada, levanta todos los servicios. Con uno o varios servicios (sin el prefijo 'td-') levanta todos los servicios, IGNORANDO los servicios indicados (para poder arrancarlos manualmente)" "$COLOR_TERNARY" 2 "after"
+
+        print_message "-st | --stop-services": "$COLOR_PRIMARY" 1 "no"
+        print_message "Para los servicios de Truedat" "$COLOR_SECONDARY"
+        print_message "<vacío>: Para todos los servicios" "$COLOR_TERNARY" 2
+        print_message "<servicio> | <servicio1> <servicio2> <servicio3>...: Para uno o varios servicios indicados (sin el prefijo 'td-')" "$COLOR_TERNARY" 2 "after"
+
+        print_message "-sf | --start-front: " "$COLOR_PRIMARY" 1 "no"
+        print_message "Levanta el frontal de Truedat" "$COLOR_SECONDARY" 0 "after"
+
+        print_message "-k | --kill: " "$COLOR_PRIMARY" 1 "no"
+        print_message "Mata las sesiones creadas con --start (Screen, Tmux) y los procesos de mix que haya" "$COLOR_SECONDARY" 0 "after"
+
+        print_semiheader "Instalación, actualización y mantenimiento"
+
+        print_message "-i | --install: " "$COLOR_PRIMARY" 1 "no"
+        print_message "Instala Truedat en el equipo. " "$COLOR_SECONDARY" 0 "no"
+        print_message "Requisitos previos a la instalación: " "$COLOR_SECONDARY"
+        print_message "- Configuración AWS: Un administrador de AWS te tiene que dar de alta y pasarte el 'Access Key' y el Secret Access Key'" "$COLOR_TERNARY" 2
+        print_message "- ~/.kube/config: Debido a que contiene info sensible, no se puede meter en el script para que se cree automaticamente." "$COLOR_TERNARY" 2
+        print_message "Alguien del equipo debe pasartelo" "$COLOR_WARNING" 3 "both"
+        print_message "- Claves SSH: Tienes que tener creada una clave SSH (el script chequea que la clave se llame 'truedat'). La puedes crear con 'trus -cr'" "$COLOR_TERNARY" 2
+        print_message "RECUERDA que tiene que estar registrada en el equipo y en Gitlab ANTES de la instalación." "$COLOR_ERROR" 3 "both"
+
+        print_message "-d | --ddbb: " "$COLOR_PRIMARY" 1 "no"
+        print_message "Descarga la base de datos de test al equipo. Los parámetros disponibles son:" "$COLOR_SECONDARY"
+        print_message "-d | --download-test: Descarga SOLO el backup de la bdd de test" "$COLOR_TERNARY" 2
+        print_message "-du | --download-update: Además de descargar el backup de test, lo aplica a las bdd locales" "$COLOR_TERNARY" 2
+        print_message "-lu | --local-update: Aplica a las bdd locales el backup de una carpeta indicada" "$COLOR_TERNARY" 2
+        print_message "-lb | --local-backup: Crea un backup de la bdd local" "$COLOR_TERNARY" 2 "after" "after"
+
+        print_message "-r | --reindex: " "$COLOR_PRIMARY" 1 "no"
+        print_message "Reindexa los indices de Elasticsearch. Los parámetros disponibles son:" "$COLOR_SECONDARY"
+        print_message " -r: Borra los indices existentes antes de reindexar" "$COLOR_TERNARY" 2 "after"
+
+        print_message "-ur | --update-repos: " "$COLOR_PRIMARY" 1 "no"
+        print_message "Actualiza todos los repositorios de Truedat (front y back)." "$COLOR_SECONDARY"
+        print_message "-b | --back | -f | --front | -l | --libs | -a | --all: Actualiza los repos indicados (Elegir una opción)" "$COLOR_TERNARY" 2 "after"
+
+        print_semiheader "Importantes, pero no tanto"
+
+        print_message "-cs | --create-ssh: " "$COLOR_PRIMARY" 1 "no"
+        print_message "Hace backup de las claves ssh existentes en ~/.ssh, crea unas nuevas y las registra" "$COLOR_SECONDARY"
+        print_message "Siempre busca las claves llamadas 'truedat'. Si ya exis te una, hace un backup, borra y crea una nueva." "$COLOR_ERROR" 2 "after"
+
+        print_message "-kr | --kong-routes: " "$COLOR_PRIMARY" 1 "no"
+        print_message "Actualiza las rutas de Kong" "$COLOR_SECONDARY" 0 "after"
+
+        print_message "--config-kong: " "$COLOR_PRIMARY" 1 "no"
+        print_message "Habilita/deshabilita Kong (usar con cuidaito)" "$COLOR_SECONDARY" 0 "after"
+
+        print_message "-l | --link-modules: " "$COLOR_PRIMARY" 1 "no"
+        print_message "Linkea los modulos de td-web-modules con td-web" "$COLOR_SECONDARY" 0 "after"
+
+        print_message "-yt | --yarn-test: " "$COLOR_PRIMARY" 1 "no"
+        print_message "Lanza los test del frontal paquete a paquete, Los parámetros disponibles son:" "$COLOR_SECONDARY"
+        print_message "<paquetes>: Lista de uno o mas paquetes a los que lanzar los test. Si no se indica, se lanza en todos." "$COLOR_TERNARY" 2 "after"
+
+        print_message "-ls | --load-structures: " "$COLOR_PRIMARY" 1 "no"
+        print_message "Carga estructuras a partir de csv. Los parámetros son:" "$COLOR_SECONDARY"
+        print_message "<path>: Ruta de la carpeta de los csv. Debe haber 2, uno llamado 'relations.csv' y otro llamado 'structures.csv'" "$COLOR_TERNARY" 2
+        print_message "<system>: El external id del sistema en Truedat" "$COLOR_TERNARY" 2 "after"
+
+        print_message "-ll | --load-linage: " "$COLOR_PRIMARY" 1 "no"
+        print_message "Carga linages a partir de csv. Los parámetros son:" "$COLOR_SECONDARY"
+        print_message "<path>: Ruta de la carpeta de los csv. Debe haber 2, uno llamado 'nodes.csv' y otro llamado 'rels.csv'" "$COLOR_TERNARY" 2 "after"
+
+        print_message "--rest: " "$COLOR_PRIMARY" 1 "no"
+        print_message "Hace llamadas sencillas que necesitan token de login a APIs usando curl. Los parámetros son:" "$COLOR_SECONDARY"
+        print_message "<url>: URL del API" "$COLOR_TERNARY" 2
+        print_message "<rest_method>: Verbo de la llamada del API" "$COLOR_TERNARY" 2
+        print_message "<params>: Parámetros de la llamada (opcional)" "$COLOR_TERNARY" 2 "after"
+
+        print_message "-at | --attach: " "$COLOR_PRIMARY" 1 "no"
+        print_message "Si se ha arrancado Truedat (con '-s' o '--start') entra en la session de tmux" "$COLOR_SECONDARY" 0 "after"
+
+        print_message "-dt | --detach: " "$COLOR_PRIMARY" 1 "no"
+        print_message "Si se ha arrancado Truedat (con '-s' o '--start'), para salir de la sesion de tmux sin cerrarla " "$COLOR_SECONDARY" 0 "after"
+        ;;
+    esac
+
 }
 
-main_menu(){
+main_menu() {
     local option=$(print_menu "${MAIN_MENU_OPTIONS[@]}")
- 
+
     case "$option" in
-        "--start")
-            start_menu
-            ;;
+    "--start")
+        start_menu
+        ;;
 
-        "--ddbb")
-            ddbb_menu
-            ;;
+    "--ddbb")
+        ddbb_menu
+        ;;
 
-        "--update-repos")
-            repo_menu
-            ;;
+    "--update-repos")
+        repo_menu
+        ;;
 
-        "--kill" | "--help" )
-            trus "$option"
-            ;;
-            
-        "Más..." )
-            secondary_menu
-            ;;
-                        
-        "Salir")
-            clear
-            tput reset
-            exit 0
-            ;;
+    "--kill" | "--help")
+        trus "$option"
+        ;;
+
+    "Más...")
+        secondary_menu
+        ;;
+
+    "Salir")
+        clear
+        tput reset
+        exit 0
+        ;;
     esac
 }
 
-secondary_menu(){
+secondary_menu() {
     local option=$(print_menu "${SECONDARY_MENU_OPTIONS[@]}")
 
     case "$option" in
-        "--reindex" | "--create-ssh" | "--link-modules" | "--yarn-test" | "--load-structures" | "--load-linage" | "--rest" | "--attach" | "--detach")
-            trus "$option"
-            ;;
+    "--reindex" | "--create-ssh" | "--link-modules" | "--yarn-test" | "--load-structures" | "--load-linage" | "--rest" | "--attach" | "--detach")
+        trus "$option"
+        ;;
 
-        "--kong")
-            kong_menu
-            ;;
+    "--kong")
+        kong_menu
+        ;;
 
-        "Volver")
-            main_menu
-            ;;
+    "Volver")
+        main_menu
+        ;;
     esac
 }
 
-start_menu(){
+start_menu() {
     local option=$(print_menu "${START_MENU_SUBOPTIONS[@]}")
-    
-    case "$option" in
-        "--start-containers" | "--start-services" | "--start-front")
-            trus "$option"
-            ;;
-        
-        "--all")
-            trus -s
-            ;;
 
-        "Volver")
-            main_menu
-            ;;
-        "*")
-            echo "option => $option"
-            ;;
+    case "$option" in
+    "--start-containers" | "--start-services" | "--start-front")
+        trus "$option"
+        ;;
+
+    "--all")
+        trus -s
+        ;;
+
+    "Volver")
+        main_menu
+        ;;
+    "*")
+        echo "option => $option"
+        ;;
     esac
 }
 
-ddbb_menu(){
+ddbb_menu() {
     local option=$(print_menu "${DDBB_MENU_SUBOPTIONS[@]}")
-    
+
     case "$option" in
-        "--download-test")
-            trus -d -d
-            ;;
+    "--download-test")
+        trus -d -d
+        ;;
 
-        "--download-update")
-            trus -d -du
-            ;;
+    "--download-update")
+        trus -d -du
+        ;;
 
-        "--local-update")
-            trus -d -lu
-            ;;
+    "--local-update")
+        trus -d -lu
+        ;;
 
-        "--local-backup")
-            trus -d -lb
-            ;;
+    "--local-backup")
+        trus -d -lb
+        ;;
 
-        "Volver")
-            main_menu
-            ;;
-        "*")
-            echo "option => $option"
-            ;;
+    "Volver")
+        main_menu
+        ;;
+    "*")
+        echo "option => $option"
+        ;;
     esac
 }
 
-repo_menu(){
+repo_menu() {
     local option=$(print_menu "${REPO_MENU_SUBOPTIONS[@]}")
     case "$option" in
-        "--back")
-            trus -ur -b
-            ;;
+    "--back")
+        trus -ur -b
+        ;;
 
-        "--front")
-            trus -ur -f
-            ;;
+    "--front")
+        trus -ur -f
+        ;;
 
-        "--libs")
-            trus -ur -l
-            ;;
+    "--libs")
+        trus -ur -l
+        ;;
 
-        "--all")
-            trus -ur -a
-            ;;
+    "--all")
+        trus -ur -a
+        ;;
 
-        "Volver")
-            main_menu
-            ;;
-        "*")
-            echo "option => $option"
-            ;;
+    "Volver")
+        main_menu
+        ;;
+    "*")
+        echo "option => $option"
+        ;;
     esac
 }
 
-kong_menu(){
+kong_menu() {
     local option=$(print_menu "${KONG_MENU_SUBOPTIONS[@]}")
-    case "$option" in        
-        "--kong-routes" | "--config-kong")
-            trus "$option"
-            ;;
+    case "$option" in
+    "--kong-routes" | "--config-kong")
+        trus "$option"
+        ;;
 
-        "Volver")
-            main_menu
-            ;;
-        "*")
-            echo "option => $option"
-            ;;
+    "Volver")
+        main_menu
+        ;;
+    "*")
+        echo "option => $option"
+        ;;
     esac
 }
 
-check_parameters() {    
+check_parameters() {
     good_parameters="false"
     local command="$1"
     local parameter1=$(normalize_text "$2")
     local parameter2=$(normalize_text "$3")
     local parameter3=$(normalize_text "$4")
-    
+
     case "$command" in
-        "-i" | "--install" |\
-        "-s" | "--start" |\
-        "-k" | "--kill" |\
-        "-r" | "--reindex" |\
-        "-l" | "--link-modules" |\
-        "-kr" | "--kong-routes" | "--config-kong" |\
-        "-sc" | "--start-containers" |\
-        "-sf" | "--start-front" |\
-        "-dt" | "--dettach" |\
-        "-at" | "--attach" |\
-        "-cs" | "--create-ssh" |\
-        "-h" | "--help" )
+    "-i" | "--install" | \
+        "-s" | "--start" | \
+        "-k" | "--kill" | \
+        "-r" | "--reindex" | \
+        "-l" | "--link-modules" | \
+        "-kr" | "--kong-routes" | "--config-kong" | \
+        "-sc" | "--start-containers" | \
+        "-sf" | "--start-front" | \
+        "-dt" | "--dettach" | \
+        "-at" | "--attach" | \
+        "-cs" | "--create-ssh" | \
+        "-h" | "--help")
+        good_parameters="true"
+        ;;
+
+    "-d" | "--ddbb")
+        case "$parameter1" in
+        "-d" | "--download-test" | "-du" | "--download-update" | "-lu" | "--local-update" | "-lb" | "--local-backup")
             good_parameters="true"
             ;;
+        esac
+        ;;
 
-        "-d" | "--ddbb")
-            case "$parameter1" in
-                "-d" | "--download-test" | "-du" | "--download-update" | "-lu" | "--local-update" | "-lb" | "--local-backup" )                
-                    good_parameters="true"
-            esac
-            ;; 
-        
-        "-ur" | "--update-repos" )
-            case "$parameter1" in
-                "-b" | "--back" | "-f" | "--front" | "-l" | "--libs" | "-a" | "--all" )                    
-                    good_parameters="true"
-            esac
+    "-ur" | "--update-repos")
+        case "$parameter1" in
+        "-b" | "--back" | "-f" | "--front" | "-l" | "--libs" | "-a" | "--all")
+            good_parameters="true"
             ;;
+        esac
+        ;;
 
-        "-ss" | "--start-services" )    
-            if [ -n "$parameter1" ]; then
-                local valid_services=true
-                for service in $parameter1; do
-                    local service_name=${service#"td-"}
-                    
-                    if [[ "$service" != "$service_name" ]] && ! [[ "${SERVICES[*]}" =~ ${service_name} ]]; then
-                        valid_services=false
-                        break
-                    fi
-                done
+    "-ss" | "--start-services")
+        if [ -n "$parameter1" ]; then
+            local valid_services=true
+            for service in $parameter1; do
+                local service_name=${service#"td-"}
 
-                if [ "$valid_services" = true ]; then
-                    good_parameters="true"
+                if [[ "$service" != "$service_name" ]] && ! [[ "${SERVICES[*]}" =~ ${service_name} ]]; then
+                    valid_services=false
+                    break
                 fi
-            else
-                good_parameters="true"
-            fi
-            ;;
- 
-        "-ls" | "--load-structures")
-            if [ -n "$parameter1" ] && [ -e "$parameter1" ] && [ -n "$parameter2" ]; then
-                good_parameters="true"
-            fi
-            ;;  
+            done
 
-        "-ll" | "--load-linages")
-            if [ -n "$parameter1" ] && [ -e "$parameter1" ]; then
+            if [ "$valid_services" = true ]; then
                 good_parameters="true"
             fi
-            ;;  
+        else
+            good_parameters="true"
+        fi
+        ;;
 
-        "--rest" )
-             if [ ! -z "$parameter1" ] && [ ! -z "$parameter2" ]; then
-                good_parameters="true"
+    "-ls" | "--load-structures")
+        if [ -n "$parameter1" ] && [ -e "$parameter1" ] && [ -n "$parameter2" ]; then
+            good_parameters="true"
+        fi
+        ;;
+
+    "-ll" | "--load-linages")
+        if [ -n "$parameter1" ] && [ -e "$parameter1" ]; then
+            good_parameters="true"
+        fi
+        ;;
+
+    "--rest")
+        if [ ! -z "$parameter1" ] && [ ! -z "$parameter2" ]; then
+            good_parameters="true"
+        fi
+        ;;
+
+    "-yt" | "--yarn-test")
+        local valid_packages=true
+        for package in $parameter1; do
+            local package_name=${package#"td-"}
+
+            if [[ "$package" != "$package_name" ]] && ! [[ "${packageS[*]}" =~ ${package_name} ]]; then
+                valid_packages=false
+                break
             fi
-            ;;   
-
-        "-yt" | "--yarn-test")
-                local valid_packages=true
-                for package in $parameter1; do
-                    local package_name=${package#"td-"}
-                    
-                    if [[ "$package" != "$package_name" ]] && ! [[ "${packageS[*]}" =~ ${package_name} ]]; then
-                        valid_packages=false
-                        break
-                    fi
-                done
-                if [ "$valid_packages" = true ]; then
-                    good_parameters="true"
-                fi
-            ;;
-        esac    
+        done
+        if [ "$valid_packages" = true ]; then
+            good_parameters="true"
+        fi
+        ;;
+    esac
 }
 
- 
 #########################################
 ####         Lógica inicial
 #########################################
 
-source $TRUS_PATH_CONFIG
+source $PATH_GLOBAL_CONFIG
 source tools "Truedat Utils (TrUs)" "" "DOT" "$HIDE_OUTPUT" "$HEADER_LOGO" "trus"
 
 set_vars
@@ -1865,8 +1870,7 @@ set_terminal_config
 
 clear
 
-
-if ! [ -e "$TRUS_PATH" ]; then 
+if ! [ -e "$TRUS_PATH" ]; then
     print_message "Trus no está instalado" "$COLOR_ERROR" 4 "both"
 elif [ -z "$1" ]; then
     print_truedat_logo
@@ -1874,99 +1878,99 @@ elif [ -z "$1" ]; then
     print_header
     main_menu
 else
-    params=()  
-    
-    check_parameters "$1" "$2" "$3" 
+    params=()
+
+    check_parameters "$1" "$2" "$3"
 
     if [ "$good_parameters" = "true" ]; then
-        case "$1" in               
-            "-i" | "--install" )
-                install
-                ;;
+        case "$1" in
+        "-i" | "--install")
+            install
+            ;;
 
-            "-s" | "--start")
-                shift  
-                start_truedat "$@"
-                ;;
-        
-            "-d" | "--ddbb")
-                ddbb "$2"
-                ;;
+        "-s" | "--start")
+            shift
+            start_truedat "$@"
+            ;;
 
-            "-r" | "--reindex")
-                reindex_all $(normalize_text "$2")
-                ;;
+        "-d" | "--ddbb")
+            ddbb "$2"
+            ;;
 
-            "-k" | "--kill")
-                kill_truedat
-                ;;
+        "-r" | "--reindex")
+            reindex_all $(normalize_text "$2")
+            ;;
 
-            "-cs" | "--create-ssh")
-                create_ssh        
-                ;;
+        "-k" | "--kill")
+            kill_truedat
+            ;;
 
-            "-ur" | "--update-repos")
-                update_repositories "$2" "$3"
-                ;;
+        "-cs" | "--create-ssh")
+            create_ssh
+            ;;
 
-            "-l" | "--link-modules")
-                link_web_modules
-                ;;
+        "-ur" | "--update-repos")
+            update_repositories "$2" "$3"
+            ;;
 
-            "-kr" | "--kong-routes")
-                kong_routes
-                ;;
+        "-l" | "--link-modules")
+            link_web_modules
+            ;;
 
-            "--config-kong")
-                config-kong
-                ;;
+        "-kr" | "--kong-routes")
+            kong_routes
+            ;;
 
-            "-h" | "--help")
-                help $2
-                ;;
+        "--config-kong")
+            config-kong
+            ;;
 
-            "-sc" | "--start-containers")
-                start_containers
-                ;;
+        "-h" | "--help")
+            help $2
+            ;;
 
-            "-ss" |"--start-services")
-                shift  
-                header="$1"
-                shift
-                params_echo="${*}"  
-                start_services "$header" "$params_echo"  
-                ;;
-            
-            "-sf" |"--start-front")
-                start_front "$1"
-                ;;  
+        "-sc" | "--start-containers")
+            start_containers
+            ;;
 
-            "-ls" | "--load-structures")
-                load_structures "$2" "$3"
-                ;;  
+        "-ss" | "--start-services")
+            shift
+            header="$1"
+            shift
+            params_echo="${*}"
+            start_services "$header" "$params_echo"
+            ;;
 
-            "-ll" | "--load-linages")
-                load_linages "$2"
-                ;;
+        "-sf" | "--start-front")
+            start_front "$1"
+            ;;
 
-            "--rest")
-                do_api_call "$2" "$3" "$4"
-                ;;
+        "-ls" | "--load-structures")
+            load_structures "$2" "$3"
+            ;;
 
-            "-at" | "--attach")
-                go_to_session
-                ;;
+        "-ll" | "--load-linages")
+            load_linages "$2"
+            ;;
 
-            "-dt" | "--dettach")
-                go_out_session
-                ;;
+        "--rest")
+            do_api_call "$2" "$3" "$4"
+            ;;
 
-            "-yt" | "--yarn-test")
-                shift
-                print_centered_message "EN CONSTRUCCION" "$COLOR_ERROR" "both"
-                # yarn_test "$@"
-                ;;
-            
+        "-at" | "--attach")
+            go_to_session
+            ;;
+
+        "-dt" | "--dettach")
+            go_out_session
+            ;;
+
+        "-yt" | "--yarn-test")
+            shift
+            print_centered_message "EN CONSTRUCCION" "$COLOR_ERROR" "both"
+            # yarn_test "$@"
+            ;;
+
         esac
-    fi    
+    fi
 fi
