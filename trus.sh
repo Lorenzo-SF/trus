@@ -355,6 +355,7 @@ get_local_backup_path() {
 }
 
 create_backup_local_ddbb() {
+    start_containers
     print_header
     print_semiheader "Creando backup de la bdd"
 
@@ -518,18 +519,34 @@ install() {
             link_web_modules
             ddbb "-du"
             config_kong
+            install_docker
 
             touch "/tmp/truedat_installation"
-            print_message "Truedat ha sido instalado." "$COLOR_PRIMARY" 3
-            print_message ""si desea reinstalar, elimina el archivo'/tmp/truedat_installation'"" "$COLOR_SECONDARY" 3
-            
+            print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3 "both"
+            print_message "Si deseas reinstalar Truedat, elimina el archivo '/tmp/truedat_installation'" "$COLOR_SECONDARY" 3
+            print_message "¿Quieres borrar el archivo '/tmp/truedat_installation'? (S/N)" "$COLOR_SECONDARY" 3
+            read -r reinstall
 
+            local continue_reinstall=$(normalize_text "$reinstall")
+
+            if [ "$continue_reinstall" = "si" ] || [ "$continue_reinstall" = "s" ] || [ "$continue_reinstall" = "y" ] || [ "$continue_reinstall" = "yes" ]; then
+                rm "/tmp/truedat_installation"                
+            fi
         else
             print_message "- Claves SSH (NO CREADAS): Tienes que tener creada una clave SSH (el script chequea que la clave se llame 'truedat') en la carpeta ~/.ssh" "$COLOR_ERROR" 3 "before"
             print_message "RECUERDA que tiene que estar registrada en el equipo y en Gitlab. Si no, debes crearla con 'trus -cr' y registarla en la web'" "$COLOR_WARNING" 3 "after"
         fi
     else
-        print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3
+        print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3 "both"
+        print_message "Si deseas reinstalar Truedat, elimina el archivo '/tmp/truedat_installation'" "$COLOR_SECONDARY" 3
+        print_message "¿Quieres borrar el archivo '/tmp/truedat_installation'? (S/N)" "$COLOR_SECONDARY" 3
+        read -r reinstall
+
+        local continue_reinstall=$(normalize_text "$reinstall")
+
+        if [ "$continue_reinstall" = "si" ] || [ "$continue_reinstall" = "s" ] || [ "$continue_reinstall" = "y" ] || [ "$continue_reinstall" = "yes" ]; then
+            rm "/tmp/truedat_installation"                
+        fi
     fi
 
 }
@@ -1024,7 +1041,9 @@ deactivate_kong() {
         local kong_id=$(docker ps -q --filter "name=kong")
         stop_docker
 
-        docker rm $kong_id
+        if [ ! "$kong_id" = "" ]; then
+            docker rm $kong_id
+        fi
 
         cd $FRONT_PATH
 
@@ -1204,9 +1223,13 @@ start_containers() {
 
     cd "$DEV_PATH"
 
+
+
     for container in "${CONTAINERS[@]}"; do
         if [[ "$USE_KONG" = true ]] || { [[ "$USE_KONG" = false ]] && [[ "$container" != "kong" ]]; }; then
+            print_message_with_animation "Preparando $container" "$COLOR_SECONDARY" 2
             eval "docker-compose up -d '${container}' $REDIRECT"            
+            print_message "$container listo para el ataque" "$COLOR_SUCCESS" 2    
         fi
     done
 }
@@ -1707,7 +1730,7 @@ ddbb_menu() {
         ;;
 
     "--clean_local_backups")
-        remove_local_ddbb_backups
+        clean_local_ddbb_backups
         ;;
 
     "--local-backup")
@@ -1726,7 +1749,7 @@ ddbb_menu() {
 local_update_menu(){
     cd $DDBB_BASE_BACKUP_PATH
     
-    local backups=("Volver" $(ls) "Otros...")
+    local backups=("Volver" $(find "$PWD" -mindepth 1 -type d) "Otros...")
 
     local option=$(print_menu "${backups[@]}")
     case "$option" in
@@ -1746,31 +1769,33 @@ local_update_menu(){
     esac
 }
 
-remove_local_ddbb_backups(){
+clean_local_ddbb_backups(){
     cd $DDBB_BASE_BACKUP_PATH
     
-    local backups=("Volver" $(ls) "Borrar todo")
+    local backups=("Volver" $(find "$PWD" -mindepth 1 -type d) "Borrar todo")
 
     local option=$(print_menu "${backups[@]}")
     case "$option" in
     "Borrar todo")
-        print_message "Se van a eliminar todos los backups de $DDBB_BACKUP_PATH ¿Estas seguro? (S/N)" "$COLOR_PRIMARY" 1
+        print_message "Se van a eliminar todos los backups de $DDBB_BASE_BACKUP_PATH ¿Estas seguro? (S/N)" "$COLOR_PRIMARY" 1
         read -r clean_backups
 
         local clean_backups=$(normalize_text "$clean_backups")
 
         if [ "$clean_backups" = "si" ] || [ "$clean_backups" = "s" ] || [ "$clean_backups" = "y" ] || [ "$clean_backups" = "yes" ]; then
             rm -fr $DDBB_BASE_BACKUP_PATH/*
-        fi
-        
+
+            print_message "Se han eliminado todos los backups locales de bdd" "$COLOR_SUCCESS" 2 "both"
+        fi        
         ;;
 
     "Volver")
-        main_menu
+        ddbb_menu
         ;;
 
     "*")
-        rm -fr $DDBB_BASE_BACKUP_PATH/$option
+        rm -fr $DDBB_LOCAL_BACKUP_PATH/$option
+        print_message "Se han eliminado el backup $DDBB_LOCAL_BACKUP_PATH/$option" "$COLOR_SUCCESS" 2 "both"
         ;;
     esac
 }

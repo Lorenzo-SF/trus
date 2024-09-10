@@ -374,7 +374,7 @@ trus_config() {
         echo 'TLP_PATH_CONFIG=/etc/tlp.conf'
         echo 'INSTALLATION_PACKAGES=("redis-tools" "screen" "tmux" "unzip" "curl" "vim" "build-essential" "git" "libssl-dev" "automake" "autoconf" "libncurses5" "libncurses5-dev" "awscli" "docker.io" "postgresql-client-14" "jq" "gedit" "xclip" "google-chrome-stable" "code" "snapd" "xdotool" "x11-utils")'
         echo 'INSTALLATION_PACKAGES_EXTRA=("winehq-stable" "gdebi-core" "libvulkan1" "libvulkan1:i386" "fonts-powerline" "plymouth" "plymouth-themes" "ckb-next" "pavucontrol" "gnome-boxes" "virt-manager" "stress" "bluez" "bluez-tools" "tlp" "lm-sensors" "psensor")'
-        echo 'HIDE_OUTPUT=false'
+        echo 'HIDE_OUTPUT=true'
         echo 'USE_KONG=false'
     } >$PATH_GLOBAL_CONFIG
 }
