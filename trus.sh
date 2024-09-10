@@ -61,6 +61,7 @@ general_vars() {
         "--download-update"
         "--local-update"
         "--local-backup"
+        "--clean_local_backups"
     )
 
     REPO_MENU_SUBOPTIONS=(
@@ -1705,6 +1706,10 @@ ddbb_menu() {
         local_update_menu
         ;;
 
+    "--clean_local_backups")
+        remove_local_ddbb_backups
+        ;;
+
     "--local-backup")
         trus -d -lb
         ;;
@@ -1732,10 +1737,40 @@ local_update_menu(){
     "Volver")
         main_menu
         ;;
+
     "*")
         remove_all_redis
 
         update_ddbb_from_backup "$option"
+        ;;
+    esac
+}
+
+remove_local_ddbb_backups(){
+    cd $DDBB_BASE_BACKUP_PATH
+    
+    local backups=("Volver" $(ls) "Borrar todo")
+
+    local option=$(print_menu "${backups[@]}")
+    case "$option" in
+    "Borrar todo")
+        print_message "Se van a eliminar todos los backups de $DDBB_BACKUP_PATH ¿Estas seguro? (S/N)" "$COLOR_PRIMARY" 1
+        read -r clean_backups
+
+        local clean_backups=$(normalize_text "$clean_backups")
+
+        if [ "$clean_backups" = "si" ] || [ "$clean_backups" = "s" ] || [ "$clean_backups" = "y" ] || [ "$clean_backups" = "yes" ]; then
+            rm -fr $DDBB_BASE_BACKUP_PATH/*
+        fi
+        
+        ;;
+
+    "Volver")
+        main_menu
+        ;;
+
+    "*")
+        rm -fr $DDBB_BASE_BACKUP_PATH/$option
         ;;
     esac
 }
