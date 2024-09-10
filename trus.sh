@@ -448,7 +448,6 @@ install() {
                 print_message "Configuración de aws (HECHO)" "$COLOR_SUCCESS" 3 "before"
             fi
            
-
             asdf plugin add erlang https://github.com/asdf-vm/asdf-erlang.git
             asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git
             asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
@@ -517,16 +516,33 @@ install() {
             config-kong
 
             touch "/tmp/truedat_installation"
-            print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3
+            print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3 "both"
+            print_message "Si deseas reinstalarlo, puedes hacerlo borrndo el archivo '/temp/truedat_installation'. ¿Deseas hacerlo ahora? (S/N)" "$COLOR_SECONDARY" 3
+            read -r reinstall
+
+            local continue_reinstall=$(normalize_text "$reinstall")
+
+            if [ "$continue_reinstall" = "si" ] || [ "$continue_reinstall" = "s" ] || [ "$continue_reinstall" = "y" ] || [ "$continue_reinstall" = "yes" ]; then
+                rm "/tmp/truedat_installation"
+            fi            
 
         else
             print_message "- Claves SSH (NO CREADAS): Tienes que tener creada una clave SSH (el script chequea que la clave se llame 'truedat') en la carpeta ~/.ssh" "$COLOR_ERROR" 3 "before"
             print_message "RECUERDA que tiene que estar registrada en el equipo y en Gitlab. Si no, debes crearla con 'trus -cr' y registarla en la web'" "$COLOR_WARNING" 3 "after"
         fi
     else
-        print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3
-    fi
+        print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3 "both"
+        
+        print_message "Si deseas reinstalarlo, puedes hacerlo borrndo el archivo '/temp/truedat_installation'. ¿Deseas hacerlo ahora? (S/N)" "$COLOR_SECONDARY" 3
+        read -r reinstall
 
+        local continue_reinstall=$(normalize_text "$reinstall")
+
+        if [ "$continue_reinstall" = "si" ] || [ "$continue_reinstall" = "s" ] || [ "$continue_reinstall" = "y" ] || [ "$continue_reinstall" = "yes" ]; then
+            rm "/tmp/truedat_installation"
+            print_message "Archivo '/tmp/truedat_installation' eliminado correctamente" "$COLOR_PRIMARY" 3 "both"
+        fi            
+    fi
 }
 
 config-kong() {
@@ -1155,7 +1171,7 @@ start_containers() {
     print_header
     print_semiheader "Arrancando..."
 
-    cd "$DEV_PATH"
+    cd $DEV_PATH
 
     for container in "${CONTAINERS[@]}"; do
         if [[ "$USE_KONG" = true ]] || { [[ "$USE_KONG" = false ]] && [[ "$container" != "kong" ]]; }; then

@@ -171,66 +171,65 @@ package_installation() {
     print_message_with_animation "Instalando Kubectl" "$COLOR_TERNARY" 2
 
     if [ ! -e "$KUBE_PATH" ]; then
-        mkdir $KUBE_PATH
+        mkdir $KUBE_PATH   
+
+        cd $KUBE_PATH
+
+        eval "curl -LO https://dl.k8s.io/release/v1.23.6/bin/linux/amd64/kubectl && sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl $REDIRECT"
+        
+        touch "$KUBECONFIG"
+        {
+            echo 'apiVersion: v1'
+            echo 'clusters:'
+            echo '- cluster:'
+            echo '    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUN5RENDQWJDZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwcmRXSmwKY201bGRHVnpNQjRYRFRFNE1URXlPVEF4TlRJeU5Gb1hEVEk0TVRFeU5qQXhOVEl5TkZvd0ZURVRNQkVHQTFVRQpBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBTGtjCnBhOWlvSGNYNmIyTGEycmtJQnpqdUd3SkFMYjR6QkxiSzl2b2ZkZGdRODNFeUZaMFExR2UrT3JuUmNZUEowT04KeHBGUTNYT2o2RW9HSGYxbGVQQU8zZG84WlR1UGp6YnluOWVNdU55YkxqWkY1NXNGaGVEYzhtYUlIWW4yV0VzcApkeHl6UllFWUVtRjlHU0EyblZ0bDk2NGxnOEpVMjJMN092THV6bWFhSHlJZGN4VU1JS2I0RThFdG03T3d6aElMClNKZUdTU0xvYUNDQzVaVXFObWx3Yk1tQlE3QkNqUzhwblo3c0FSWjRtbUhDa3ZzQ2RrN01pYUJDMStvZXk3b3IKcjhSbW1yeUN6MndER0R5NTlNamlrOElNRG92cldLQXlPSE9zZXBuS3VRTjRGd0E0U2g5M3g1Rml5bEpyamVRMAo0Y0FxN2swd0xKRFFpb3BTR3ZrQ0F3RUFBYU1qTUNFd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWRFd0VCCi93UUZNQU1CQWY4d0RRWUpLb1pJaHZjTkFRRUxCUUFEZ2dFQkFHS1hDMFdJSWZHVmhDRXFKUUVRY2xzS1Q1MlUKSkdFMmtlS2piYytwdWVuL0tZTSs2b2hRZE4wbjRDNHZRZzVaNC9NTW1kZ1Vmb0Z2TmcyTy9DKzFSb0ZkajBCOQpNWG1Zc1BzZTVCcEQ1YUkzY0praU1mcElmUC9JYmRRbGVWOW1YYkZoa0lKKzRWYzhjN3FabUdUbzdqdTZvdHRGCkpuVjQxMmZNS25PWHp4NC9MYm1kSjcrdkhGZ053M2kvbjc2Q24wOVNsWTMxRVBtc25ZekYwUUlJczhHZjlZby8Kdm02T3VzbjIyTDZBeUVWNVNnTDBsaWorZEVOR1FoMkpnYUpRYURLM3QySkN3YTg5U2ZFSTZKZHFBaDVSVllLdApQYk82bW1TeTRFTEJWNy9WM1lTTnplZ0ZyR0EvRStaL01CbTBoS3FxcStPUERwUlVmVkk1djlmYTdtZz0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo='
+            echo '    server: https://B4E4C4ED51C8A123744DE0E261A4C8F7.sk1.eu-west-1.eks.amazonaws.com'
+            echo '  name: arn:aws:eks:eu-west-1:576759405678:cluster/truedat'
+            echo '- cluster:'
+            echo '    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURCVENDQWUyZ0F3SUJBZ0lJVEhPc2VHTWkrRm93RFFZSktvWklodmNOQVFFTEJRQXdGVEVUTUJFR0ExVUUKQXhNS2EzVmlaWEp1WlhSbGN6QWVGdzB5TkRBeE1UQXhOREk0TkRKYUZ3MHpOREF4TURjeE5ETXpOREphTUJVeApFekFSQmdOVkJBTVRDbXQxWW1WeWJtVjBaWE13Z2dFaU1BMEdDU3FHU0liM0RRRUJBUVVBQTRJQkR3QXdnZ0VLCkFvSUJBUURQQzZRQjIrZUNCbGE0a1pWVjVrMEx1OFJSRlozN2M3c3VvSnYxUlhwUFhHb2c4d1RpbkZiNVVpSzQKUFJHc3c2ZDU5M2l5YlI4TzYzRTBmM05HTFNGcEUyMkpscW9DQUNyRmpDTEF3NzN6Z0NiQXY1Ym8xdWh2Mk5DVQpjVFN5RjFQN29qK3RXQ0o0QUVDQlA1KzgyZXVUK0czOUFKelRhdDFrUUpVVWtlbUllR1dWM2Zvblk5YS91SkVECkJUcllmMnJEVWUxOG02T2xEVlBQNEdoRG85Q3Yya0J1bVJ0Z0ovYnRkbWpFYkpOdkFTYjB5QTRpWnJxeGYxeE8KakFOZTdJWnFBbjVBWm42NU1zbmNNTW5ISmw2Q3k2LzJmSU0yMWNOeUxXU1JoVFI4ZkJXdlRXWFNDNUZJUjBXdQpTSzNnRG9lTEI2YnZMN2dxZ21Mbyt4WnNDMWVOQWdNQkFBR2pXVEJYTUE0R0ExVWREd0VCL3dRRUF3SUNwREFQCkJnTlZIUk1CQWY4RUJUQURBUUgvTUIwR0ExVWREZ1FXQkJUZjBLVEhYVU9SZnFUSU93Rm5nOUdRY2lBNGpqQVYKQmdOVkhSRUVEakFNZ2dwcmRXSmxjbTVsZEdWek1BMEdDU3FHU0liM0RRRUJDd1VBQTRJQkFRQ3dwZWVQODQzRQpTWFFya0piK2NQakIyZDk1eHNRUG1vL0NRL0l2MGdQd2tKam1ZcXdDU1ptUE1qcmV6WE5mUVZVUSt4bU94M3BaCjBrL0dBTEVOLzYyei9RVm9rQnZkakxwN0dJblhsb2dwUFZxN0ZOUkZSckpYTy9jOTZpWUVoZFFSdDVpMmRtVmYKcWltNnAzMXZSVTVBclFpUktBcW5KZzFuYnA0Q0NTb0pERmhUWlh0dFBFU2RJZ3Mwb05wUmZjWm9xZXNQQlJvOAorZDFYRUdzeGw4bXJJN0FNRXIzMVdSRlNwdHQ5eFpRenhKQU9WY3V2NkFJK2dQMmhnWnBEQTJPY3BhRk40bkkyCmpJTmhrVUVTRWRRSlFUNUJwa2hVUmkxNTBjMStSTm0zclRBbmVEQ1IydjMzQUNXc2h1bmdhdlJ0cy9mVTIzbWoKc1JRTjFpZFBIcEdMCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K'
+            echo '    server: https://69A8FA57BC0A79CAB4BBAD796024AB81.gr7.eu-west-1.eks.amazonaws.com'
+            echo '  name: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
+            echo 'contexts:'
+            echo '- context:'
+            echo '    cluster: arn:aws:eks:eu-west-1:576759405678:cluster/truedat'
+            echo '    user: arn:aws:eks:eu-west-1:576759405678:cluster/truedat'
+            echo '  name: truedat'
+            echo '- context:'
+            echo '    cluster: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
+            echo '    user: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
+            echo '  name: test-truedat-eks'
+            echo 'current-context: test-truedat-eks'
+            echo 'kind: Config'
+            echo 'preferences: {}'
+            echo 'users:'
+            echo '- name: arn:aws:eks:eu-west-1:576759405678:cluster/truedat'
+            echo '  user:'
+            echo '    exec:'
+            echo '      apiVersion: client.authentication.k8s.io/v1alpha1'
+            echo '      args:'
+            echo '      - --region'
+            echo '      - eu-west-1'
+            echo '      - eks'
+            echo '      - get-token'
+            echo '      - --cluster-name'
+            echo '      - truedat'
+            echo '      command: aws'
+            echo '- name: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
+            echo '  user:'
+            echo '    exec:'
+            echo '      apiVersion: client.authentication.k8s.io/v1alpha1'
+            echo '      args:'
+            echo '      - --region'
+            echo '      - eu-west-1'
+            echo '      - eks'
+            echo '      - get-token'
+            echo '      - --cluster-name'
+            echo '      - test-truedat-eks'
+            echo '      command: aws               '
+        } >$KUBECONFIG
+        
+        print_message "Kubectl instalado y configurado" "$COLOR_SUCCESS" 3
     fi
-
-    cd $KUBE_PATH
-
-    eval "curl -LO https://dl.k8s.io/release/v1.23.6/bin/linux/amd64/kubectl && sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl $REDIRECT"
-    
-    touch "$KUBECONFIG"
-    {
-        echo 'apiVersion: v1'
-        echo 'clusters:'
-        echo '- cluster:'
-        echo '    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUN5RENDQWJDZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwcmRXSmwKY201bGRHVnpNQjRYRFRFNE1URXlPVEF4TlRJeU5Gb1hEVEk0TVRFeU5qQXhOVEl5TkZvd0ZURVRNQkVHQTFVRQpBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBTGtjCnBhOWlvSGNYNmIyTGEycmtJQnpqdUd3SkFMYjR6QkxiSzl2b2ZkZGdRODNFeUZaMFExR2UrT3JuUmNZUEowT04KeHBGUTNYT2o2RW9HSGYxbGVQQU8zZG84WlR1UGp6YnluOWVNdU55YkxqWkY1NXNGaGVEYzhtYUlIWW4yV0VzcApkeHl6UllFWUVtRjlHU0EyblZ0bDk2NGxnOEpVMjJMN092THV6bWFhSHlJZGN4VU1JS2I0RThFdG03T3d6aElMClNKZUdTU0xvYUNDQzVaVXFObWx3Yk1tQlE3QkNqUzhwblo3c0FSWjRtbUhDa3ZzQ2RrN01pYUJDMStvZXk3b3IKcjhSbW1yeUN6MndER0R5NTlNamlrOElNRG92cldLQXlPSE9zZXBuS3VRTjRGd0E0U2g5M3g1Rml5bEpyamVRMAo0Y0FxN2swd0xKRFFpb3BTR3ZrQ0F3RUFBYU1qTUNFd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWRFd0VCCi93UUZNQU1CQWY4d0RRWUpLb1pJaHZjTkFRRUxCUUFEZ2dFQkFHS1hDMFdJSWZHVmhDRXFKUUVRY2xzS1Q1MlUKSkdFMmtlS2piYytwdWVuL0tZTSs2b2hRZE4wbjRDNHZRZzVaNC9NTW1kZ1Vmb0Z2TmcyTy9DKzFSb0ZkajBCOQpNWG1Zc1BzZTVCcEQ1YUkzY0praU1mcElmUC9JYmRRbGVWOW1YYkZoa0lKKzRWYzhjN3FabUdUbzdqdTZvdHRGCkpuVjQxMmZNS25PWHp4NC9MYm1kSjcrdkhGZ053M2kvbjc2Q24wOVNsWTMxRVBtc25ZekYwUUlJczhHZjlZby8Kdm02T3VzbjIyTDZBeUVWNVNnTDBsaWorZEVOR1FoMkpnYUpRYURLM3QySkN3YTg5U2ZFSTZKZHFBaDVSVllLdApQYk82bW1TeTRFTEJWNy9WM1lTTnplZ0ZyR0EvRStaL01CbTBoS3FxcStPUERwUlVmVkk1djlmYTdtZz0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo='
-        echo '    server: https://B4E4C4ED51C8A123744DE0E261A4C8F7.sk1.eu-west-1.eks.amazonaws.com'
-        echo '  name: arn:aws:eks:eu-west-1:576759405678:cluster/truedat'
-        echo '- cluster:'
-        echo '    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURCVENDQWUyZ0F3SUJBZ0lJVEhPc2VHTWkrRm93RFFZSktvWklodmNOQVFFTEJRQXdGVEVUTUJFR0ExVUUKQXhNS2EzVmlaWEp1WlhSbGN6QWVGdzB5TkRBeE1UQXhOREk0TkRKYUZ3MHpOREF4TURjeE5ETXpOREphTUJVeApFekFSQmdOVkJBTVRDbXQxWW1WeWJtVjBaWE13Z2dFaU1BMEdDU3FHU0liM0RRRUJBUVVBQTRJQkR3QXdnZ0VLCkFvSUJBUURQQzZRQjIrZUNCbGE0a1pWVjVrMEx1OFJSRlozN2M3c3VvSnYxUlhwUFhHb2c4d1RpbkZiNVVpSzQKUFJHc3c2ZDU5M2l5YlI4TzYzRTBmM05HTFNGcEUyMkpscW9DQUNyRmpDTEF3NzN6Z0NiQXY1Ym8xdWh2Mk5DVQpjVFN5RjFQN29qK3RXQ0o0QUVDQlA1KzgyZXVUK0czOUFKelRhdDFrUUpVVWtlbUllR1dWM2Zvblk5YS91SkVECkJUcllmMnJEVWUxOG02T2xEVlBQNEdoRG85Q3Yya0J1bVJ0Z0ovYnRkbWpFYkpOdkFTYjB5QTRpWnJxeGYxeE8KakFOZTdJWnFBbjVBWm42NU1zbmNNTW5ISmw2Q3k2LzJmSU0yMWNOeUxXU1JoVFI4ZkJXdlRXWFNDNUZJUjBXdQpTSzNnRG9lTEI2YnZMN2dxZ21Mbyt4WnNDMWVOQWdNQkFBR2pXVEJYTUE0R0ExVWREd0VCL3dRRUF3SUNwREFQCkJnTlZIUk1CQWY4RUJUQURBUUgvTUIwR0ExVWREZ1FXQkJUZjBLVEhYVU9SZnFUSU93Rm5nOUdRY2lBNGpqQVYKQmdOVkhSRUVEakFNZ2dwcmRXSmxjbTVsZEdWek1BMEdDU3FHU0liM0RRRUJDd1VBQTRJQkFRQ3dwZWVQODQzRQpTWFFya0piK2NQakIyZDk1eHNRUG1vL0NRL0l2MGdQd2tKam1ZcXdDU1ptUE1qcmV6WE5mUVZVUSt4bU94M3BaCjBrL0dBTEVOLzYyei9RVm9rQnZkakxwN0dJblhsb2dwUFZxN0ZOUkZSckpYTy9jOTZpWUVoZFFSdDVpMmRtVmYKcWltNnAzMXZSVTVBclFpUktBcW5KZzFuYnA0Q0NTb0pERmhUWlh0dFBFU2RJZ3Mwb05wUmZjWm9xZXNQQlJvOAorZDFYRUdzeGw4bXJJN0FNRXIzMVdSRlNwdHQ5eFpRenhKQU9WY3V2NkFJK2dQMmhnWnBEQTJPY3BhRk40bkkyCmpJTmhrVUVTRWRRSlFUNUJwa2hVUmkxNTBjMStSTm0zclRBbmVEQ1IydjMzQUNXc2h1bmdhdlJ0cy9mVTIzbWoKc1JRTjFpZFBIcEdMCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K'
-        echo '    server: https://69A8FA57BC0A79CAB4BBAD796024AB81.gr7.eu-west-1.eks.amazonaws.com'
-        echo '  name: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
-        echo 'contexts:'
-        echo '- context:'
-        echo '    cluster: arn:aws:eks:eu-west-1:576759405678:cluster/truedat'
-        echo '    user: arn:aws:eks:eu-west-1:576759405678:cluster/truedat'
-        echo '  name: truedat'
-        echo '- context:'
-        echo '    cluster: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
-        echo '    user: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
-        echo '  name: test-truedat-eks'
-        echo 'current-context: test-truedat-eks'
-        echo 'kind: Config'
-        echo 'preferences: {}'
-        echo 'users:'
-        echo '- name: arn:aws:eks:eu-west-1:576759405678:cluster/truedat'
-        echo '  user:'
-        echo '    exec:'
-        echo '      apiVersion: client.authentication.k8s.io/v1alpha1'
-        echo '      args:'
-        echo '      - --region'
-        echo '      - eu-west-1'
-        echo '      - eks'
-        echo '      - get-token'
-        echo '      - --cluster-name'
-        echo '      - truedat'
-        echo '      command: aws'
-        echo '- name: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
-        echo '  user:'
-        echo '    exec:'
-        echo '      apiVersion: client.authentication.k8s.io/v1alpha1'
-        echo '      args:'
-        echo '      - --region'
-        echo '      - eu-west-1'
-        echo '      - eks'
-        echo '      - get-token'
-        echo '      - --cluster-name'
-        echo '      - test-truedat-eks'
-        echo '      command: aws               '
-    } >$KUBECONFIG
-    
-    print_message "Kubectl instalado y configurado" "$COLOR_SUCCESS" 3
-
     print_message "Paquetes y dependencias (extra) instalado correctamente" "$COLOR_SUCCESS" 3 "both"
 }
 
@@ -384,11 +383,13 @@ zsh_config() {
         echo ''
     } > $ZSH_PATH_CONFIG
 
-    print_message "Archivo de configuración creado con éxito" "$COLOR_SUCCESS" 3 "both"
+    print_message "Archivo de configuración creado con éxito" "$COLOR_SUCCESS" 3
 }
 
 tmux_config() {
     print_semiheader "TMUX"
+
+    touch $TMUX_PATH_CONFIG
 
     {
         echo 'set -g mouse on'
@@ -402,13 +403,16 @@ tmux_config() {
         echo 'bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "xclip -in -selection clipboard"'
     } > $TMUX_PATH_CONFIG
 
-    print_message "Archivo de configuración creado con éxito" "$COLOR_SUCCESS" 3 "both"
+    print_message "Archivo de configuración creado con éxito" "$COLOR_SUCCESS" 3
 }
 
 tlp_config() {
     print_semiheader "TLP"
+    
+    sudo sh -c " touch $TLP_PATH_CONFIG"
 
-    sudo sh -c '{
+    sudo sh -c "
+        {
             echo 'TLP_ENABLE=1'
             echo 'TLP_DEFAULT_MODE=AC'
             echo 'CPU_SCALING_GOVERNOR_ON_AC=performance'
@@ -429,15 +433,19 @@ tlp_config() {
             echo 'PLATFORM_PROFILE_ON_BAT=low-power'
             echo 'RUNTIME_PM_ON_AC=auto'
             echo 'RUNTIME_PM_ON_BAT=auto'
-        } > $TLP_PATH_CONFIG'
+        } > $TLP_PATH_CONFIG"
 
-    print_message "Archivo de configuración creado con éxito" "$COLOR_SUCCESS" 3 "both"
+    print_message "Archivo de configuración creado con éxito" "$COLOR_SUCCESS" 3
 
-    sudo tlp start
-    sudo systemctl enable tlp.service
+    eval "sudo tlp start $REDIRECT"
+    eval "sudo systemctl enable tlp.service $REDIRECT"
 }
 
 trus_config() {
+    print_semiheader "TrUs"
+    
+    touch $TMUX_PATH_CONFIG
+    
     {
         echo 'TERMINAL_WIDTH=40'
         echo 'TERMINAL_HEIGHT=135'
@@ -461,7 +469,7 @@ trus_config() {
         echo 'SELECTED_ANIMATION="BOMB"'
     } > $PATH_GLOBAL_CONFIG
 
-    print_message "Archivo de configuración creado con éxito" "$COLOR_SUCCESS" 3 "both"
+    print_message "Archivo de configuración creado con éxito" "$COLOR_SUCCESS" 3
 }
 
 configurations() {
@@ -470,7 +478,7 @@ configurations() {
     tmux_config
     tlp_config
     trus_config
-    print_message "Se han creado los ficheros de configuracion satisfactoriamente" "$COLOR_SUCCESS" 3 "both"
+    print_message "Se han creado los ficheros de configuracion satisfactoriamente" "$COLOR_SUCCESS" 2    "both"
 }
 
 swap() {
