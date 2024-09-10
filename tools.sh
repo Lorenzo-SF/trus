@@ -554,11 +554,42 @@ update_git() {
     print_message "Actualizando repositorio (HECHO)" "$COLOR_SUCCESS" 3
 }
 
+clone_if_not_exists() {
+    local repo_url=$1
+    local target_dir=$2
+
+    if [ ! -d "$target_dir" ]; then
+        print_message "Clonando el repositorio desde '$repo_url' en '$target_dir'..." "$COLOR_SUCCESS" 3 
+        git clone "$repo_url" "$target_dir"
+    else
+        print_message "El directorio '$target_dir' ya existe. No se clonará el repositorio."  "$COLOR_WARNING" 3 
+    fi
+}
+
 compile_web() {
     print_message_with_animation "Compilando React..." "$COLOR_SECONDARY" 3
     eval "yarn install  $REDIRECT"
     print_message "Compilando React (HECHO)" "$COLOR_SUCCESS" 3
 }
+
+compile_elixir() {
+    local create_ddbb=${1:-""}
+
+    print_message_with_animation "Actualizando dependencias Elixir..." "$COLOR_SECONDARY" 3
+    eval "mix deps.get --force $REDIRECT"
+    print_message "Actualizando dependencias Elixir (HECHO)" "$COLOR_SUCCESS" 3
+
+    print_message_with_animation "Compilando Elixir..." "$COLOR_SECONDARY" 3
+    eval "mix compile $REDIRECT"
+    print_message "Compilando Elixir (HECHO)" "$COLOR_SUCCESS" 3
+
+    if [ ! "$create_ddbb" = "" ]; then
+        print_message_with_animation "Creando bdd..." "$COLOR_SECONDARY" 3
+        eval "yes | mix ecto.create $REDIRECT"
+        print_message "Creacion de bdd (HECHO)" "$COLOR_SUCCESS" 3
+    fi
+}
+
 
 #########################################
 # no sql
