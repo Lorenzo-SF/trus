@@ -2,7 +2,7 @@
 
 variables() {
     SWAP_FILE="/swapfile"
-    SWAP_SIZE_MB=$(free --giga | awk '/^Mem:/ {print int($2 + ($2))}')
+    SWAP_SIZE_MB=$(free --mega | awk '/^Mem:/ {print int($2 + ($2))}')
     USER_HOME=$(eval echo ~"$SUDO_USER")
     TRUS_DIRECTORY=$USER_HOME/.trus/
 
@@ -23,7 +23,7 @@ variables() {
         "4 - Actualizar prompt de BASH"
         "5 - Actualizar splash loader"
         "6 - Creación de archivos de configuracion (ZSH, TMUX y TLP)"
-        "7 - Actualizar la memoria SWAP (a $SWAP_SIZE_MB GB)"
+        "7 - Actualizar la memoria SWAP (a  $((SWAP_SIZE_MB / 1024))MB)"
         "8 - Instala TrUs (Truedat Utils)"
         "9 - Todo"
     )
@@ -35,6 +35,7 @@ variables() {
 
 install_tools() {
     if [ ! -d "$TOOLS_LINK_PATH" ]; then
+            
         if [ ! -d "$TRUS_DIRECTORY" ]; then
             mkdir -p "$TRUS_DIRECTORY"
         fi
@@ -43,13 +44,8 @@ install_tools() {
 
         sudo rm -f "$TOOLS_LINK_PATH"
         sudo ln -s "$TOOLS_PATH" "$TOOLS_LINK_PATH"
-
-        if [ ! command -v fzf ] &>/dev/null; then
-            eval "git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf $REDIRECT"
-            ~/.fzf/install
-        fi
-
-        eval "sudo apt install -qqq -y --install-recommends wmctrl $REDIRECT"
+               
+        eval "sudo apt install -qqq -y --install-recommends wmctrl fzf $REDIRECT"
 
         sudo sh -c '{
             echo "##################"
@@ -69,6 +65,7 @@ install_tools() {
             echo "##################"
         } >> /etc/hosts'
     fi
+  
 }
 
 install_trus() {
@@ -131,6 +128,14 @@ package_installation() {
         eval "sudo apt install -y --install-recommends $package $REDIRECT"
         print_message "$package instalado" "$COLOR_SUCCESS" 3
     done
+
+    if [ ! command -v aws ] &>/dev/null; then
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+        mkdir .aws
+        cd .aws
+        unzip awscliv2.zip
+        sudo install
+    fi
 
     print_message_with_animation "Instalando Discord y DBeaver" "$COLOR_TERNARY" 2
     eval "sudo snap install discord dbeaver-ce $REDIRECT"
@@ -321,29 +326,29 @@ tmux_config() {
 
 tlp_config() {
     print_semiheader "Creación del archivo de configuración de TLP"
-
-    {
-        echo 'TLP_ENABLE=1'
-        echo 'TLP_DEFAULT_MODE=AC'
-        echo 'CPU_SCALING_GOVERNOR_ON_AC=performance'
-        echo 'CPU_SCALING_GOVERNOR_ON_BAT=powersave'
-        echo 'CPU_ENERGY_PERF_POLICY_ON_AC=performance'
-        echo 'CPU_ENERGY_PERF_POLICY_ON_BAT=power-saver'
-        echo 'CPU_MIN_PERF_ON_AC=0'
-        echo 'CPU_MAX_PERF_ON_AC=100'
-        echo 'CPU_MIN_PERF_ON_BAT=0'
-        echo 'CPU_MAX_PERF_ON_BAT=70'
-        echo 'CPU_BOOST_ON_AC=1'
-        echo 'CPU_BOOST_ON_BAT=0'
-        echo 'CPU_HWP_DYN_BOOST_ON_AC=1'
-        echo 'CPU_HWP_DYN_BOOST_ON_BAT=0'
-        echo 'SCHED_POWERSAVE_ON_AC=0'
-        echo 'SCHED_POWERSAVE_ON_BAT=1'
-        echo 'PLATFORM_PROFILE_ON_AC=performance'
-        echo 'PLATFORM_PROFILE_ON_BAT=low-power'
-        echo 'RUNTIME_PM_ON_AC=auto'
-        echo 'RUNTIME_PM_ON_BAT=auto'
-    } >$TLP_PATH_CONFIG
+        sudo sh -c '{
+            echo 'TLP_ENABLE=1'
+            echo 'TLP_DEFAULT_MODE=AC'
+            echo 'CPU_SCALING_GOVERNOR_ON_AC=performance'
+            echo 'CPU_SCALING_GOVERNOR_ON_BAT=powersave'
+            echo 'CPU_ENERGY_PERF_POLICY_ON_AC=performance'
+            echo 'CPU_ENERGY_PERF_POLICY_ON_BAT=power-saver'
+            echo 'CPU_MIN_PERF_ON_AC=0'
+            echo 'CPU_MAX_PERF_ON_AC=100'
+            echo 'CPU_MIN_PERF_ON_BAT=0'
+            echo 'CPU_MAX_PERF_ON_BAT=70'
+            echo 'CPU_BOOST_ON_AC=1'
+            echo 'CPU_BOOST_ON_BAT=0'
+            echo 'CPU_HWP_DYN_BOOST_ON_AC=1'
+            echo 'CPU_HWP_DYN_BOOST_ON_BAT=0'
+            echo 'SCHED_POWERSAVE_ON_AC=0'
+            echo 'SCHED_POWERSAVE_ON_BAT=1'
+            echo 'PLATFORM_PROFILE_ON_AC=performance'
+            echo 'PLATFORM_PROFILE_ON_BAT=low-power'
+            echo 'RUNTIME_PM_ON_AC=auto'
+            echo 'RUNTIME_PM_ON_BAT=auto'
+        } > $TLP_PATH_CONFIG'
+ 
 
     sudo tlp start
     sudo systemctl enable tlp.service
@@ -529,12 +534,11 @@ help() {
 #########################################
 
 variables
-source tools "Bienvenido al equipo de Core de Truedat" "Preparación del entorno" "DOT" "$HIDE_OUTPUT" "" "$0"
-
+install_tools
+    source tools "Bienvenido al equipo de Core de Truedat" "Preparación del entorno" "DOT" "$HIDE_OUTPUT" "" "$0"
 if [ "$1" == "--help" ]; then
     help $2
-else
-    install_tools
+else   
     set_terminal_config
     main_menu
 fi
