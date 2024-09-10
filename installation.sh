@@ -1,8 +1,8 @@
 #!/bin/bash
 
 variables() {
-    SWAP_FILE="/swapfile"
-    SWAP_SIZE_MB=$(free --mega | awk '/^Mem:/ {print int($2 + ($2))}')
+    SWAP_FILE=/swapfile
+    SWAP_SIZE_MB=$(free --giga | awk '/^Mem:/ {print int($2 + ($2))}')
     USER_HOME=$(eval echo ~"$SUDO_USER")
     TRUS_DIRECTORY=$USER_HOME/.trus/
 
@@ -12,30 +12,43 @@ variables() {
 
     TRUS_ACTUAL_PATH=./trus.sh
     TRUS_PATH=$TRUS_DIRECTORY/trus.sh
-    TRUS_LINK_PATH="/usr/local/bin/trus"
+    TRUS_LINK_PATH=/usr/local/bin/trus
     PATH_GLOBAL_CONFIG=~/.trus.conf
 
-    INSTALL_OPTIONS=(
+    KUBE_PATH=~/.kube
+    KUBECONFIG=~/.kube/config
+
+    MAIN_MENU_OPTIONS=(
         "Salir"
         "1 - Instalación de paquetes y dependencias"
         "2 - Instalación de paquetes y dependencias (extra)"
         "3 - Instalar ZSH y Oh My ZSH"
         "4 - Actualizar prompt de BASH"
         "5 - Actualizar splash loader"
-        "6 - Creación de archivos de configuracion (ZSH, TMUX y TLP)"
-        "7 - Actualizar la memoria SWAP (a  $((SWAP_SIZE_MB / 1024))MB)"
-        "8 - Instala TrUs (Truedat Utils)"
-        "9 - Todo"
+        "6 - Archivos de configuración"
+        "7 - Actualizar la memoria SWAP (a $SWAP_SIZE_MB GB)"
+        "8 - Configurar animación de los mensajes"
+        "9 - Instala TrUs (Truedat Utils)"
+        "10 - Instala Tools" 
+        "11 - Todo"
     )
 
-    if [ ! -d "$PATH_GLOBAL_CONFIG" ]; then
+    CONFIGURATION_MENU_OPTIONS=(
+        "Volver"
+        "ZSH"
+        "TMUX"
+        "TLP"
+        "TrUs"
+        "Todos"
+    )
+
+    if [ ! -e "$PATH_GLOBAL_CONFIG" ]; then
         trus_config
     fi
 }
 
 install_tools() {
     if [ ! -d "$TOOLS_LINK_PATH" ]; then
-            
         if [ ! -d "$TRUS_DIRECTORY" ]; then
             mkdir -p "$TRUS_DIRECTORY"
         fi
@@ -44,8 +57,13 @@ install_tools() {
 
         sudo rm -f "$TOOLS_LINK_PATH"
         sudo ln -s "$TOOLS_PATH" "$TOOLS_LINK_PATH"
-               
-        eval "sudo apt install -qqq -y --install-recommends wmctrl fzf $REDIRECT"
+
+        if [ ! command -v fzf ] &>/dev/null; then
+            eval "git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf $REDIRECT"
+            ~/.fzf/install
+        fi
+
+        eval "sudo apt install -qqq -y --install-recommends wmctrl $REDIRECT"
 
         sudo sh -c '{
             echo "##################"
@@ -65,7 +83,6 @@ install_tools() {
             echo "##################"
         } >> /etc/hosts'
     fi
-  
 }
 
 install_trus() {
@@ -75,6 +92,8 @@ install_trus() {
 
     sudo rm -f "$TRUS_LINK_PATH"
     sudo ln -s "$TRUS_PATH" "$TRUS_LINK_PATH"
+    
+    trus_config
 
     print_message "Truedat Utils (TrUs) instalado con éxito" "$COLOR_SUCCESS" 3 "both"
 }
@@ -151,8 +170,66 @@ package_installation() {
 
     print_message_with_animation "Instalando Kubectl" "$COLOR_TERNARY" 2
 
+    if [ ! -e "$KUBE_PATH" ]; then
+        mkdir $KUBE_PATH
+    fi
+
+    cd $KUBE_PATH
+
     eval "curl -LO https://dl.k8s.io/release/v1.23.6/bin/linux/amd64/kubectl && sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl $REDIRECT"
-    print_message "Kubectl instalado" "$COLOR_SUCCESS" 3
+    
+    touch "$KUBECONFIG"
+    {
+        echo 'apiVersion: v1'
+        echo 'clusters:'
+        echo '- cluster:'
+        echo '    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUN5RENDQWJDZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwcmRXSmwKY201bGRHVnpNQjRYRFRFNE1URXlPVEF4TlRJeU5Gb1hEVEk0TVRFeU5qQXhOVEl5TkZvd0ZURVRNQkVHQTFVRQpBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBTGtjCnBhOWlvSGNYNmIyTGEycmtJQnpqdUd3SkFMYjR6QkxiSzl2b2ZkZGdRODNFeUZaMFExR2UrT3JuUmNZUEowT04KeHBGUTNYT2o2RW9HSGYxbGVQQU8zZG84WlR1UGp6YnluOWVNdU55YkxqWkY1NXNGaGVEYzhtYUlIWW4yV0VzcApkeHl6UllFWUVtRjlHU0EyblZ0bDk2NGxnOEpVMjJMN092THV6bWFhSHlJZGN4VU1JS2I0RThFdG03T3d6aElMClNKZUdTU0xvYUNDQzVaVXFObWx3Yk1tQlE3QkNqUzhwblo3c0FSWjRtbUhDa3ZzQ2RrN01pYUJDMStvZXk3b3IKcjhSbW1yeUN6MndER0R5NTlNamlrOElNRG92cldLQXlPSE9zZXBuS3VRTjRGd0E0U2g5M3g1Rml5bEpyamVRMAo0Y0FxN2swd0xKRFFpb3BTR3ZrQ0F3RUFBYU1qTUNFd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWRFd0VCCi93UUZNQU1CQWY4d0RRWUpLb1pJaHZjTkFRRUxCUUFEZ2dFQkFHS1hDMFdJSWZHVmhDRXFKUUVRY2xzS1Q1MlUKSkdFMmtlS2piYytwdWVuL0tZTSs2b2hRZE4wbjRDNHZRZzVaNC9NTW1kZ1Vmb0Z2TmcyTy9DKzFSb0ZkajBCOQpNWG1Zc1BzZTVCcEQ1YUkzY0praU1mcElmUC9JYmRRbGVWOW1YYkZoa0lKKzRWYzhjN3FabUdUbzdqdTZvdHRGCkpuVjQxMmZNS25PWHp4NC9MYm1kSjcrdkhGZ053M2kvbjc2Q24wOVNsWTMxRVBtc25ZekYwUUlJczhHZjlZby8Kdm02T3VzbjIyTDZBeUVWNVNnTDBsaWorZEVOR1FoMkpnYUpRYURLM3QySkN3YTg5U2ZFSTZKZHFBaDVSVllLdApQYk82bW1TeTRFTEJWNy9WM1lTTnplZ0ZyR0EvRStaL01CbTBoS3FxcStPUERwUlVmVkk1djlmYTdtZz0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo='
+        echo '    server: https://B4E4C4ED51C8A123744DE0E261A4C8F7.sk1.eu-west-1.eks.amazonaws.com'
+        echo '  name: arn:aws:eks:eu-west-1:576759405678:cluster/truedat'
+        echo '- cluster:'
+        echo '    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURCVENDQWUyZ0F3SUJBZ0lJVEhPc2VHTWkrRm93RFFZSktvWklodmNOQVFFTEJRQXdGVEVUTUJFR0ExVUUKQXhNS2EzVmlaWEp1WlhSbGN6QWVGdzB5TkRBeE1UQXhOREk0TkRKYUZ3MHpOREF4TURjeE5ETXpOREphTUJVeApFekFSQmdOVkJBTVRDbXQxWW1WeWJtVjBaWE13Z2dFaU1BMEdDU3FHU0liM0RRRUJBUVVBQTRJQkR3QXdnZ0VLCkFvSUJBUURQQzZRQjIrZUNCbGE0a1pWVjVrMEx1OFJSRlozN2M3c3VvSnYxUlhwUFhHb2c4d1RpbkZiNVVpSzQKUFJHc3c2ZDU5M2l5YlI4TzYzRTBmM05HTFNGcEUyMkpscW9DQUNyRmpDTEF3NzN6Z0NiQXY1Ym8xdWh2Mk5DVQpjVFN5RjFQN29qK3RXQ0o0QUVDQlA1KzgyZXVUK0czOUFKelRhdDFrUUpVVWtlbUllR1dWM2Zvblk5YS91SkVECkJUcllmMnJEVWUxOG02T2xEVlBQNEdoRG85Q3Yya0J1bVJ0Z0ovYnRkbWpFYkpOdkFTYjB5QTRpWnJxeGYxeE8KakFOZTdJWnFBbjVBWm42NU1zbmNNTW5ISmw2Q3k2LzJmSU0yMWNOeUxXU1JoVFI4ZkJXdlRXWFNDNUZJUjBXdQpTSzNnRG9lTEI2YnZMN2dxZ21Mbyt4WnNDMWVOQWdNQkFBR2pXVEJYTUE0R0ExVWREd0VCL3dRRUF3SUNwREFQCkJnTlZIUk1CQWY4RUJUQURBUUgvTUIwR0ExVWREZ1FXQkJUZjBLVEhYVU9SZnFUSU93Rm5nOUdRY2lBNGpqQVYKQmdOVkhSRUVEakFNZ2dwcmRXSmxjbTVsZEdWek1BMEdDU3FHU0liM0RRRUJDd1VBQTRJQkFRQ3dwZWVQODQzRQpTWFFya0piK2NQakIyZDk1eHNRUG1vL0NRL0l2MGdQd2tKam1ZcXdDU1ptUE1qcmV6WE5mUVZVUSt4bU94M3BaCjBrL0dBTEVOLzYyei9RVm9rQnZkakxwN0dJblhsb2dwUFZxN0ZOUkZSckpYTy9jOTZpWUVoZFFSdDVpMmRtVmYKcWltNnAzMXZSVTVBclFpUktBcW5KZzFuYnA0Q0NTb0pERmhUWlh0dFBFU2RJZ3Mwb05wUmZjWm9xZXNQQlJvOAorZDFYRUdzeGw4bXJJN0FNRXIzMVdSRlNwdHQ5eFpRenhKQU9WY3V2NkFJK2dQMmhnWnBEQTJPY3BhRk40bkkyCmpJTmhrVUVTRWRRSlFUNUJwa2hVUmkxNTBjMStSTm0zclRBbmVEQ1IydjMzQUNXc2h1bmdhdlJ0cy9mVTIzbWoKc1JRTjFpZFBIcEdMCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K'
+        echo '    server: https://69A8FA57BC0A79CAB4BBAD796024AB81.gr7.eu-west-1.eks.amazonaws.com'
+        echo '  name: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
+        echo 'contexts:'
+        echo '- context:'
+        echo '    cluster: arn:aws:eks:eu-west-1:576759405678:cluster/truedat'
+        echo '    user: arn:aws:eks:eu-west-1:576759405678:cluster/truedat'
+        echo '  name: truedat'
+        echo '- context:'
+        echo '    cluster: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
+        echo '    user: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
+        echo '  name: test-truedat-eks'
+        echo 'current-context: test-truedat-eks'
+        echo 'kind: Config'
+        echo 'preferences: {}'
+        echo 'users:'
+        echo '- name: arn:aws:eks:eu-west-1:576759405678:cluster/truedat'
+        echo '  user:'
+        echo '    exec:'
+        echo '      apiVersion: client.authentication.k8s.io/v1alpha1'
+        echo '      args:'
+        echo '      - --region'
+        echo '      - eu-west-1'
+        echo '      - eks'
+        echo '      - get-token'
+        echo '      - --cluster-name'
+        echo '      - truedat'
+        echo '      command: aws'
+        echo '- name: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
+        echo '  user:'
+        echo '    exec:'
+        echo '      apiVersion: client.authentication.k8s.io/v1alpha1'
+        echo '      args:'
+        echo '      - --region'
+        echo '      - eu-west-1'
+        echo '      - eks'
+        echo '      - get-token'
+        echo '      - --cluster-name'
+        echo '      - test-truedat-eks'
+        echo '      command: aws               '
+    } >$KUBECONFIG
+    
+    print_message "Kubectl instalado y configurado" "$COLOR_SUCCESS" 3
 
     print_message "Paquetes y dependencias (extra) instalado correctamente" "$COLOR_SUCCESS" 3 "both"
 }
@@ -219,10 +296,10 @@ install_zsh() {
 
     sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 
-    clone_if_not_exists https://github.com/zsh-users/zsh-syntax-highlighting.git "${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting"
-    clone_if_not_exists https://github.com/zsh-users/zsh-autosuggestions "${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions"
-    clone_if_not_exists https://github.com/zsh-users/zsh-completions "${ZSH_CUSTOM:-${ZSH:-~/.oh-my-zsh}/custom}/plugins/zsh-completions"
-    clone_if_not_exists https://github.com/gusaiani/elixir-oh-my-zsh.git "${ZSH_CUSTOM:-${ZSH:-~/.oh-my-zsh}/custom}/plugins/elixir"
+    clone_if_not_exists https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+    clone_if_not_exists https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+    clone_if_not_exists https://github.com/zsh-users/zsh-completions ${ZSH_CUSTOM:-${ZSH:-~/.oh-my-zsh}/custom}/plugins/zsh-completions
+    clone_if_not_exists https://github.com/gusaiani/elixir-oh-my-zsh.git ${ZSH_CUSTOM:-${ZSH:-~/.oh-my-zsh}/custom}/plugins/elixir
 
     zsh_config
 
@@ -243,7 +320,7 @@ splash_loader() {
 }
 
 bash_prompt() {
-    print_semiheader "Actualizacion del prompt de Bash"
+    print_semiheader "Prompt de Bash"
 
     {
         echo 'export COLORTERM=truecolor'
@@ -254,13 +331,13 @@ bash_prompt() {
         echo '}'
         echo
         echo 'PS1="${debian_chroot:+($debian_chroot)}\[\033[1;38;5;231;48;5;208m\]\w\[\033[00m\]\[\033[1;38;5;039m\] $(parse_git_branch)\[\033[00m\]-> "'
-    } >>$BASH_PATH_CONFIG
+    } >> $BASH_PATH_CONFIG
 
     print_message "Prompt de Bash actualizado" "$COLOR_SUCCESS" 3 "both"
 }
 
 zsh_config() {
-    print_semiheader "Creación del archivo de configuración de ZSH"
+    print_semiheader "ZSH"
 
     {
         echo 'export ZSH="$HOME/.oh-my-zsh"'
@@ -305,11 +382,13 @@ zsh_config() {
         echo ''
         echo 'PROMPT="%B%F{208}$schars[333]$schars[262]$schars[261]$schars[260]%B%~/$schars[260]$schars[261]$schars[262]$schars[333]%b%F{208}%b%f%k "'
         echo ''
-    } >$ZSH_PATH_CONFIG
+    } > $ZSH_PATH_CONFIG
+
+    print_message "Archivo de configuración creado con éxito" "$COLOR_SUCCESS" 3 "both"
 }
 
 tmux_config() {
-    print_semiheader "Creación del archivo de configuración de TMUX"
+    print_semiheader "TMUX"
 
     {
         echo 'set -g mouse on'
@@ -321,12 +400,15 @@ tmux_config() {
         echo 'unbind -T copy-mode-vi Enter'
         echo 'bind-key -T copy-mode-vi Enter send-keys -X copy-pipe-and-cancel "xclip -selection c"'
         echo 'bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "xclip -in -selection clipboard"'
-    } >$TMUX_PATH_CONFIG
+    } > $TMUX_PATH_CONFIG
+
+    print_message "Archivo de configuración creado con éxito" "$COLOR_SUCCESS" 3 "both"
 }
 
 tlp_config() {
-    print_semiheader "Creación del archivo de configuración de TLP"
-        sudo sh -c '{
+    print_semiheader "TLP"
+
+    sudo sh -c '{
             echo 'TLP_ENABLE=1'
             echo 'TLP_DEFAULT_MODE=AC'
             echo 'CPU_SCALING_GOVERNOR_ON_AC=performance'
@@ -348,11 +430,11 @@ tlp_config() {
             echo 'RUNTIME_PM_ON_AC=auto'
             echo 'RUNTIME_PM_ON_BAT=auto'
         } > $TLP_PATH_CONFIG'
- 
+
+    print_message "Archivo de configuración creado con éxito" "$COLOR_SUCCESS" 3 "both"
 
     sudo tlp start
     sudo systemctl enable tlp.service
-
 }
 
 trus_config() {
@@ -376,15 +458,19 @@ trus_config() {
         echo 'INSTALLATION_PACKAGES_EXTRA=("winehq-stable" "gdebi-core" "libvulkan1" "libvulkan1:i386" "fonts-powerline" "plymouth" "plymouth-themes" "ckb-next" "pavucontrol" "gnome-boxes" "virt-manager" "stress" "bluez" "bluez-tools" "tlp" "lm-sensors" "psensor")'
         echo 'HIDE_OUTPUT=true'
         echo 'USE_KONG=false'
-    } >$PATH_GLOBAL_CONFIG
+        echo 'SELECTED_ANIMATION="BOMB"'
+    } > $PATH_GLOBAL_CONFIG
+
+    print_message "Archivo de configuración creado con éxito" "$COLOR_SUCCESS" 3 "both"
 }
 
 configurations() {
-    print_header "Creación del archivos de configuración"
+    print_header "Creación del archivos de configuración por defecto"
     zsh_config
     tmux_config
     tlp_config
-    print_message "Se han creado los ficheros de configuracion de ZSH, TMUX y TLP" "$COLOR_SUCCESS" 3 "both"
+    trus_config
+    print_message "Se han creado los ficheros de configuracion satisfactoriamente" "$COLOR_SUCCESS" 3 "both"
 }
 
 swap() {
@@ -410,61 +496,117 @@ swap() {
     print_message "Memoria SWAP ampliada a $((SWAP_SIZE_MB / 1024))GB" "$COLOR_SUCCESS" 3 "both"
 }
 
+select_animation(){    
+    local option=$(print_menu "${ANIMATION_MENU[@]}")
+        
+    case "$option" in        
+    "Volver")
+        main_menu
+        ;;
+    
+    "*")
+        sed -i "s/^SELECTED_ANIMATION=.*/SELECTED_ANIMATION=$option/" "$PATH_GLOBAL_CONFIG"
+        ;;
+    esac
+}
+
 main_menu() {
     print_header
-    local option=$(print_menu "${INSTALL_OPTIONS[@]}")
+    local option=$(print_menu "${MAIN_MENU_OPTIONS[@]}")
 
     option=$(extract_option "$option")
 
     case "$option" in
-    "1")
-        package_installation
-        ;;
+        1)
+            package_installation
+            ;;
 
-    "2")
-        package_installation_extra
-        ;;
+        2)
+            package_installation_extra
+            ;;
 
-    "3")
-        install_zsh
-        ;;
+        3)
+            install_zsh
+            ;;
 
-    "4")
-        bash_prompt
-        ;;
+        4)
+            bash_prompt
+            ;;
 
-    "5")
-        splash_loader
-        ;;
+        5)
+            splash_loader
+            ;;
 
-    "6")
-        configurations
-        ;;
+        6)
+            configurations_menu
+            ;;
 
-    "7")
-        swap
-        ;;
+        7)
+            swap
+            ;;
 
-    "8")
-        install_trus
-        ;;
+        8)
+            select_animation_menu
+            ;;
 
-    "9")
-        package_installation
-        package_installation_extra
-        install_zsh
-        bash_prompt
-        splash_loader
-        configurations
-        install_trus
-        swap
-        ;;
+        9)
+            install_trus
+            ;;
 
-    "Salir")
-        clear
-        tput reset
-        exit 0
-        ;;
+        10)
+            cp -f "$TOOLS_ACTUAL_PATH" "$TOOLS_PATH"
+            print_message "Tools instalado con éxito" "$COLOR_SUCCESS" 3 "both"
+            ;;
+
+        11)
+            package_installation
+            package_installation_extra
+            install_zsh
+            bash_prompt
+            splash_loader
+            configurations
+            install_trus
+            swap
+            ;;
+
+        "Salir")
+            clear
+            tput reset
+            exit 0
+            ;;
+    esac
+}
+
+configurations_menu() {
+    print_header
+    local option=$(print_menu "${CONFIGURATION_MENU_OPTIONS[@]}")
+
+    option=$(extract_option "$option")
+
+    case "$option" in
+        "ZSH")
+            zsh_config
+            ;;
+
+        "TMUX")
+            tmux_config
+            ;;
+
+        "TLP")
+            tlp_config
+            ;;
+
+        "TrUs")
+            trus_config
+            ;;
+
+        "Todos")
+            configurations
+            ;;
+
+        "Volver")
+            main_menu
+            ;;
     esac
 }
 
@@ -500,7 +642,7 @@ help() {
         ;;
 
     6)
-        print_message "Creación de los archivos de confiuración de ZSH, TMUX y TLP" "$COLOR_SECONDARY"
+        print_message "Creación de los archivos de confiuración por defecto de ZSH, TMUX, TLP y TrUs" "$COLOR_SECONDARY"
         ;;
 
     7)
@@ -508,10 +650,18 @@ help() {
         ;;
 
     8)
-        print_message "Instalación de Truedat Utils (TrUs)." "$COLOR_SECONDARY"
+        print_message "Permite configurar la animación activa en los mensajes con animación" "$COLOR_SECONDARY"
         ;;
 
     9)
+        print_message "Instalación de Truedat Utils (TrUs)." "$COLOR_SECONDARY"
+        ;;
+
+    10)
+        print_message "Instalación de Tools, libreria de funciones genericas utilizadas por este instalador y TrUs." "$COLOR_SECONDARY"
+        ;;
+
+    11)
         print_message "Instalación completa. Se lanzan todas las opciones." "$COLOR_SECONDARY"
         ;;
 
@@ -523,9 +673,16 @@ help() {
         print_message "Salir de TrUs" "$COLOR_PRIMARY"
         ;;
 
+    "BRAILLE" | "DOT" | "KITT" | "PONG" | "CLASSIC" | "BOX" | "BUBBLE" | "BREATHE" | "GROWING_DOTS" | "PASSING_DOTS" | "METRO" | "SNAKE" | "FILLING_BAR" | "CLASSIC_UTF8" | "BOUNCE" | "VERTICAL_BLOCK" | "HORIZONTAL_BLOCK" | "QUARTER" | "TRIANGLE" | "SEMI_CIRCLE" | "ROTATING_EYES" | "FIREWORK" | "SIMPLE_BRAILLE" | "TRIGRAM" | "ARROW" | "BOUNCING_BALL" | "PONG" | "EARTH" | "CLOCK" | "MOON" | "ORANGE_PULSE" | "BLUE_PULSE" | "FOOTBALL" | "BLINK" | "CAMERA" | "SPARKLING_CAMERA" | "SICK" | "MONKEY" | "BOMB")
+        set_active_animation "$option"
+        echo "opcion seleccionada => ${active_animation[@]}"
+        print_message_with_animation "Animación de ejemplo" "$COLOR_SECONDARY" 2
+        ;;
+    
     "*" | "")
         print_message "Introduzca una opción válida." "$COLOR_SECONDARY"
         ;;
+
     esac
 }
 
@@ -533,12 +690,15 @@ help() {
 #            Lógica principal
 #########################################
 
+    
+
 variables
 install_tools
-    source tools "Bienvenido al equipo de Core de Truedat" "Preparación del entorno" "DOT" "$HIDE_OUTPUT" "" "$0"
+source tools "Bienvenido al equipo de Core de Truedat" "Preparación del entorno" "$0"
+
 if [ "$1" == "--help" ]; then
     help $2
-else   
+else
     set_terminal_config
     main_menu
 fi

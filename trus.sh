@@ -98,7 +98,6 @@ path_vars() {
     DDBB_BACKUP_PATH=$DDBB_BASE_BACKUP_PATH/$DATE_NOW
     DDBB_LOCAL_BACKUP_PATH=$DDBB_BASE_BACKUP_PATH"/local_backups/$DATE_NOW"
     AWSCONFIG=~/.aws/config
-    KUBECONFIG=~/.kube/config
     TD_WEB_DEV_CONFIG=$FRONT_PATH/td-web/dev.config.js
 }
 
@@ -178,6 +177,24 @@ update_services() {
 
     if [ -n "$create_ddbb" ]; then
         trus -d -du
+    fi
+}
+
+compile_elixir() {
+    local create_ddbb=${1:-""}
+
+    print_message_with_animation "Actualizando dependencias Elixir..." "$COLOR_SECONDARY" 3
+    eval "mix deps.get --force $REDIRECT"
+    print_message "Actualizando dependencias Elixir (HECHO)" "$COLOR_SUCCESS" 3
+
+    print_message_with_animation "Compilando Elixir..." "$COLOR_SECONDARY" 3
+    eval "mix compile $REDIRECT"
+    print_message "Compilando Elixir (HECHO)" "$COLOR_SUCCESS" 3
+
+    if [ ! "$create_ddbb" = "" ]; then
+        print_message_with_animation "Creando bdd..." "$COLOR_SECONDARY" 3
+        eval "yes | mix ecto.create $REDIRECT"
+        print_message "Creacion de bdd (HECHO)" "$COLOR_SUCCESS" 3
     fi
 }
 
@@ -430,86 +447,65 @@ install() {
                 aws ecr get-login-password --profile truedat --region eu-west-1 | docker login --username AWS --password-stdin 576759405678.dkr.ecr.eu-west-1.amazonaws.com
                 print_message "Configuración de aws (HECHO)" "$COLOR_SUCCESS" 3 "before"
             fi
+           
 
-            if [ ! -e "~/.kube" ]; then
-                mkdir ~/.kube
-
-                touch "$KUBECONFIG"
-                    {
-                        echo 'apiVersion: v1'
-                        echo 'clusters:'
-                        echo '- cluster:'
-                        echo '    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUN5RENDQWJDZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwcmRXSmwKY201bGRHVnpNQjRYRFRFNE1URXlPVEF4TlRJeU5Gb1hEVEk0TVRFeU5qQXhOVEl5TkZvd0ZURVRNQkVHQTFVRQpBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBTGtjCnBhOWlvSGNYNmIyTGEycmtJQnpqdUd3SkFMYjR6QkxiSzl2b2ZkZGdRODNFeUZaMFExR2UrT3JuUmNZUEowT04KeHBGUTNYT2o2RW9HSGYxbGVQQU8zZG84WlR1UGp6YnluOWVNdU55YkxqWkY1NXNGaGVEYzhtYUlIWW4yV0VzcApkeHl6UllFWUVtRjlHU0EyblZ0bDk2NGxnOEpVMjJMN092THV6bWFhSHlJZGN4VU1JS2I0RThFdG03T3d6aElMClNKZUdTU0xvYUNDQzVaVXFObWx3Yk1tQlE3QkNqUzhwblo3c0FSWjRtbUhDa3ZzQ2RrN01pYUJDMStvZXk3b3IKcjhSbW1yeUN6MndER0R5NTlNamlrOElNRG92cldLQXlPSE9zZXBuS3VRTjRGd0E0U2g5M3g1Rml5bEpyamVRMAo0Y0FxN2swd0xKRFFpb3BTR3ZrQ0F3RUFBYU1qTUNFd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWRFd0VCCi93UUZNQU1CQWY4d0RRWUpLb1pJaHZjTkFRRUxCUUFEZ2dFQkFHS1hDMFdJSWZHVmhDRXFKUUVRY2xzS1Q1MlUKSkdFMmtlS2piYytwdWVuL0tZTSs2b2hRZE4wbjRDNHZRZzVaNC9NTW1kZ1Vmb0Z2TmcyTy9DKzFSb0ZkajBCOQpNWG1Zc1BzZTVCcEQ1YUkzY0praU1mcElmUC9JYmRRbGVWOW1YYkZoa0lKKzRWYzhjN3FabUdUbzdqdTZvdHRGCkpuVjQxMmZNS25PWHp4NC9MYm1kSjcrdkhGZ053M2kvbjc2Q24wOVNsWTMxRVBtc25ZekYwUUlJczhHZjlZby8Kdm02T3VzbjIyTDZBeUVWNVNnTDBsaWorZEVOR1FoMkpnYUpRYURLM3QySkN3YTg5U2ZFSTZKZHFBaDVSVllLdApQYk82bW1TeTRFTEJWNy9WM1lTTnplZ0ZyR0EvRStaL01CbTBoS3FxcStPUERwUlVmVkk1djlmYTdtZz0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo='
-                        echo '    server: https://B4E4C4ED51C8A123744DE0E261A4C8F7.sk1.eu-west-1.eks.amazonaws.com'
-                        echo '  name: arn:aws:eks:eu-west-1:576759405678:cluster/truedat'
-                        echo '- cluster:'
-                        echo '    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURCVENDQWUyZ0F3SUJBZ0lJVEhPc2VHTWkrRm93RFFZSktvWklodmNOQVFFTEJRQXdGVEVUTUJFR0ExVUUKQXhNS2EzVmlaWEp1WlhSbGN6QWVGdzB5TkRBeE1UQXhOREk0TkRKYUZ3MHpOREF4TURjeE5ETXpOREphTUJVeApFekFSQmdOVkJBTVRDbXQxWW1WeWJtVjBaWE13Z2dFaU1BMEdDU3FHU0liM0RRRUJBUVVBQTRJQkR3QXdnZ0VLCkFvSUJBUURQQzZRQjIrZUNCbGE0a1pWVjVrMEx1OFJSRlozN2M3c3VvSnYxUlhwUFhHb2c4d1RpbkZiNVVpSzQKUFJHc3c2ZDU5M2l5YlI4TzYzRTBmM05HTFNGcEUyMkpscW9DQUNyRmpDTEF3NzN6Z0NiQXY1Ym8xdWh2Mk5DVQpjVFN5RjFQN29qK3RXQ0o0QUVDQlA1KzgyZXVUK0czOUFKelRhdDFrUUpVVWtlbUllR1dWM2Zvblk5YS91SkVECkJUcllmMnJEVWUxOG02T2xEVlBQNEdoRG85Q3Yya0J1bVJ0Z0ovYnRkbWpFYkpOdkFTYjB5QTRpWnJxeGYxeE8KakFOZTdJWnFBbjVBWm42NU1zbmNNTW5ISmw2Q3k2LzJmSU0yMWNOeUxXU1JoVFI4ZkJXdlRXWFNDNUZJUjBXdQpTSzNnRG9lTEI2YnZMN2dxZ21Mbyt4WnNDMWVOQWdNQkFBR2pXVEJYTUE0R0ExVWREd0VCL3dRRUF3SUNwREFQCkJnTlZIUk1CQWY4RUJUQURBUUgvTUIwR0ExVWREZ1FXQkJUZjBLVEhYVU9SZnFUSU93Rm5nOUdRY2lBNGpqQVYKQmdOVkhSRUVEakFNZ2dwcmRXSmxjbTVsZEdWek1BMEdDU3FHU0liM0RRRUJDd1VBQTRJQkFRQ3dwZWVQODQzRQpTWFFya0piK2NQakIyZDk1eHNRUG1vL0NRL0l2MGdQd2tKam1ZcXdDU1ptUE1qcmV6WE5mUVZVUSt4bU94M3BaCjBrL0dBTEVOLzYyei9RVm9rQnZkakxwN0dJblhsb2dwUFZxN0ZOUkZSckpYTy9jOTZpWUVoZFFSdDVpMmRtVmYKcWltNnAzMXZSVTVBclFpUktBcW5KZzFuYnA0Q0NTb0pERmhUWlh0dFBFU2RJZ3Mwb05wUmZjWm9xZXNQQlJvOAorZDFYRUdzeGw4bXJJN0FNRXIzMVdSRlNwdHQ5eFpRenhKQU9WY3V2NkFJK2dQMmhnWnBEQTJPY3BhRk40bkkyCmpJTmhrVUVTRWRRSlFUNUJwa2hVUmkxNTBjMStSTm0zclRBbmVEQ1IydjMzQUNXc2h1bmdhdlJ0cy9mVTIzbWoKc1JRTjFpZFBIcEdMCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K'
-                        echo '    server: https://69A8FA57BC0A79CAB4BBAD796024AB81.gr7.eu-west-1.eks.amazonaws.com'
-                        echo '  name: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
-                        echo 'contexts:'
-                        echo '- context:'
-                        echo '    cluster: arn:aws:eks:eu-west-1:576759405678:cluster/truedat'
-                        echo '    user: arn:aws:eks:eu-west-1:576759405678:cluster/truedat'
-                        echo '  name: truedat'
-                        echo '- context:'
-                        echo '    cluster: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
-                        echo '    user: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
-                        echo '  name: test-truedat-eks'
-                        echo 'current-context: test-truedat-eks'
-                        echo 'kind: Config'
-                        echo 'preferences: {}'
-                        echo 'users:'
-                        echo '- name: arn:aws:eks:eu-west-1:576759405678:cluster/truedat'
-                        echo '  user:'
-                        echo '    exec:'
-                        echo '      apiVersion: client.authentication.k8s.io/v1alpha1'
-                        echo '      args:'
-                        echo '      - --region'
-                        echo '      - eu-west-1'
-                        echo '      - eks'
-                        echo '      - get-token'
-                        echo '      - --cluster-name'
-                        echo '      - truedat'
-                        echo '      command: aws'
-                        echo '- name: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
-                        echo '  user:'
-                        echo '    exec:'
-                        echo '      apiVersion: client.authentication.k8s.io/v1alpha1'
-                        echo '      args:'
-                        echo '      - --region'
-                        echo '      - eu-west-1'
-                        echo '      - eks'
-                        echo '      - get-token'
-                        echo '      - --cluster-name'
-                        echo '      - test-truedat-eks'
-                        echo '      command: aws               '
-                    } >$KUBECONFIG
-
-                    print_message "Instalación de kubectl (HECHO)" "$COLOR_SUCCESS" 3 "both"
-            fi
-
-            eval "asdf plugin add erlang https://github.com/asdf-vm/asdf-erlang.git $REDIRECT"
-            eval "asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git $REDIRECT"
-            eval "asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git $REDIRECT"
-            eval "asdf plugin-add yarn $REDIRECT"
-            eval "KERL_BUILD_DOCS=yes asdf install erlang 25.3 $REDIRECT"
-            eval "asdf install elixir 1.13.4 $REDIRECT"
-            eval "asdf install elixir 1.14.5-otp-25 $REDIRECT"
-            eval "asdf install elixir 1.15 $REDIRECT"
-            eval "asdf install elixir 1.16 $REDIRECT"
-            eval "asdf install nodejs 18.20.3 $REDIRECT"
-            eval "asdf install yarn latest $REDIRECT"
-             
+            asdf plugin add erlang https://github.com/asdf-vm/asdf-erlang.git
+            asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git
+            asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
+            asdf plugin-add yarn
+            KERL_BUILD_DOCS=yes asdf install erlang 25.3
+            asdf install elixir 1.13.4
+            asdf install elixir 1.14.5-otp-25
+            asdf install elixir 1.15
+            asdf install elixir 1.16
+            asdf install nodejs 18.20.3
+            asdf install yarn latest
             print_message "Instalando plugins y librerias de ASDF (HECHO)" "$COLOR_SUCCESS" 3 "before"
 
-            eval "asdf global erlang 25.3 $REDIRECT"
-            eval "asdf global elixir 1.13.4 $REDIRECT"
-            eval "asdf global nodejs 18.20.3 $REDIRECT"
-            eval "asdf global yarn latest $REDIRECT"
+            asdf global erlang 25.3
+            asdf global elixir 1.13.4
+            asdf global nodejs 18.20.3
+            asdf global yarn latest
             print_message "Configurando ASDF (HECHO)" "$COLOR_SUCCESS" 3 "before"
 
-            clone_truedat
+            #Este eval está porque si se instala el entorno en el WSL de windows, el agente no se mantiene levantado
+            #En linux no es necesario pero no molesta
+            eval "$(ssh-agent -s)"
+            ssh-add $SSH_PRIVATE_FILE
 
+            mkdir $WORKSPACE_PATH
+            mkdir $TRUEDAT_ROOT_PATH
+            mkdir $BACK_PATH
+            mkdir $BACK_PATH/logs
+            mkdir $FRONT_PATH
+            mkdir $DEV_PATH
+
+            cd $BACK_PATH
+            git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-ai.git
+            git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-audit.git
+            git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-auth.git
+            git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-bg.git
+            git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-dd.git
+            git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-df.git
+            git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-ie.git
+            git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-qx.git
+            git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-i18n.git
+            git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-lm.git
+            git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-se.git
+            git clone git@gitlab.bluetab.net:dgs-core/true-dat/td-helm.git
+            git clone git@gitlab.bluetab.net:dgs-core/true-dat/clients/demo/k8s.git
+
+            git clone git@github.com:Bluetab/td-df-lib.git
+            git clone git@github.com:Bluetab/td-cache.git
+            git clone git@github.com:Bluetab/td-core.git
+            git clone git@github.com:Bluetab/td-cluster.git
+
+            cd $FRONT_PATH
+            git clone git@gitlab.bluetab.net:dgs-core/true-dat/front-end/td-web-modules.git
+            git clone git@gitlab.bluetab.net:dgs-core/true-dat/front-end/td-web.git
+
+            cd $TRUEDAT_ROOT_PATH
+            git clone git@gitlab.bluetab.net:dgs-core/true-dat/true-dev.git
             cd true-dev
             sudo sysctl -w vm.max_map_count=262144
             sudo cp elastic-search/999-map-count.conf /etc/sysctl.d/
@@ -518,84 +514,22 @@ install() {
             update_repositories "-a"
             link_web_modules
             ddbb "-du"
-            config_kong
-            install_docker
+            config-kong
 
             touch "/tmp/truedat_installation"
-            print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3 "both"
-            print_message "Si deseas reinstalar Truedat, elimina el archivo '/tmp/truedat_installation'" "$COLOR_SECONDARY" 3
-            print_message "¿Quieres borrar el archivo '/tmp/truedat_installation'? (S/N)" "$COLOR_SECONDARY" 3
-            read -r reinstall
+            print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3
 
-            local continue_reinstall=$(normalize_text "$reinstall")
-
-            if [ "$continue_reinstall" = "si" ] || [ "$continue_reinstall" = "s" ] || [ "$continue_reinstall" = "y" ] || [ "$continue_reinstall" = "yes" ]; then
-                rm "/tmp/truedat_installation"                
-            fi
         else
             print_message "- Claves SSH (NO CREADAS): Tienes que tener creada una clave SSH (el script chequea que la clave se llame 'truedat') en la carpeta ~/.ssh" "$COLOR_ERROR" 3 "before"
             print_message "RECUERDA que tiene que estar registrada en el equipo y en Gitlab. Si no, debes crearla con 'trus -cr' y registarla en la web'" "$COLOR_WARNING" 3 "after"
         fi
     else
-        print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3 "both"
-        print_message "Si deseas reinstalar Truedat, elimina el archivo '/tmp/truedat_installation'" "$COLOR_SECONDARY" 3
-        print_message "¿Quieres borrar el archivo '/tmp/truedat_installation'? (S/N)" "$COLOR_SECONDARY" 3
-        read -r reinstall
-
-        local continue_reinstall=$(normalize_text "$reinstall")
-
-        if [ "$continue_reinstall" = "si" ] || [ "$continue_reinstall" = "s" ] || [ "$continue_reinstall" = "y" ] || [ "$continue_reinstall" = "yes" ]; then
-            rm "/tmp/truedat_installation"                
-        fi
+        print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3
     fi
 
 }
 
-clone_truedat(){
-    #Este eval está porque si se instala el entorno en el WSL de windows, el agente no se mantiene levantado
-    #En linux no es necesario pero no molesta
-    eval "$(ssh-agent -s)"
-    ssh-add $SSH_PRIVATE_FILE
-
-    mkdir -p $WORKSPACE_PATH
-    mkdir -p $TRUEDAT_ROOT_PATH
-    mkdir -p $BACK_PATH
-    mkdir -p $BACK_PATH/logs
-    mkdir -p $FRONT_PATH
-    mkdir -p $DEV_PATH
-    
-    # Clonar repositorios en BACK_PATH
-    cd "$BACK_PATH"
-    clone_if_not_exists "git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-ai.git" "$BACK_PATH/td-ai"
-    clone_if_not_exists "git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-audit.git" "$BACK_PATH/td-audit"
-    clone_if_not_exists "git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-auth.git" "$BACK_PATH/td-auth"
-    clone_if_not_exists "git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-bg.git" "$BACK_PATH/td-bg"
-    clone_if_not_exists "git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-dd.git" "$BACK_PATH/td-dd"
-    clone_if_not_exists "git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-df.git" "$BACK_PATH/td-df"
-    clone_if_not_exists "git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-ie.git" "$BACK_PATH/td-ie"
-    clone_if_not_exists "git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-qx.git" "$BACK_PATH/td-qx"
-    clone_if_not_exists "git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-i18n.git" "$BACK_PATH/td-i18n"
-    clone_if_not_exists "git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-lm.git" "$BACK_PATH/td-lm"
-    clone_if_not_exists "git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-se.git" "$BACK_PATH/td-se"
-    clone_if_not_exists "git@gitlab.bluetab.net:dgs-core/true-dat/td-helm.git" "$BACK_PATH/td-helm"
-    clone_if_not_exists "git@gitlab.bluetab.net:dgs-core/true-dat/clients/demo/k8s.git" "$BACK_PATH/k8s"
-
-    clone_if_not_exists "git@github.com:Bluetab/td-df-lib.git" "$BACK_PATH/td-df-lib"
-    clone_if_not_exists "git@github.com:Bluetab/td-cache.git" "$BACK_PATH/td-cache"
-    clone_if_not_exists "git@github.com:Bluetab/td-core.git" "$BACK_PATH/td-core"
-    clone_if_not_exists "git@github.com:Bluetab/td-cluster.git" "$BACK_PATH/td-cluster"
-
-    # Clonar repositorios en FRONT_PATH
-    cd "$FRONT_PATH"
-    clone_if_not_exists "git@gitlab.bluetab.net:dgs-core/true-dat/front-end/td-web-modules.git" "$FRONT_PATH/td-web-modules"
-    clone_if_not_exists "git@gitlab.bluetab.net:dgs-core/true-dat/front-end/td-web.git" "$FRONT_PATH/td-web"
-
-    # Clonar repositorio en TRUEDAT_ROOT_PATH
-    cd "$TRUEDAT_ROOT_PATH"
-    clone_if_not_exists "git@gitlab.bluetab.net:dgs-core/true-dat/true-dev.git" "$TRUEDAT_ROOT_PATH/true-dev"
-}
-
-config_kong() {
+config-kong() {
     print_header
     print_semiheader "Kong"
     print_message "¿Quién quieres que enrute, Kong(k) o td-web(w)? (k/w)" "$COLOR_PRIMARY" 1
@@ -650,6 +584,8 @@ ddbb() {
 reindex_all() {
     local remove_all_indexes=${1:-""}
     print_header
+    print_semiheader "Reindexado de Elasticsearch"
+
 
     remove_all_index "$remove_all_indexes"
 
@@ -911,7 +847,7 @@ kong_routes() {
 
     if [[ "$USE_KONG" = false ]]; then
         print_message "Kong no está habilitado" "$COLOR_WARNING" 3
-        print_message "Si se desea habilitar, utiliza 'trus --config_kong'" "$COLOR_WARNING" 4
+        print_message "Si se desea habilitar, utiliza 'trus --config-kong'" "$COLOR_WARNING" 4
     else
         cd $KONG_PATH
         set -o pipefail
@@ -1037,13 +973,11 @@ deactivate_kong() {
 
         rm -f $BACK_PATH/kong_routes
 
-        start_containers
         local kong_id=$(docker ps -q --filter "name=kong")
+
         stop_docker
 
-        if [ ! "$kong_id" = "" ]; then
-            docker rm $kong_id
-        fi
+        docker rm $kong_id
 
         cd $FRONT_PATH
 
@@ -1223,13 +1157,9 @@ start_containers() {
 
     cd "$DEV_PATH"
 
-
-
     for container in "${CONTAINERS[@]}"; do
         if [[ "$USE_KONG" = true ]] || { [[ "$USE_KONG" = false ]] && [[ "$container" != "kong" ]]; }; then
-            print_message_with_animation "Preparando $container" "$COLOR_SECONDARY" 2
             eval "docker-compose up -d '${container}' $REDIRECT"            
-            print_message "$container listo para el ataque" "$COLOR_SUCCESS" 2    
         fi
     done
 }
@@ -1383,6 +1313,11 @@ help() {
     case "$option" in
     "--start")
         print_message "Arranca Truedat." "$COLOR_SECONDARY"
+        SELECTED_ANIMATION="BOMB"
+        
+        print_message_with_animation "Animación de ejemplo" "$COLOR_SECONDARY" 2
+        print_message "Arranca Truedat." "$COLOR_SECONDARY"
+
         print_message "Levanta los contenedores de Docker, crea una sesion de Screen por servicio y arranca el frontal." "$COLOR_SECONDARY"
         print_message "Todo en una sesion de Tmux" "$COLOR_SECONDARY"
         ;;
@@ -1447,7 +1382,7 @@ help() {
         print_message "Actualiza las rutas de Kong (solo disponible si kong está habilitado)" "$COLOR_SECONDARY"
         ;;
 
-    "--config_kong")
+    "--config-kong")
         print_message "Habilita/deshabilita Kong (usar con cuidaito)" "$COLOR_SECONDARY"
         ;;
 
@@ -1607,7 +1542,7 @@ help() {
         print_message "-kr | --kong-routes: " "$COLOR_PRIMARY" 1 "no"
         print_message "Actualiza las rutas de Kong" "$COLOR_SECONDARY" 0 "after"
 
-        print_message "--config_kong: " "$COLOR_PRIMARY" 1 "no"
+        print_message "--config-kong: " "$COLOR_PRIMARY" 1 "no"
         print_message "Habilita/deshabilita Kong (usar con cuidaito)" "$COLOR_SECONDARY" 0 "after"
 
         print_message "-l | --link-modules: " "$COLOR_PRIMARY" 1 "no"
@@ -1678,7 +1613,7 @@ secondary_menu() {
     local option=$(print_menu "${SECONDARY_MENU_OPTIONS[@]}")
 
     case "$option" in
-    "--reindex" | "--create-ssh" | "--link-modules" | "--yarn-test" | "--install" | "--load-structures" | "--load-linage" | "--rest" | "--attach" | "--detach")
+    "--reindex" | "--create-ssh" | "--link-modules" | "--yarn-test" | "--load-structures" | "--load-linage" | "--rest" | "--attach" | "--detach")
         trus "$option"
         ;;
 
@@ -1726,11 +1661,7 @@ ddbb_menu() {
         ;;
 
     "--local-update")
-        local_update_menu
-        ;;
-
-    "--clean_local_backups")
-        clean_local_ddbb_backups
+        trus -d -lu
         ;;
 
     "--local-backup")
@@ -1742,60 +1673,6 @@ ddbb_menu() {
         ;;
     "*")
         echo "option => $option"
-        ;;
-    esac
-}
-
-local_update_menu(){
-    cd $DDBB_BASE_BACKUP_PATH
-    
-    local backups=("Volver" $(find "$PWD" -mindepth 1 -type d) "Otros...")
-
-    local option=$(print_menu "${backups[@]}")
-    case "$option" in
-    "Otro...")
-        trus -d -lu
-        ;;
-
-    "Volver")
-        main_menu
-        ;;
-
-    "*")
-        remove_all_redis
-
-        update_ddbb_from_backup "$option"
-        ;;
-    esac
-}
-
-clean_local_ddbb_backups(){
-    cd $DDBB_BASE_BACKUP_PATH
-    
-    local backups=("Volver" $(find "$PWD" -mindepth 1 -type d) "Borrar todo")
-
-    local option=$(print_menu "${backups[@]}")
-    case "$option" in
-    "Borrar todo")
-        print_message "Se van a eliminar todos los backups de $DDBB_BASE_BACKUP_PATH ¿Estas seguro? (S/N)" "$COLOR_PRIMARY" 1
-        read -r clean_backups
-
-        local clean_backups=$(normalize_text "$clean_backups")
-
-        if [ "$clean_backups" = "si" ] || [ "$clean_backups" = "s" ] || [ "$clean_backups" = "y" ] || [ "$clean_backups" = "yes" ]; then
-            rm -fr $DDBB_BASE_BACKUP_PATH/*
-
-            print_message "Se han eliminado todos los backups locales de bdd" "$COLOR_SUCCESS" 2 "both"
-        fi        
-        ;;
-
-    "Volver")
-        ddbb_menu
-        ;;
-
-    "*")
-        rm -fr $DDBB_LOCAL_BACKUP_PATH/$option
-        print_message "Se han eliminado el backup $DDBB_LOCAL_BACKUP_PATH/$option" "$COLOR_SUCCESS" 2 "both"
         ;;
     esac
 }
@@ -1831,7 +1708,7 @@ repo_menu() {
 kong_menu() {
     local option=$(print_menu "${KONG_MENU_SUBOPTIONS[@]}")
     case "$option" in
-    "--kong-routes" | "--config_kong")
+    "--kong-routes" | "--config-kong")
         trus "$option"
         ;;
 
@@ -1857,7 +1734,7 @@ check_parameters() {
         "-k" | "--kill" | \
         "-r" | "--reindex" | \
         "-l" | "--link-modules" | \
-        "-kr" | "--kong-routes" | "--config_kong" | \
+        "-kr" | "--kong-routes" | "--config-kong" | \
         "-sc" | "--start-containers" | \
         "-sf" | "--start-front" | \
         "-dt" | "--dettach" | \
@@ -1942,8 +1819,7 @@ check_parameters() {
 ####         Lógica inicial
 #########################################
 
-source $PATH_GLOBAL_CONFIG
-source tools "Truedat Utils (TrUs)" "" "DOT" "$HIDE_OUTPUT" "$HEADER_LOGO" "trus"
+source tools "Truedat Utils (TrUs)" "" "$0" "$HEADER_LOGO"
 
 set_vars
 set_terminal_config
@@ -2001,8 +1877,8 @@ else
             kong_routes
             ;;
 
-        "--config_kong")
-            config_kong
+        "--config-kong")
+            config-kong
             ;;
 
         "-h" | "--help")
