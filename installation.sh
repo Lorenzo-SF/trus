@@ -1,36 +1,26 @@
 #!/bin/bash
 
 variables() {
-    SWAP_FILE=/swapfile
-    SWAP_SIZE_MB=$(free --giga | awk '/^Mem:/ {print int($2 + ($2))}')
-    USER_HOME=$(eval echo ~"$SUDO_USER")
-    TRUS_DIRECTORY=$USER_HOME/.trus/
-
-    TOOLS_ACTUAL_PATH=./tools.sh
-    TOOLS_PATH=$TRUS_DIRECTORY/tools.sh
-    TOOLS_LINK_PATH=/usr/local/bin/tools
-
-    TRUS_ACTUAL_PATH=./trus.sh
-    TRUS_PATH=$TRUS_DIRECTORY/trus.sh
-    TRUS_LINK_PATH=/usr/local/bin/trus
     PATH_GLOBAL_CONFIG=~/.trus.conf
 
-    KUBE_PATH=~/.kube
-    KUBECONFIG=~/.kube/config
+    if [ ! -e "$PATH_GLOBAL_CONFIG" ]; then
+        trus_config
+    fi
+
+    source $PATH_GLOBAL_CONFIG
 
     MAIN_MENU_OPTIONS=(
         "Salir"
         "1 - Instalación de paquetes y dependencias"
-        "2 - Instalación de paquetes y dependencias (extra)"
-        "3 - Instalar ZSH y Oh My ZSH"
-        "4 - Actualizar prompt de BASH"
-        "5 - Actualizar splash loader"
-        "6 - Archivos de configuración"
-        "7 - Actualizar la memoria SWAP (a $SWAP_SIZE_MB GB)"
-        "8 - Configurar animación de los mensajes"
-        "9 - Instala TrUs (Truedat Utils)"
-        "10 - Instala Tools" 
-        "11 - Todo"
+        "2 - Instalar ZSH y Oh My ZSH"
+        "3 - Actualizar prompt de BASH"
+        "4 - Actualizar splash loader"
+        "5 - Archivos de configuración"
+        "6 - Actualizar la memoria SWAP (a $(($SWAP_SIZE_MB/1024)) GB)"
+        "7 - Configurar animación de los mensajes"
+        "8 - Instala TrUs (Truedat Utils)"
+        "9 - Instala Tools" 
+        "10 - Todo"
     )
 
     CONFIGURATION_MENU_OPTIONS=(
@@ -41,10 +31,6 @@ variables() {
         "TrUs"
         "Todos"
     )
-
-    if [ ! -e "$PATH_GLOBAL_CONFIG" ]; then
-        trus_config
-    fi
 }
 
 install_tools() {
@@ -57,31 +43,9 @@ install_tools() {
 
         sudo rm -f "$TOOLS_LINK_PATH"
         sudo ln -s "$TOOLS_PATH" "$TOOLS_LINK_PATH"
-
-        if [ ! command -v fzf ] &>/dev/null; then
-            eval "git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf $REDIRECT"
-            ~/.fzf/install
-        fi
-
-        eval "sudo apt install -qqq -y --install-recommends wmctrl $REDIRECT"
-
-        sudo sh -c '{
-            echo "##################"
-            echo "# Añadido por trus"
-            echo "##################"
-            echo "127.0.0.1 localhost"
-            echo "127.0.0.1 $(uname -n).bluetab.net $(uname -n)"
-            echo "127.0.0.1 redis"
-            echo "127.0.0.1 postgres"
-            echo "127.0.0.1 elastic"
-            echo "127.0.0.1 kong"
-            echo "127.0.0.1 neo"
-            echo "127.0.0.1 vault"
-            echo "0.0.0.0 local"
-            echo "##################"
-            echo "# Añadido por trus"
-            echo "##################"
-        } >> /etc/hosts'
+ 
+        # necesario para los menus
+        eval "sudo apt install -qqq -y --install-recommends fzf wmctrl $REDIRECT"
     fi
 }
 
@@ -101,6 +65,123 @@ install_trus() {
 package_installation() {
     print_semiheader "Instalación de origenes de software"
 
+    add_origins
+
+    print_message_with_animation "Actualizando sistema" "$COLOR_TERNARY" 2
+    eval "sudo apt update $REDIRECT"
+    eval "sudo apt upgrade -y $REDIRECT"
+    print_message "Sistema actualizado" "$COLOR_SUCCESS" 3
+
+    print_semiheader "Instalación de paquetes"
+
+    print_message_with_animation "Instalando Docker Compose" "$COLOR_TERNARY" 2
+    sudo curl -s -L "https://github.com/docker/compose/releases/download/v2.16.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    eval "sudo chmod +x /usr/local/bin/docker-compose $REDIRECT"
+    eval "sudo groupadd docker $REDIRECT"
+    eval "sudo usermod -aG docker '$USER' $REDIRECT"
+    print_message "Docker Compose instalado" "$COLOR_SUCCESS" 3
+
+    for package in "${INSTALLATION_PACKAGES[@]}"; do
+        print_message_with_animation "Instalando $package" "$COLOR_TERNARY" 2
+        eval "sudo apt install -y --install-recommends $package $REDIRECT"
+        print_message "$package instalado" "$COLOR_SUCCESS" 3
+    done
+
+    # Por si AWS no se instala con apt, que pué pasar
+    if [ ! command -v aws ] &>/dev/null; then
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+        mkdir .aws
+        cd .aws
+        unzip awscliv2.zip
+        sudo install
+    fi
+
+    print_message_with_animation "Instalando Discord y DBeaver" "$COLOR_TERNARY" 2
+    eval "sudo snap install discord dbeaver-ce $REDIRECT"
+    print_message "Discord y DBeaver instalado" "$COLOR_SUCCESS" 3
+
+    if [ -e "~/.asdf" ]; then
+        rm -r ~/.asdf
+
+        print_message_with_animation "Instalando ASDF" "$COLOR_TERNARY" 2
+        eval "git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.14.0 $REDIRECT"
+        print_message "ASDF instalado" "$COLOR_SUCCESS" 3
+    fi
+
+    if [ ! -e "$KUBE_PATH" ]; then
+        print_message_with_animation "Instalando Kubectl" "$COLOR_TERNARY" 2
+
+        mkdir $KUBE_PATH   
+
+        cd $KUBE_PATH
+
+        eval "curl -LO https://dl.k8s.io/release/v1.23.6/bin/linux/amd64/kubectl && sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl $REDIRECT"
+        
+        touch "$KUBECONFIG"
+
+        {
+            echo 'apiVersion: v1'
+            echo 'clusters:'
+            echo '- cluster:'
+            echo '    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUN5RENDQWJDZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwcmRXSmwKY201bGRHVnpNQjRYRFRFNE1URXlPVEF4TlRJeU5Gb1hEVEk0TVRFeU5qQXhOVEl5TkZvd0ZURVRNQkVHQTFVRQpBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBTGtjCnBhOWlvSGNYNmIyTGEycmtJQnpqdUd3SkFMYjR6QkxiSzl2b2ZkZGdRODNFeUZaMFExR2UrT3JuUmNZUEowT04KeHBGUTNYT2o2RW9HSGYxbGVQQU8zZG84WlR1UGp6YnluOWVNdU55YkxqWkY1NXNGaGVEYzhtYUlIWW4yV0VzcApkeHl6UllFWUVtRjlHU0EyblZ0bDk2NGxnOEpVMjJMN092THV6bWFhSHlJZGN4VU1JS2I0RThFdG03T3d6aElMClNKZUdTU0xvYUNDQzVaVXFObWx3Yk1tQlE3QkNqUzhwblo3c0FSWjRtbUhDa3ZzQ2RrN01pYUJDMStvZXk3b3IKcjhSbW1yeUN6MndER0R5NTlNamlrOElNRG92cldLQXlPSE9zZXBuS3VRTjRGd0E0U2g5M3g1Rml5bEpyamVRMAo0Y0FxN2swd0xKRFFpb3BTR3ZrQ0F3RUFBYU1qTUNFd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWRFd0VCCi93UUZNQU1CQWY4d0RRWUpLb1pJaHZjTkFRRUxCUUFEZ2dFQkFHS1hDMFdJSWZHVmhDRXFKUUVRY2xzS1Q1MlUKSkdFMmtlS2piYytwdWVuL0tZTSs2b2hRZE4wbjRDNHZRZzVaNC9NTW1kZ1Vmb0Z2TmcyTy9DKzFSb0ZkajBCOQpNWG1Zc1BzZTVCcEQ1YUkzY0praU1mcElmUC9JYmRRbGVWOW1YYkZoa0lKKzRWYzhjN3FabUdUbzdqdTZvdHRGCkpuVjQxMmZNS25PWHp4NC9MYm1kSjcrdkhGZ053M2kvbjc2Q24wOVNsWTMxRVBtc25ZekYwUUlJczhHZjlZby8Kdm02T3VzbjIyTDZBeUVWNVNnTDBsaWorZEVOR1FoMkpnYUpRYURLM3QySkN3YTg5U2ZFSTZKZHFBaDVSVllLdApQYk82bW1TeTRFTEJWNy9WM1lTTnplZ0ZyR0EvRStaL01CbTBoS3FxcStPUERwUlVmVkk1djlmYTdtZz0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo='
+            echo '    server: https://B4E4C4ED51C8A123744DE0E261A4C8F7.sk1.eu-west-1.eks.amazonaws.com'
+            echo '  name: arn:aws:eks:eu-west-1:576759405678:cluster/truedat'
+            echo '- cluster:'
+            echo '    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURCVENDQWUyZ0F3SUJBZ0lJVEhPc2VHTWkrRm93RFFZSktvWklodmNOQVFFTEJRQXdGVEVUTUJFR0ExVUUKQXhNS2EzVmlaWEp1WlhSbGN6QWVGdzB5TkRBeE1UQXhOREk0TkRKYUZ3MHpOREF4TURjeE5ETXpOREphTUJVeApFekFSQmdOVkJBTVRDbXQxWW1WeWJtVjBaWE13Z2dFaU1BMEdDU3FHU0liM0RRRUJBUVVBQTRJQkR3QXdnZ0VLCkFvSUJBUURQQzZRQjIrZUNCbGE0a1pWVjVrMEx1OFJSRlozN2M3c3VvSnYxUlhwUFhHb2c4d1RpbkZiNVVpSzQKUFJHc3c2ZDU5M2l5YlI4TzYzRTBmM05HTFNGcEUyMkpscW9DQUNyRmpDTEF3NzN6Z0NiQXY1Ym8xdWh2Mk5DVQpjVFN5RjFQN29qK3RXQ0o0QUVDQlA1KzgyZXVUK0czOUFKelRhdDFrUUpVVWtlbUllR1dWM2Zvblk5YS91SkVECkJUcllmMnJEVWUxOG02T2xEVlBQNEdoRG85Q3Yya0J1bVJ0Z0ovYnRkbWpFYkpOdkFTYjB5QTRpWnJxeGYxeE8KakFOZTdJWnFBbjVBWm42NU1zbmNNTW5ISmw2Q3k2LzJmSU0yMWNOeUxXU1JoVFI4ZkJXdlRXWFNDNUZJUjBXdQpTSzNnRG9lTEI2YnZMN2dxZ21Mbyt4WnNDMWVOQWdNQkFBR2pXVEJYTUE0R0ExVWREd0VCL3dRRUF3SUNwREFQCkJnTlZIUk1CQWY4RUJUQURBUUgvTUIwR0ExVWREZ1FXQkJUZjBLVEhYVU9SZnFUSU93Rm5nOUdRY2lBNGpqQVYKQmdOVkhSRUVEakFNZ2dwcmRXSmxjbTVsZEdWek1BMEdDU3FHU0liM0RRRUJDd1VBQTRJQkFRQ3dwZWVQODQzRQpTWFFya0piK2NQakIyZDk1eHNRUG1vL0NRL0l2MGdQd2tKam1ZcXdDU1ptUE1qcmV6WE5mUVZVUSt4bU94M3BaCjBrL0dBTEVOLzYyei9RVm9rQnZkakxwN0dJblhsb2dwUFZxN0ZOUkZSckpYTy9jOTZpWUVoZFFSdDVpMmRtVmYKcWltNnAzMXZSVTVBclFpUktBcW5KZzFuYnA0Q0NTb0pERmhUWlh0dFBFU2RJZ3Mwb05wUmZjWm9xZXNQQlJvOAorZDFYRUdzeGw4bXJJN0FNRXIzMVdSRlNwdHQ5eFpRenhKQU9WY3V2NkFJK2dQMmhnWnBEQTJPY3BhRk40bkkyCmpJTmhrVUVTRWRRSlFUNUJwa2hVUmkxNTBjMStSTm0zclRBbmVEQ1IydjMzQUNXc2h1bmdhdlJ0cy9mVTIzbWoKc1JRTjFpZFBIcEdMCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K'
+            echo '    server: https://69A8FA57BC0A79CAB4BBAD796024AB81.gr7.eu-west-1.eks.amazonaws.com'
+            echo '  name: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
+            echo 'contexts:'
+            echo '- context:'
+            echo '    cluster: arn:aws:eks:eu-west-1:576759405678:cluster/truedat'
+            echo '    user: arn:aws:eks:eu-west-1:576759405678:cluster/truedat'
+            echo '  name: truedat'
+            echo '- context:'
+            echo '    cluster: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
+            echo '    user: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
+            echo '  name: test-truedat-eks'
+            echo '- context:'
+            echo '    cluster: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
+            echo '    user: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
+            echo '  name: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
+            echo 'current-context: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
+            echo 'kind: Config'
+            echo 'preferences: {}'
+            echo 'users:'
+            echo '- name: arn:aws:eks:eu-west-1:576759405678:cluster/truedat'
+            echo '  user:'
+            echo '    exec:'
+            echo '      apiVersion: client.authentication.k8s.io/v1alpha1'
+            echo '      args:'
+            echo '      - --region'
+            echo '      - eu-west-1'
+            echo '      - eks'
+            echo '      - get-token'
+            echo '      - --cluster-name'
+            echo '      - truedat'
+            echo '      command: aws'
+            echo '- name: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
+            echo '  user:'
+            echo '    exec:'
+            echo '      apiVersion: client.authentication.k8s.io/v1beta1'
+            echo '      args:'
+            echo '      - --region'
+            echo '      - eu-west-1'
+            echo '      - eks'
+            echo '      - get-token'
+            echo '      - --cluster-name'
+            echo '      - test-truedat-eks'
+            echo '      - --output'
+            echo '      - json'
+            echo '      command: aws'
+
+        } >$KUBECONFIG
+        
+        print_message "Kubectl instalado y configurado" "$COLOR_SUCCESS" 3
+    fi
+    print_message "Paquetes y dependencias (extra) instalado correctamente" "$COLOR_SUCCESS" 3 "both"
+}
+
+add_origins(){
     #postgres
     print_message_with_animation "Añadiendo origen de Postgres" "$COLOR_TERNARY" 2
     eval "wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add - $REDIRECT"
@@ -124,118 +205,6 @@ package_installation() {
     eval "wget -q -O- https://dbeaver.io/debs/dbeaver.gpg.key | sudo apt-key add - $REDIRECT"
     print_message "Origen de DBeaver añadido" "$COLOR_SUCCESS" 3
 
-    if [ -e "/etc/apt/preferences.d/nosnap.pref" ]; then
-        eval "sudo rm /etc/apt/preferences.d/nosnap.pref #en mint viene deshabilitado snap por defecto $REDIRECT"
-    fi
-
-    print_message_with_animation "Actualizando sistema" "$COLOR_TERNARY" 2
-    eval "sudo apt update $REDIRECT"
-    eval "sudo apt upgrade -y $REDIRECT"
-    print_message "Sistema actualizado" "$COLOR_SUCCESS" 3
-
-    print_semiheader "Instalación de paquetes"
-
-    print_message_with_animation "Instalando Docker Compose" "$COLOR_TERNARY" 2
-    sudo curl -s -L "https://github.com/docker/compose/releases/download/v2.16.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-    eval "sudo chmod +x /usr/local/bin/docker-compose $REDIRECT"
-    eval "sudo groupadd docker $REDIRECT"
-    eval "sudo usermod -aG docker '$USER' $REDIRECT"
-    print_message "Docker Compose instalado" "$COLOR_SUCCESS" 3
-
-    for package in "${INSTALLATION_PACKAGES[@]}"; do
-        print_message_with_animation "Instalando $package" "$COLOR_TERNARY" 2
-        eval "sudo apt install -y --install-recommends $package $REDIRECT"
-        print_message "$package instalado" "$COLOR_SUCCESS" 3
-    done
-
-    if [ ! command -v aws ] &>/dev/null; then
-        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-        mkdir .aws
-        cd .aws
-        unzip awscliv2.zip
-        sudo install
-    fi
-
-    print_message_with_animation "Instalando Discord y DBeaver" "$COLOR_TERNARY" 2
-    eval "sudo snap install discord dbeaver-ce $REDIRECT"
-    print_message "Discord y DBeaver instalado" "$COLOR_SUCCESS" 3
-
-    if [ -e "~/.asdf" ]; then
-        rm -r ~/.asdf
-    fi
-
-    print_message_with_animation "Instalando ASDF" "$COLOR_TERNARY" 2
-    eval "git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.14.0 $REDIRECT"
-    print_message "ASDF instalado" "$COLOR_SUCCESS" 3
-
-    print_message_with_animation "Instalando Kubectl" "$COLOR_TERNARY" 2
-
-    if [ ! -e "$KUBE_PATH" ]; then
-        mkdir $KUBE_PATH   
-
-        cd $KUBE_PATH
-
-        eval "curl -LO https://dl.k8s.io/release/v1.23.6/bin/linux/amd64/kubectl && sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl $REDIRECT"
-        
-        touch "$KUBECONFIG"
-        {
-            echo 'apiVersion: v1'
-            echo 'clusters:'
-            echo '- cluster:'
-            echo '    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUN5RENDQWJDZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwcmRXSmwKY201bGRHVnpNQjRYRFRFNE1URXlPVEF4TlRJeU5Gb1hEVEk0TVRFeU5qQXhOVEl5TkZvd0ZURVRNQkVHQTFVRQpBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBTGtjCnBhOWlvSGNYNmIyTGEycmtJQnpqdUd3SkFMYjR6QkxiSzl2b2ZkZGdRODNFeUZaMFExR2UrT3JuUmNZUEowT04KeHBGUTNYT2o2RW9HSGYxbGVQQU8zZG84WlR1UGp6YnluOWVNdU55YkxqWkY1NXNGaGVEYzhtYUlIWW4yV0VzcApkeHl6UllFWUVtRjlHU0EyblZ0bDk2NGxnOEpVMjJMN092THV6bWFhSHlJZGN4VU1JS2I0RThFdG03T3d6aElMClNKZUdTU0xvYUNDQzVaVXFObWx3Yk1tQlE3QkNqUzhwblo3c0FSWjRtbUhDa3ZzQ2RrN01pYUJDMStvZXk3b3IKcjhSbW1yeUN6MndER0R5NTlNamlrOElNRG92cldLQXlPSE9zZXBuS3VRTjRGd0E0U2g5M3g1Rml5bEpyamVRMAo0Y0FxN2swd0xKRFFpb3BTR3ZrQ0F3RUFBYU1qTUNFd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWRFd0VCCi93UUZNQU1CQWY4d0RRWUpLb1pJaHZjTkFRRUxCUUFEZ2dFQkFHS1hDMFdJSWZHVmhDRXFKUUVRY2xzS1Q1MlUKSkdFMmtlS2piYytwdWVuL0tZTSs2b2hRZE4wbjRDNHZRZzVaNC9NTW1kZ1Vmb0Z2TmcyTy9DKzFSb0ZkajBCOQpNWG1Zc1BzZTVCcEQ1YUkzY0praU1mcElmUC9JYmRRbGVWOW1YYkZoa0lKKzRWYzhjN3FabUdUbzdqdTZvdHRGCkpuVjQxMmZNS25PWHp4NC9MYm1kSjcrdkhGZ053M2kvbjc2Q24wOVNsWTMxRVBtc25ZekYwUUlJczhHZjlZby8Kdm02T3VzbjIyTDZBeUVWNVNnTDBsaWorZEVOR1FoMkpnYUpRYURLM3QySkN3YTg5U2ZFSTZKZHFBaDVSVllLdApQYk82bW1TeTRFTEJWNy9WM1lTTnplZ0ZyR0EvRStaL01CbTBoS3FxcStPUERwUlVmVkk1djlmYTdtZz0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo='
-            echo '    server: https://B4E4C4ED51C8A123744DE0E261A4C8F7.sk1.eu-west-1.eks.amazonaws.com'
-            echo '  name: arn:aws:eks:eu-west-1:576759405678:cluster/truedat'
-            echo '- cluster:'
-            echo '    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURCVENDQWUyZ0F3SUJBZ0lJVEhPc2VHTWkrRm93RFFZSktvWklodmNOQVFFTEJRQXdGVEVUTUJFR0ExVUUKQXhNS2EzVmlaWEp1WlhSbGN6QWVGdzB5TkRBeE1UQXhOREk0TkRKYUZ3MHpOREF4TURjeE5ETXpOREphTUJVeApFekFSQmdOVkJBTVRDbXQxWW1WeWJtVjBaWE13Z2dFaU1BMEdDU3FHU0liM0RRRUJBUVVBQTRJQkR3QXdnZ0VLCkFvSUJBUURQQzZRQjIrZUNCbGE0a1pWVjVrMEx1OFJSRlozN2M3c3VvSnYxUlhwUFhHb2c4d1RpbkZiNVVpSzQKUFJHc3c2ZDU5M2l5YlI4TzYzRTBmM05HTFNGcEUyMkpscW9DQUNyRmpDTEF3NzN6Z0NiQXY1Ym8xdWh2Mk5DVQpjVFN5RjFQN29qK3RXQ0o0QUVDQlA1KzgyZXVUK0czOUFKelRhdDFrUUpVVWtlbUllR1dWM2Zvblk5YS91SkVECkJUcllmMnJEVWUxOG02T2xEVlBQNEdoRG85Q3Yya0J1bVJ0Z0ovYnRkbWpFYkpOdkFTYjB5QTRpWnJxeGYxeE8KakFOZTdJWnFBbjVBWm42NU1zbmNNTW5ISmw2Q3k2LzJmSU0yMWNOeUxXU1JoVFI4ZkJXdlRXWFNDNUZJUjBXdQpTSzNnRG9lTEI2YnZMN2dxZ21Mbyt4WnNDMWVOQWdNQkFBR2pXVEJYTUE0R0ExVWREd0VCL3dRRUF3SUNwREFQCkJnTlZIUk1CQWY4RUJUQURBUUgvTUIwR0ExVWREZ1FXQkJUZjBLVEhYVU9SZnFUSU93Rm5nOUdRY2lBNGpqQVYKQmdOVkhSRUVEakFNZ2dwcmRXSmxjbTVsZEdWek1BMEdDU3FHU0liM0RRRUJDd1VBQTRJQkFRQ3dwZWVQODQzRQpTWFFya0piK2NQakIyZDk1eHNRUG1vL0NRL0l2MGdQd2tKam1ZcXdDU1ptUE1qcmV6WE5mUVZVUSt4bU94M3BaCjBrL0dBTEVOLzYyei9RVm9rQnZkakxwN0dJblhsb2dwUFZxN0ZOUkZSckpYTy9jOTZpWUVoZFFSdDVpMmRtVmYKcWltNnAzMXZSVTVBclFpUktBcW5KZzFuYnA0Q0NTb0pERmhUWlh0dFBFU2RJZ3Mwb05wUmZjWm9xZXNQQlJvOAorZDFYRUdzeGw4bXJJN0FNRXIzMVdSRlNwdHQ5eFpRenhKQU9WY3V2NkFJK2dQMmhnWnBEQTJPY3BhRk40bkkyCmpJTmhrVUVTRWRRSlFUNUJwa2hVUmkxNTBjMStSTm0zclRBbmVEQ1IydjMzQUNXc2h1bmdhdlJ0cy9mVTIzbWoKc1JRTjFpZFBIcEdMCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K'
-            echo '    server: https://69A8FA57BC0A79CAB4BBAD796024AB81.gr7.eu-west-1.eks.amazonaws.com'
-            echo '  name: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
-            echo 'contexts:'
-            echo '- context:'
-            echo '    cluster: arn:aws:eks:eu-west-1:576759405678:cluster/truedat'
-            echo '    user: arn:aws:eks:eu-west-1:576759405678:cluster/truedat'
-            echo '  name: truedat'
-            echo '- context:'
-            echo '    cluster: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
-            echo '    user: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
-            echo '  name: test-truedat-eks'
-            echo 'current-context: test-truedat-eks'
-            echo 'kind: Config'
-            echo 'preferences: {}'
-            echo 'users:'
-            echo '- name: arn:aws:eks:eu-west-1:576759405678:cluster/truedat'
-            echo '  user:'
-            echo '    exec:'
-            echo '      apiVersion: client.authentication.k8s.io/v1alpha1'
-            echo '      args:'
-            echo '      - --region'
-            echo '      - eu-west-1'
-            echo '      - eks'
-            echo '      - get-token'
-            echo '      - --cluster-name'
-            echo '      - truedat'
-            echo '      command: aws'
-            echo '- name: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
-            echo '  user:'
-            echo '    exec:'
-            echo '      apiVersion: client.authentication.k8s.io/v1alpha1'
-            echo '      args:'
-            echo '      - --region'
-            echo '      - eu-west-1'
-            echo '      - eks'
-            echo '      - get-token'
-            echo '      - --cluster-name'
-            echo '      - test-truedat-eks'
-            echo '      command: aws               '
-        } >$KUBECONFIG
-        
-        print_message "Kubectl instalado y configurado" "$COLOR_SUCCESS" 3
-    fi
-    print_message "Paquetes y dependencias (extra) instalado correctamente" "$COLOR_SUCCESS" 3 "both"
-}
-
-package_installation_extra() {
-    print_semiheader "Instalación de origenes de software (extra)"
-
     # wine
     print_message_with_animation "Instalando Wine" "$COLOR_TERNARY" 2
     eval "sudo dpkg --add-architecture i386 $REDIRECT"
@@ -247,35 +216,6 @@ package_installation_extra() {
     print_message_with_animation "Instalando soporte Vulkan" "$COLOR_TERNARY" 2
     eval "sudo add-apt-repository -y ppa:graphics-drivers/ppa $REDIRECT"
     print_message "Vulkan instalado" "$COLOR_SUCCESS" 3
-
-    # para los colorinchis del teclado
-    print_message_with_animation "Instalando CBK NEXT" "$COLOR_TERNARY" 2
-    eval "sudo add-apt-repository -y ppa:tatokis/ckb-next $REDIRECT"
-    print_message " CBK NEXT instalado" "$COLOR_SUCCESS" 3
-
-    print_message_with_animation "Actualizando sistema" "$COLOR_TERNARY" 2
-    eval "sudo apt update $REDIRECT"
-    eval "sudo apt upgrade -y $REDIRECT"
-    print_message "Sistema actualizado" "$COLOR_SUCCESS" 3
-
-    print_semiheader "Instalación de paquetes (extra)"
-    for package in "${INSTALLATION_PACKAGES_EXTRA[@]}"; do
-        print_message_with_animation "Instalando $package" "$COLOR_TERNARY" 2
-        eval "sudo apt install -y --install-recommends $package $REDIRECT"
-        print_message "$package instalado" "$COLOR_SUCCESS" 3
-    done
-
-    eval "sudo snap install video-downloader $REDIRECT"
-
-    if [ -e "~/.xone" ]; then
-        rm -r ~/.xone
-    fi
-
-    eval "git clone https://github.com/medusalix/xone ~/.xone $REDIRECT"
-    cd ~/.xone
-    eval "sudo ./install.sh $REDIRECT"
-
-    print_message "Paquetes y dependencias (extra) instalado correctamente" "$COLOR_SUCCESS" 3 "both"
 }
 
 install_zsh() {
@@ -306,7 +246,7 @@ install_zsh() {
 }
 
 splash_loader() {
-    print_semiheader "Cambiando loader"
+    print_semiheader "Splash loader"
 
     cd ~/
     git clone https://github.com/adi1090x/plymouth-themes.git ~/plymouth-themes
@@ -444,11 +384,33 @@ tlp_config() {
 trus_config() {
     print_semiheader "TrUs"
     
+    local SWAP_SIZE_MB=$(free --mega | awk '/^Mem:/ {print int($2 + ($2))}')
+    local USER_HOME=$(eval echo ~"$SUDO_USER")
+    local TRUS_DIRECTORY=$USER_HOME/.trus/
+    local TOOLS_PATH=$TRUS_DIRECTORY/tools.sh
+    local TRUS_PATH=$TRUS_DIRECTORY/trus.sh
+    local SSH_PUBLIC_FILE=$SSH_PATH/truedat.pub
+    local SSH_PRIVATE_FILE=$SSH_PATH/truedat
+    local SSH_BACKUP_FOLDER=$SSH_PATH"/backup_$(date +%Y%m%d_%H%M%S)"
+    local WORKSPACE_PATH=$USER_HOME/workspace
+    local TRUEDAT_ROOT_PATH=$WORKSPACE_PATH/truedat
+    local BACK_PATH=$TRUEDAT_ROOT_PATH/back
+    local FRONT_PATH=$TRUEDAT_ROOT_PATH/front
+    local DEV_PATH=$TRUEDAT_ROOT_PATH/true-dev
+    local KONG_PATH=$BACK_PATH/kong-setup/data
+    local DDBB_BASE_BACKUP_PATH=$TRUEDAT_ROOT_PATH"/ddbb_truedat"
+    local DDBB_BACKUP_PATH=$DDBB_BASE_BACKUP_PATH/$DATE_NOW
+    local DDBB_LOCAL_BACKUP_PATH=$DDBB_BASE_BACKUP_PATH"/local_backups/$(date +%Y%m%d_%H%M%S)"
+    local TD_WEB_DEV_CONFIG=$FRONT_PATH/td-web/dev.config.js
+    local KUBECONFIG=$KUBE_PATH/config
+
     touch $TMUX_PATH_CONFIG
     
     {
+        # Configuracion del terminal: Tamaño, colores....
         echo 'TERMINAL_WIDTH=40'
         echo 'TERMINAL_HEIGHT=135'
+        echo 'COLOR_RESET_BG="\033[49m"'
         echo 'NO_COLOR="FFFCE2"'
         echo 'COLOR_PRIMARY="BED5E8"'
         echo 'COLOR_SECONDARY="DEE0B7"'
@@ -458,15 +420,122 @@ trus_config() {
         echo 'COLOR_WARNING="FFCE00"'
         echo 'COLOR_ERROR="C90D0A"   '
         echo 'COLOR_BACKRGROUND="324F69"'
-        echo 'BASH_PATH_CONFIG=~/.bashrc'
-        echo 'ZSH_PATH_CONFIG=~/.zshrc'
-        echo 'TMUX_PATH_CONFIG=~/.tmux.conf'
-        echo 'TLP_PATH_CONFIG=/etc/tlp.conf'
-        echo 'INSTALLATION_PACKAGES=("redis-tools" "screen" "tmux" "unzip" "curl" "vim" "build-essential" "git" "libssl-dev" "automake" "autoconf" "libncurses5" "libncurses5-dev" "awscli" "docker.io" "postgresql-client-14" "jq" "gedit" "xclip" "google-chrome-stable" "code" "snapd" "xdotool" "x11-utils")'
-        echo 'INSTALLATION_PACKAGES_EXTRA=("winehq-stable" "gdebi-core" "libvulkan1" "libvulkan1:i386" "fonts-powerline" "plymouth" "plymouth-themes" "ckb-next" "pavucontrol" "gnome-boxes" "virt-manager" "stress" "bluez" "bluez-tools" "tlp" "lm-sensors" "psensor")'
+        
+        # Configuracion de animaciones, comportamiento de trus...
+        echo 'TERMINAL_ANIMATION_ARROW=(▹▹▹▹▹ ▸▹▹▹▹ ▹▸▹▹▹ ▹▹▸▹▹ ▹▹▹▸▹ ▹▹▹▹▸ ▹▹▹▹▹ ▹▹▹▹▹ ▹▹▹▹▹ ▹▹▹▹▹ ▹▹▹▹▹ ▹▹▹▹▹ ▹▹▹▹▹)'
+        echo 'TERMINAL_ANIMATION_BOUNCE=(. · ˙ ·)'
+        echo 'TERMINAL_ANIMATION_BOUNCING_BALL=("(●     )" "( ●    )" "(  ●   )" "(   ●  )" "(    ● )" "(     ●)" "(    ● )" "(   ●  )" "(  ●   )" "( ●    )")'
+        echo 'TERMINAL_ANIMATION_BOX=(┤ ┴ ├ ┬)'
+        echo 'TERMINAL_ANIMATION_BRAILLE=(⣷ ⣯ ⣟ ⡿ ⢿ ⣻ ⣽ ⣾)'
+        echo 'TERMINAL_ANIMATION_BREATHE=("  ()  " " (  ) " "(    )" " (  ) ")'
+        echo 'TERMINAL_ANIMATION_BUBBLE=(· o O O o ·)'
+        echo 'TERMINAL_ANIMATION_CLASSIC_UTF8=("—" "\\" "|" "/")'
+        echo 'TERMINAL_ANIMATION_CLASSIC=("-" "\\" "|" "/")'
+        echo 'TERMINAL_ANIMATION_DOT=(∙∙∙∙∙∙∙∙∙∙∙∙∙∙∙ ●∙∙∙∙∙∙∙∙∙∙∙∙∙∙ ∙●∙∙∙∙∙∙∙∙∙∙∙∙∙ ∙∙●∙∙∙∙∙∙∙∙∙∙∙∙ ∙∙∙●∙∙∙∙∙∙∙∙∙∙∙ ∙∙∙∙●∙∙∙∙∙∙∙∙∙∙ ∙∙∙∙∙●∙∙∙∙∙∙∙∙∙ ∙∙∙∙∙∙●∙∙∙∙∙∙∙∙ ∙∙∙∙∙∙∙●∙∙∙∙∙∙∙ ∙∙∙∙∙∙∙∙●∙∙∙∙∙∙ ∙∙∙∙∙∙∙∙∙●∙∙∙∙∙ ∙∙∙∙∙∙∙∙∙∙●∙∙∙∙ ∙∙∙∙∙∙∙∙∙∙∙●∙∙∙ ∙∙∙∙∙∙∙∙∙∙∙∙●∙∙ ∙∙∙∙∙∙∙∙∙∙∙∙∙●∙ ∙∙∙∙∙∙∙∙∙∙∙∙∙∙● ∙∙∙∙∙∙∙∙∙∙∙∙∙●∙ ∙∙∙∙∙∙∙∙∙∙∙∙●∙∙ ∙∙∙∙∙∙∙∙∙∙∙●∙∙∙ ∙∙∙∙∙∙∙∙∙∙●∙∙∙∙ ∙∙∙∙∙∙∙∙∙●∙∙∙∙∙ ∙∙∙∙∙∙∙∙●∙∙∙∙∙∙ ∙∙∙∙∙∙∙●∙∙∙∙∙∙∙ ∙∙∙∙∙∙●∙∙∙∙∙∙∙∙ ∙∙∙∙∙●∙∙∙∙∙∙∙∙∙ ∙∙∙∙●∙∙∙∙∙∙∙∙∙∙ ∙∙∙●∙∙∙∙∙∙∙∙∙∙∙ ∙∙●∙∙∙∙∙∙∙∙∙∙∙∙ ∙●∙∙∙∙∙∙∙∙∙∙∙∙∙ ●∙∙∙∙∙∙∙∙∙∙∙∙∙∙ ∙∙∙∙∙∙∙∙∙∙∙∙∙∙∙)'
+        echo 'TERMINAL_ANIMATION_FILLING_BAR=("█▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "██▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "███▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "█████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "██████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "███████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "█████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "██████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "███████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "████████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "█████████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "██████████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "███████████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "████████████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "█████████████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "██████████████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "███████████████████▒▒▒▒▒▒▒▒▒▒▒▒▒" "████████████████████▒▒▒▒▒▒▒▒▒▒▒▒" "█████████████████████▒▒▒▒▒▒▒▒▒▒▒" "██████████████████████▒▒▒▒▒▒▒▒▒▒" "███████████████████████▒▒▒▒▒▒▒▒▒" "████████████████████████▒▒▒▒▒▒▒▒" "█████████████████████████▒▒▒▒▒▒▒" "██████████████████████████▒▒▒▒▒▒" "███████████████████████████▒▒▒▒▒" "████████████████████████████▒▒▒▒" "█████████████████████████████▒▒▒" "██████████████████████████████▒▒" "███████████████████████████████▒" "████████████████████████████████")'
+        echo 'TERMINAL_ANIMATION_FIREWORK=("⢀" "⠠" "⠐" "⠈" "*" "*" " ")'
+        echo 'TERMINAL_ANIMATION_GROWING_DOTS=(".  " ".. " "..." ".. " ".  " "   ")'
+        echo 'TERMINAL_ANIMATION_HORIZONTAL_BLOCK=(▏ ▎ ▍ ▌ ▋ ▊ ▉ ▉ ▊ ▋ ▌ ▍ ▎ ▏)'
+        echo 'TERMINAL_ANIMATION_KITT=(▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱ ▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱ ▱▰▰▰▱▱▱▱▱▱▱▱▱▱▱ ▱▱▰▰▰▱▱▱▱▱▱▱▱▱▱ ▱▱▱▰▰▰▱▱▱▱▱▱▱▱▱ ▱▱▱▱▰▰▰▱▱▱▱▱▱▱▱ ▱▱▱▱▱▰▰▰▱▱▱▱▱▱▱ ▱▱▱▱▱▱▰▰▰▱▱▱▱▱▱ ▱▱▱▱▱▱▱▰▰▰▱▱▱▱▱ ▱▱▱▱▱▱▱▱▰▰▰▱▱▱▱ ▱▱▱▱▱▱▱▱▱▰▰▰▱▱▱ ▱▱▱▱▱▱▱▱▱▱▰▰▰▱▱ ▱▱▱▱▱▱▱▱▱▱▱▰▰▰▱ ▱▱▱▱▱▱▱▱▱▱▱▱▰▰▰ ▱▱▱▱▱▱▱▱▱▱▱▱▱▰▰ ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▰ ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱)'
+        echo 'TERMINAL_ANIMATION_METRO=("[    ]" "[=   ]" "[==  ]" "[=== ]" "[ ===]" "[  ==]" "[   =]")'
+        echo 'TERMINAL_ANIMATION_PASSING_DOTS=(".  " ".. " "..." " .." "  ." "   ")'
+        echo 'TERMINAL_ANIMATION_PONG=("▐⠂       ▌" "▐⠈       ▌" "▐ ⠂      ▌" "▐ ⠠      ▌" "▐  ⡀     ▌" "▐  ⠠     ▌" "▐   ⠂    ▌" "▐   ⠈    ▌" "▐    ⠂   ▌" "▐    ⠠   ▌" "▐     ⡀  ▌" "▐     ⠠  ▌" "▐      ⠂ ▌" "▐      ⠈ ▌" "▐       ⠂▌" "▐       ⠠▌" "▐       ⡀▌" "▐      ⠠ ▌" "▐      ⠂ ▌" "▐     ⠈  ▌" "▐     ⠂  ▌" "▐    ⠠   ▌" "▐    ⡀   ▌" "▐   ⠠    ▌" "▐   ⠂    ▌" "▐  ⠈     ▌" "▐  ⠂     ▌" "▐ ⠠      ▌" "▐ ⡀      ▌" "▐⠠       ▌")'
+        echo 'TERMINAL_ANIMATION_QUARTER=(▖ ▘ ▝ ▗)'
+        echo 'TERMINAL_ANIMATION_ROTATING_EYES=(◡◡ ⊙⊙ ⊙⊙ ◠◠)'
+        echo 'TERMINAL_ANIMATION_SEMI_CIRCLE=(◐ ◓ ◑ ◒)'
+        echo 'TERMINAL_ANIMATION_SIMPLE_BRAILLE=(⠁ ⠂ ⠄ ⡀ ⢀ ⠠ ⠐ ⠈)'
+        echo 'TERMINAL_ANIMATION_SNAKE=("[=     ]" "[~<    ]" "[~~=   ]" "[~~~<  ]" "[ ~~~= ]" "[  ~~~<]" "[   ~~~]" "[    ~~]" "[     ~]" "[      ]")'
+        echo 'TERMINAL_ANIMATION_TRIANGLE=(◢ ◣ ◤ ◥)'
+        echo 'TERMINAL_ANIMATION_TRIGRAM=(☰ ☱ ☳ ☶ ☴)'
+        echo 'TERMINAL_ANIMATION_VERTICAL_BLOCK=(▁ ▂ ▃ ▄ ▅ ▆ ▇ █ █ ▇ ▆ ▅ ▄ ▃ ▂ ▁)'
+        echo 'ANIMATION_MENU=("Volver" "ARROW" "BOUNCE" "BOUNCING_BALL" "BOX" "BRAILLE" "BREATHE" "BUBBLE" "CLASSIC_UTF8" "CLASSIC" "DOT" "FILLING_BAR" "FIREWORK" "GROWING_DOTS" "HORIZONTAL_BLOCK" "KITT" "METRO" "PASSING_DOTS" "PONG" "QUARTER" "ROTATING_EYES" "SEMI_CIRCLE" "SIMPLE_BRAILLE" "SNAKE" "TRIANGLE" "TRIGRAM" "VERTICAL_BLOCK" )'
+
+
+        # Rutas
+        echo "SWAP_FILE=/swapfile"
+        echo "SWAP_SIZE_MB=$SWAP_SIZE_MB"
+        echo "USER_HOME=$USER_HOME"
+        echo "TRUS_DIRECTORY=$TRUS_DIRECTORY"
+
+        echo "TOOLS_ACTUAL_PATH=./tools.sh"
+        echo "TOOLS_PATH=$TOOLS_PATH"
+        echo "TOOLS_LINK_PATH=/usr/local/bin/tools"
+
+        echo "TRUS_ACTUAL_PATH=./trus.sh"
+        echo "TRUS_PATH=$TRUS_PATH"
+        echo "TRUS_LINK_PATH=/usr/local/bin/trus"
+        
+        echo "SSH_PATH=~/.ssh"
+        echo "SSH_PUBLIC_FILE=$SSH_PUBLIC_FILE"
+        echo "SSH_PRIVATE_FILE=$SSH_PRIVATE_FILE"
+        echo "SSH_BACKUP_FOLDER=$SSH_BACKUP_FOLDER"
+        
+        echo "WORKSPACE_PATH=$WORKSPACE_PATH"
+        echo "TRUEDAT_ROOT_PATH=$TRUEDAT_ROOT_PATH"
+        echo "BACK_PATH=$BACK_PATH"
+        echo "FRONT_PATH=$FRONT_PATH"
+        echo "DEV_PATH=$DEV_PATH"
+        echo "KONG_PATH=$KONG_PATH"
+
+        echo "DDBB_BASE_BACKUP_PATH=$DDBB_BASE_BACKUP_PATH"
+        echo "DDBB_BACKUP_PATH=$DDBB_BACKUP_PATH"
+        echo "DDBB_LOCAL_BACKUP_PATH=$DDBB_LOCAL_BACKUP_PATH"
+        echo "TD_WEB_DEV_CONFIG=$TD_WEB_DEV_CONFIG"
+
+        echo "BASH_PATH_CONFIG=~/.bashrc"
+        echo "ZSH_PATH_CONFIG=~/.zshrc"
+        echo "TMUX_PATH_CONFIG=~/.tmux.conf"
+        echo "TLP_PATH_CONFIG=/etc/tlp.conf"
+        
+
+        #########################################
+        #  td_auth no se incluye para que no interfiera con los usuarios que tenemos creados ne local
+
+        echo 'DATABASES=("td_audit" "td_bg" "td_dd" "td_df" "td_ie" "td_lm" "td_i18n" "td_qx" "td_ai")'
+        echo 'INDEXES=("dd" "bg" "ie" "qx")'
+
+        #########################################
+        #  DOCKER
+
+        echo 'CONTAINERS=("elasticsearch" "redis" "redis_test" "vault")'
+        echo 'CONTAINERS_SETUP=("kong_create" "kong_migrate" "kong_setup")'
+
+        #########################################
+        #  PROJECTS
+
+        echo 'FRONT_PACKAGES=("audit" "auth" "bg" "core" "cx" "dd" "df" "dq" "qx" "ie" "lm" "profile" "se" "test")'
+        echo 'SERVICES=("td-ai" "td-audit" "td-auth" "td-bg" "td-dd" "td-df" "td-i18n" "td-ie" "td-lm" "td-qx" "td-se")'
+        echo 'LIBRARIES=("td-cache" "td-cluster" "td-core" "td-df-lib" "td-helm" "k8s")'
+        
+
+        #########################################
+        #  AWS
+
+        echo "KUBE_PATH=~/.kube"
+        echo "KUBECONFIG=$KUBECONFIG"
+        echo "AWSCONFIG=~/.aws/config"
+        echo 'CONTEXT="test-truedat-eks"'
+
+        #########################################
+        # Tmux y Screen
+
+        echo 'TRUEDAT="truedat"'
+        echo 'TMUX_CONF=~/.tmux.conf'
+
+        #########################################
+        # kong
+        echo 'DOCKER_LOCALHOST="172.17.0.1"'
+        echo 'KONG_ADMIN_URL="localhost:8001"'
+        echo 'KONG_SERVICES=("health" "td_audit" "td_auth" "td_bg" "td_dd" "td_qx" "td_dq" "td_lm" "td_qe" "td_se" "td_df" "td_ie" "td_cx" "td_i18n" "td_ai")'
+
+
+        #Paquetes de instalación
+        echo 'INSTALLATION_PACKAGES=("redis-tools" "screen" "tmux" "unzip" "curl" "vim" "build-essential" "git" "libssl-dev" "automake" "autoconf" "libncurses5" "libncurses5-dev" "awscli" "docker.io" "postgresql-client-14" "jq" "gedit" "xclip" "google-chrome-stable" "code" "snapd" "xdotool" "x11-utils" "winehq-stable" "gdebi-core" "libvulkan1" "libvulkan1:i386" "fonts-powerline" "plymouth" "plymouth-themes" "stress" "bluez" "bluez-tools" "tlp" "lm-sensors" "psensor")'
+        
+        # Variables que se van modificando con el uso
         echo 'HIDE_OUTPUT=true'
         echo 'USE_KONG=false'
-        echo 'SELECTED_ANIMATION="BOMB"'
+        echo 'SELECTED_ANIMATION="BUBBLE"'
     } > $PATH_GLOBAL_CONFIG
 
     print_message "Archivo de configuración creado con éxito" "$COLOR_SUCCESS" 3
@@ -504,7 +573,7 @@ swap() {
     print_message "Memoria SWAP ampliada a $((SWAP_SIZE_MB / 1024))GB" "$COLOR_SUCCESS" 3 "both"
 }
 
-select_animation(){    
+select_animation_menu(){    
     local option=$(print_menu "${ANIMATION_MENU[@]}")
         
     case "$option" in        
@@ -522,7 +591,7 @@ main_menu() {
     print_header
     local option=$(print_menu "${MAIN_MENU_OPTIONS[@]}")
 
-    option=$(extract_option "$option")
+    option=$(extract_menu_option "$option")
 
     case "$option" in
         1)
@@ -530,45 +599,40 @@ main_menu() {
             ;;
 
         2)
-            package_installation_extra
-            ;;
-
-        3)
             install_zsh
             ;;
 
-        4)
+        3)
             bash_prompt
             ;;
 
-        5)
+        4)
             splash_loader
             ;;
 
-        6)
+        5)
             configurations_menu
             ;;
 
-        7)
+        6)
             swap
             ;;
 
-        8)
+        7)
             select_animation_menu
             ;;
 
-        9)
+        8)
             install_trus
             ;;
 
-        10)
+        9)
             cp -f "$TOOLS_ACTUAL_PATH" "$TOOLS_PATH"
             print_message "Tools instalado con éxito" "$COLOR_SUCCESS" 3 "both"
             ;;
 
-        11)
+        10)
             package_installation
-            package_installation_extra
             install_zsh
             bash_prompt
             splash_loader
@@ -630,46 +694,38 @@ help() {
         ;;
 
     2)
-        print_message "Instalación de paquetes extra:" "$COLOR_SECONDARY"
-
-        for package in "${INSTALLATION_PACKAGES_EXTRA[@]}"; do
-            print_message "- $package" "$COLOR_TERNARY" 1
-        done
-        ;;
-
-    3)
         print_message "Instalación de la terminal ZSH y Oh My Zsh." "$COLOR_SECONDARY"
         ;;
 
-    4)
+    3)
         print_message "Modificación del prompt de Bash para añadirle nuevo estilo y la visualizacion de la rama de git." "$COLOR_SECONDARY"
         ;;
 
-    5)
+    4)
         print_message "Modificación de la animacion de la animación de arranque del SO (solo linux)." "$COLOR_SECONDARY"
         ;;
 
-    6)
+    5)
         print_message "Creación de los archivos de confiuración por defecto de ZSH, TMUX, TLP y TrUs" "$COLOR_SECONDARY"
         ;;
 
-    7)
+    6)
         print_message "Modificación del tamaño del archivo de intercambio. Se crea con un tamaño del 150% de la RAM actual del equipo." "$COLOR_SECONDARY"
         ;;
 
-    8)
+    7)
         print_message "Permite configurar la animación activa en los mensajes con animación" "$COLOR_SECONDARY"
         ;;
 
-    9)
+    8)
         print_message "Instalación de Truedat Utils (TrUs)." "$COLOR_SECONDARY"
         ;;
 
-    10)
+    9)
         print_message "Instalación de Tools, libreria de funciones genericas utilizadas por este instalador y TrUs." "$COLOR_SECONDARY"
         ;;
 
-    11)
+    10)
         print_message "Instalación completa. Se lanzan todas las opciones." "$COLOR_SECONDARY"
         ;;
 
@@ -694,12 +750,12 @@ help() {
     esac
 }
 
+
+
 #########################################
 #            Lógica principal
 #########################################
-
-    
-
+   
 variables
 install_tools
 source tools "Bienvenido al equipo de Core de Truedat" "Preparación del entorno" "$0"

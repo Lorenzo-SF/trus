@@ -4,15 +4,13 @@
 ####   Variables Configuracion
 #########################################
 
-general_vars() {
+set_vars() {
     #########################################
     # General
 
-    DATE_NOW=$(date +%Y%m%d_%H%M%S)
-    USER_HOME=$(eval echo ~"$SUDO_USER")
-    TRUS_INSTALLATION_PATH=$USER_HOME/.trus
     PATH_GLOBAL_CONFIG=$USER_HOME/.trus.conf
-    TRUS_PATH=$TRUS_INSTALLATION_PATH/trus.sh
+    source PATH_GLOBAL_CONFIG
+
     HEADER_LOGO=("  _________   ______     __  __    ______       "
         " /________/\ /_____/\   /_/\/_/\  /_____/\      "
         " \__.::.__\/ \:::_ \ \  \:\ \:\ \ \::::_\/_     "
@@ -78,80 +76,10 @@ general_vars() {
         "--config_kong"
     )
 
-}
-
-path_vars() {
-    #########################################
-    #  PATHS
-
-    SSH_PATH=~/.ssh
-    SSH_PUBLIC_FILE=$SSH_PATH/truedat.pub
-    SSH_PRIVATE_FILE=$SSH_PATH/truedat
-    SSH_BACKUP_FOLDER=$SSH_PATH"/backup_$DATE_NOW"
-    WORKSPACE_PATH=$USER_HOME/workspace
-    TRUEDAT_ROOT_PATH=$WORKSPACE_PATH/truedat
-    BACK_PATH=$TRUEDAT_ROOT_PATH/back
-    FRONT_PATH=$TRUEDAT_ROOT_PATH/front
-    DEV_PATH=$TRUEDAT_ROOT_PATH/true-dev
-    KONG_PATH=$BACK_PATH/kong-setup/data
-    DDBB_BASE_BACKUP_PATH=$TRUEDAT_ROOT_PATH"/ddbb_truedat"
-    DDBB_BACKUP_PATH=$DDBB_BASE_BACKUP_PATH/$DATE_NOW
-    DDBB_LOCAL_BACKUP_PATH=$DDBB_BASE_BACKUP_PATH"/local_backups/$DATE_NOW"
-    AWSCONFIG=~/.aws/config
-    TD_WEB_DEV_CONFIG=$FRONT_PATH/td-web/dev.config.js
-}
-
-comands_and_context_vars() {
-    #########################################
-    #  DATA
-
-    CONTEXT="test-truedat-eks"
-
-    #########################################
-    # Tmux y Screen
-
-    TRUEDAT="truedat"
-    TMUX_CONF=~/.tmux.conf
-
-    #########################################
-    # kong
-    DOCKER_LOCALHOST="172.17.0.1"
-    KONG_ADMIN_URL="localhost:8001"
-    KONG_SERVICES=("health" "td_audit" "td_auth" "td_bg" "td_dd" "td_qx" "td_dq" "td_lm" "td_qe" "td_se" "td_df" "td_ie" "td_cx" "td_i18n" "td_ai")
-
-}
-
-system_name_vars() {
-    #########################################
-    #  td_auth no se incluye para que no interfiera con los usuarios que tenemos creados ne local
-
-    DATABASES=("td_audit" "td_bg" "td_dd" "td_df" "td_ie" "td_lm" "td_i18n" "td_qx" "td_ai")
-    INDEXES=("dd" "bg" "ie" "qx")
-
-    #########################################
-    #  DOCKER
-
-    CONTAINERS=("elasticsearch" "redis" "kong" "redis_test" "vault")
-    CONTAINERS_SETUP=("kong_create" "kong_migrate" "kong_setup")
-
-    #########################################
-    #  PROJECTS
-
-    FRONT_PACKAGES=("audit" "auth" "bg" "core" "cx" "dd" "df" "dq" "qx" "ie" "lm" "profile" "se" "test")
-    SERVICES=("td-ai" "td-audit" "td-auth" "td-bg" "td-dd" "td-df" "td-i18n" "td-ie" "td-lm" "td-qx" "td-se")
-    LIBRARIES=("td-cache" "td-cluster" "td-core" "td-df-lib")
-}
-
-set_vars() {
-    general_vars
-    path_vars
-    comands_and_context_vars
-    system_name_vars
-
+    
     if [[ "$USE_KONG" = "" ]]; then
         config_kong
     fi
-
 }
 
 #########################################
@@ -353,22 +281,14 @@ get_local_backup_path() {
     print_header
     print_semiheader "Aplicando un backup de bdd desde una ruta de local"
 
-    local contador=0
+    print_message "Por favor, indica la carpeta donde está el backup que deseas aplicar (debe estar dentro de '$DDBB_BASE_BACKUP_PATH')" "$COLOR_SECONDARY" 1 "both"
+    read -r path_backup
 
-    while [ $contador -lt 5 ]; do
-        print_message "Por favor, indica la carpeta donde está el backup que deseas aplicar" "$COLOR_SECONDARY" 1 "both"
-        read -r path_backup
-
-        if [ -d "$path_backup" ]; then
-            backup_path=$path_backup
-
-            break
-        else
-            contador=$((contador + 1))
-
-            print_centered_message "La ruta introducida no es válida." "$COLOR_WARNING"
-        fi
-    done
+    if [[ "$path_backup" == "$DDBB_BASE_BACKUP_PATH"* ]]; then
+        backup_path=$path_backup
+    else
+        print_message "La ruta '$path_backup' no es una subruta de '$DDBB_BACKUP_PATH'." "$COLOR_ERROR" 3 "both"
+    fi
 }
 
 create_backup_local_ddbb() {
@@ -409,7 +329,6 @@ install_docker() {
 }
 
 set_elixir_versions() {
-    print_message_with_animation "Configurando versiones específicas de Elixir..." "$COLOR_SECONDARY" 3
     eval "cd $BACK_PATH/td-auth && asdf local elixir 1.14.5-otp-25 $REDIRECT"
     eval "cd $BACK_PATH/td-audit && asdf local elixir 1.14.5-otp-25 $REDIRECT"
     eval "cd $BACK_PATH/td-ai && asdf local elixir 1.15 $REDIRECT"
@@ -423,7 +342,7 @@ set_elixir_versions() {
     eval "cd $BACK_PATH/td-lm && asdf local elixir 1.14.5-otp-25 $REDIRECT"
     eval "cd $BACK_PATH/td-qx && asdf local elixir 1.14.5-otp-25 $REDIRECT"
     eval "cd $BACK_PATH/td-se && asdf local elixir 1.16 $REDIRECT"
-    print_message "Configurando versiones específicas de Elixir (HECHO)" "$COLOR_SUCCESS" 3 "both"
+    print_message "Versiones específicas de Elixir configuradas" "$COLOR_SUCCESS" 2 "both"
 }
 
 #########################################
@@ -431,23 +350,24 @@ set_elixir_versions() {
 
 install() {
     print_header
-    print_message "Guia de instalación: https://confluence.bluetab.net/pages/viewpage.action?pageId=136022683" "$COLOR_QUATERNARY" 0 "before"
+    print_message "Guia de instalación: https://confluence.bluetab.net/pages/viewpage.action?pageId=136022683" "$COLOR_QUATERNARY" 5 "both"
 
     if [ ! -e "/tmp/truedat_installation" ]; then
         print_header
 
         if [ -f "$SSH_PUBLIC_FILE" ]; then
-            print_message "ATENCIÓN, SE VA A SOLICITAR LA CONFIGURACIÓN DE AWS 2 VECES" "$COLOR_WARNING" 2 "before"
-            print_message "Una para el perfil predeterminado y otra para el de truedat" "$COLOR_WARNING" 2 "both"
-            print_message "Estos datos te los debe dar tu responsable" "$COLOR_SECONDARY" 2 "both"
-
             if [ ! -e "$AWSCONFIG" ]; then
+                print_message "ATENCIÓN, SE VA A SOLICITAR LA CONFIGURACIÓN DE AWS 2 VECES" "$COLOR_WARNING" 2 "before"
+                print_message "Una para el perfil predeterminado y otra para el de truedat" "$COLOR_WARNING" 2 "both"
+                print_message "Estos datos te los debe dar tu responsable" "$COLOR_SECONDARY" 2 "both"
+                
                 aws configure
-                aws configure --profile truedat
-                aws ecr get-login-password --profile truedat --region eu-west-1 | docker login --username AWS --password-stdin 576759405678.dkr.ecr.eu-west-1.amazonaws.com
-                print_message "Configuración de aws (HECHO)" "$COLOR_SUCCESS" 3 "before"
+                aws configure --profile truedat    
             fi
-           
+
+            aws ecr get-login-password --profile truedat --region eu-west-1 | docker login --username AWS --password-stdin 576759405678.dkr.ecr.eu-west-1.amazonaws.com
+            print_message "Configuración de aws (HECHO)" "$COLOR_SUCCESS" 3 "before"
+
             asdf plugin add erlang https://github.com/asdf-vm/asdf-erlang.git
             asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git
             asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
@@ -472,40 +392,9 @@ install() {
             eval "$(ssh-agent -s)"
             ssh-add $SSH_PRIVATE_FILE
 
-            mkdir $WORKSPACE_PATH
-            mkdir $TRUEDAT_ROOT_PATH
-            mkdir $BACK_PATH
-            mkdir $BACK_PATH/logs
-            mkdir $FRONT_PATH
-            mkdir $DEV_PATH
+            clone_truedat_project
 
-            cd $BACK_PATH
-            git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-ai.git
-            git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-audit.git
-            git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-auth.git
-            git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-bg.git
-            git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-dd.git
-            git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-df.git
-            git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-ie.git
-            git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-qx.git
-            git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-i18n.git
-            git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-lm.git
-            git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-se.git
-            git clone git@gitlab.bluetab.net:dgs-core/true-dat/td-helm.git
-            git clone git@gitlab.bluetab.net:dgs-core/true-dat/clients/demo/k8s.git
-
-            git clone git@github.com:Bluetab/td-df-lib.git
-            git clone git@github.com:Bluetab/td-cache.git
-            git clone git@github.com:Bluetab/td-core.git
-            git clone git@github.com:Bluetab/td-cluster.git
-
-            cd $FRONT_PATH
-            git clone git@gitlab.bluetab.net:dgs-core/true-dat/front-end/td-web-modules.git
-            git clone git@gitlab.bluetab.net:dgs-core/true-dat/front-end/td-web.git
-
-            cd $TRUEDAT_ROOT_PATH
-            git clone git@gitlab.bluetab.net:dgs-core/true-dat/true-dev.git
-            cd true-dev
+            cd $DEV_PATH
             sudo sysctl -w vm.max_map_count=262144
             sudo cp elastic-search/999-map-count.conf /etc/sysctl.d/
             print_message "Truedat descargado" "$COLOR_SUCCESS" 3 "before"
@@ -513,19 +402,33 @@ install() {
             update_repositories "-a"
             link_web_modules
             ddbb "-du"
-            config-kong
+            config_kong
+
+            sudo sh -c '{
+                        echo "##################"
+                        echo "# Añadido por trus"
+                        echo "##################"
+                        echo "127.0.0.1 localhost"
+                        echo "127.0.0.1 $(uname -n).bluetab.net $(uname -n)"
+                        echo "127.0.0.1 redis"
+                        echo "127.0.0.1 postgres"
+                        echo "127.0.0.1 elastic"
+                        echo "127.0.0.1 kong"
+                        echo "127.0.0.1 neo"
+                        echo "127.0.0.1 vault"
+                        echo "0.0.0.0 local"
+                        echo "##################"
+                        echo "# Añadido por trus"
+                        echo "##################"
+                    } > /etc/hosts'
+
 
             touch "/tmp/truedat_installation"
             print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3 "both"
-            print_message "Si deseas reinstalarlo, puedes hacerlo borrndo el archivo '/temp/truedat_installation'. ¿Deseas hacerlo ahora? (S/N)" "$COLOR_SECONDARY" 3
-            read -r reinstall
-
-            local continue_reinstall=$(normalize_text "$reinstall")
-
-            if [ "$continue_reinstall" = "si" ] || [ "$continue_reinstall" = "s" ] || [ "$continue_reinstall" = "y" ] || [ "$continue_reinstall" = "yes" ]; then
+            
+            if [ $(print_question "Si deseas reinstalarlo, puedes hacerlo borrando el archivo '/temp/truedat_installation'") == true ]; then
                 rm "/tmp/truedat_installation"
             fi            
-
         else
             print_message "- Claves SSH (NO CREADAS): Tienes que tener creada una clave SSH (el script chequea que la clave se llame 'truedat') en la carpeta ~/.ssh" "$COLOR_ERROR" 3 "before"
             print_message "RECUERDA que tiene que estar registrada en el equipo y en Gitlab. Si no, debes crearla con 'trus -cr' y registarla en la web'" "$COLOR_WARNING" 3 "after"
@@ -533,19 +436,48 @@ install() {
     else
         print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3 "both"
         
-        print_message "Si deseas reinstalarlo, puedes hacerlo borrndo el archivo '/temp/truedat_installation'. ¿Deseas hacerlo ahora? (S/N)" "$COLOR_SECONDARY" 3
-        read -r reinstall
-
-        local continue_reinstall=$(normalize_text "$reinstall")
-
-        if [ "$continue_reinstall" = "si" ] || [ "$continue_reinstall" = "s" ] || [ "$continue_reinstall" = "y" ] || [ "$continue_reinstall" = "yes" ]; then
-            rm "/tmp/truedat_installation"
+        if [ $(print_question "Si deseas reinstalarlo, puedes hacerlo borrando el archivo '/temp/truedat_installation'") == true ]; then            rm "/tmp/truedat_installation"
             print_message "Archivo '/tmp/truedat_installation' eliminado correctamente" "$COLOR_PRIMARY" 3 "both"
         fi            
     fi
 }
 
-config-kong() {
+clone_truedat_project(){
+    mkdir -p $WORKSPACE_PATH
+    mkdir -p $TRUEDAT_ROOT_PATH
+    mkdir -p $BACK_PATH
+    mkdir -p $BACK_PATH/logs
+    mkdir -p $FRONT_PATH
+    mkdir -p $DEV_PATH
+    
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-ai.git $BACK_PATH/td-ai
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-audit.git $BACK_PATH/td-audit
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-auth.git $BACK_PATH/td-auth
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-bg.git $BACK_PATH/td-bg
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-dd.git $BACK_PATH/td-dd
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-df.git $BACK_PATH/td-df
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-ie.git $BACK_PATH/td-ie
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-qx.git $BACK_PATH/td-qx
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-i18n.git $BACK_PATH/td-i18n
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-lm.git $BACK_PATH/td-lm
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-se.git $BACK_PATH/td-se
+    
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/td-helm.git $BACK_PATH/td-helm
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/clients/demo/k8s.git $BACK_PATH/k8s
+
+    clone_if_not_exists git@github.com:Bluetab/td-df-lib.git $BACK_PATH/td-df-lib
+    clone_if_not_exists git@github.com:Bluetab/td-cache.git $BACK_PATH/td-cache
+    clone_if_not_exists git@github.com:Bluetab/td-core.git $BACK_PATH/td-core
+    clone_if_not_exists git@github.com:Bluetab/td-cluster.git $BACK_PATH/td-cluster
+    
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/front-end/td-web-modules.git $FRONT_PATH/td-web-modules
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/front-end/td-web.git $FRONT_PATH/td-web.git 
+
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/true-dev.git $DEV_PATH
+    
+}
+
+config_kong() {
     print_header
     print_semiheader "Kong"
     print_message "¿Quién quieres que enrute, Kong(k) o td-web(w)? (k/w)" "$COLOR_PRIMARY" 1
@@ -579,19 +511,14 @@ ddbb() {
         create_backup_local_ddbb
     fi
 
-    if { [ -d "$backup_path" ] && [ "$options" = "-du" ] || [ "$options" = "--download-update" ] || [ "$options" = "-lu" ] || [ "$options" = "--local-update" ]; }; then
+    if { [ -d "$backup_path" ] && [ "$backup_path" != "" ]&& [ "$options" = "-du" ] || [ "$options" = "--download-update" ] || [ "$options" = "-lu" ] || [ "$options" = "--local-update" ]; }; then
         local continue_reindex
 
         remove_all_redis
 
         update_ddbb_from_backup "$backup_path"
 
-        print_message "Se ha realizado la actualizacion de las bbdd correctamente. Es recomendable reindexar ¿deseas hacerlo? (S/N)" "$COLOR_PRIMARY" 1
-        read -r reindex
-
-        local continue_reindex=$(normalize_text "$reindex")
-
-        if [ "$continue_reindex" = "si" ] || [ "$continue_reindex" = "s" ] || [ "$continue_reindex" = "y" ] || [ "$continue_reindex" = "yes" ]; then
+        if [ $(print_question "Se ha realizado la actualizacion de las bbdd correctamente. Es recomendable reindexar ") == true ]; then
             reindex_all
         fi
     fi
@@ -693,13 +620,9 @@ kill_truedat() {
 create_ssh() {
     local continue_ssh_normalized
     print_header
-    print_centered_message "SE VA A PROCEDER HACER BACKUP DE LAS CLAVES '$TRUEDAT' ACTUALES, BORRAR LA CLAVE EXISTENTE Y CREAR UNA NUEVA HOMONIMA" "$COLOR_ERROR"
+    
+    if [ $(print_question "SE VA A PROCEDER HACER BACKUP DE LAS CLAVES '$TRUEDAT' ACTUALES, BORRAR LA CLAVE EXISTENTE Y CREAR UNA NUEVA HOMÓNIMA " "$COLOR_ERROR") == true ]; then
 
-    print_centered_message "¿CONTINUAR (S/N)?" "$COLOR_ERROR"
-    read -r continue_ssh
-    local continue_ssh_normalized=$(normalize_text "$continue_ssh")
-
-    if [ "$continue_ssh_normalized" = "si" ] || [ "$continue_ssh_normalized" = "s" ]; then
         cd $SSH_PATH
 
         if [ -f "$SSH_PUBLIC_FILE" ] || [ -f "$SSH_PRIVATE_FILE" ]; then
@@ -772,12 +695,7 @@ link_web_modules() {
     print_header
     print_semiheader "Linkado de modulos"
 
-    print_message "Se borrarán los links y se volveran a crear ¿deseas hacerlo? (S/N)" "$COLOR_PRIMARY" 1
-    read -r relink
-
-    local continue_relink=$(normalize_text "$relink")
-
-    if [ "$continue_relink" = "si" ] || [ "$continue_relink" = "s" ] || [ "$continue_relink" = "y" ] || [ "$continue_relink" = "yes" ]; then
+    if [ $(print_question "Se borrarán los links y se volveran a crear ¿deseas hacerlo? (S/N)" "$COLOR_PRIMARY" 1) == true ]; then
         for d in "${FRONT_PACKAGES[@]}"; do
             cd "$FRONT_PATH/td-web-modules/packages/$d"
             eval "yarn unlink $REDIRECT"
@@ -863,7 +781,7 @@ kong_routes() {
 
     if [[ "$USE_KONG" = false ]]; then
         print_message "Kong no está habilitado" "$COLOR_WARNING" 3
-        print_message "Si se desea habilitar, utiliza 'trus --config-kong'" "$COLOR_WARNING" 4
+        print_message "Si se desea habilitar, utiliza 'trus --config_kong'" "$COLOR_WARNING" 4
     else
         cd $KONG_PATH
         set -o pipefail
@@ -913,21 +831,18 @@ activate_kong() {
     print_message "Se va a actualizar el archivo $TD_WEB_DEV_CONFIG para que apunte a Kong" "$COLOR_SECONDARY" 3
     print_message "Se van a actualizar las rutas de Kong" "$COLOR_SECONDARY" 3
 
-    print_message "¿Quieres habilitar Kong? (S/N)" "$COLOR_WARNING" 3 "both"
-    read -r activate
+    if [ $(print_question "Se va a activar Kong" "$COLOR_PRIMARY" 1) == true ]; then
 
-    local continue=$(normalize_text "$activate")
-
-    if [ ! "$continue" = "" ] || [ "$continue" = "si" ] || [ "$continue" = "s" ] || [ "$continue" = "y" ] || [ "$continue" = "yes" ]; then
         sed -i 's/USE_KONG=false/USE_KONG=true/' "$PATH_GLOBAL_CONFIG"
 
         source $PATH_GLOBAL_CONFIG
 
         cd $BACK_PATH
-        git clone git@gitlab.bluetab.net:dgs-core/true-dat/back-end/kong-setup.git
+        
+        clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/kong-setup.git $BACK_PATH/kong-setup    
 
         for container in "${CONTAINERS_SETUP[@]}"; do
-            docker-compose up -d "${container}"
+             docker-compose up -d "${container}"
         done
 
         # target: "https://test.truedat.io:443",       -> Se utilizarán los servicios del entorno test
@@ -978,12 +893,7 @@ deactivate_kong() {
     print_message "Kong" "$COLOR_TERNARY" 4
     print_message "Se va a actualizar el archivo $TD_WEB_DEV_CONFIG para que se encargue de enrutar td-web" "$COLOR_SECONDARY" 3
 
-    print_message "¿Quieres deshabilitar Kong? (S/N)" "$COLOR_WARNING" 3 "both"
-    read -r deactivate
-
-    local continue=$(normalize_text "$deactivate")
-
-    if [ ! "$continue" = "" ] || [ "$continue" = "si" ] || [ "$continue" = "s" ] || [ "$continue" = "y" ] || [ "$continue" = "yes" ]; then
+    if [ $(print_question "Se va a desactivar Kong" "$COLOR_PRIMARY" 1) == true ]; then
         sed -i 's/USE_KONG=true/USE_KONG=false/' "$PATH_GLOBAL_CONFIG"
         source $PATH_GLOBAL_CONFIG
 
@@ -993,7 +903,9 @@ deactivate_kong() {
 
         stop_docker
 
-        docker rm $kong_id
+        if [ ! $kong_id="" ]; then
+            docker rm $kong_id
+        fi
 
         cd $FRONT_PATH
 
@@ -1174,10 +1086,12 @@ start_containers() {
     cd $DEV_PATH
 
     for container in "${CONTAINERS[@]}"; do
-        if [[ "$USE_KONG" = true ]] || { [[ "$USE_KONG" = false ]] && [[ "$container" != "kong" ]]; }; then
-            eval "docker-compose up -d '${container}' $REDIRECT"            
-        fi
+        eval "docker-compose up -d '${container}' $REDIRECT"
     done
+
+    if [[ "$USE_KONG" = true ]]; then
+        eval "docker-compose up -d '${container}' $REDIRECT"            
+    fi
 }
 
 stop_docker() {
@@ -1256,7 +1170,7 @@ start_truedat() {
     start_containers
     start_services "${TMUX_SERVICES[@]}"
 
-    tmux source-file $TMUX_CONF
+    tmux source-file $TMUX_PATH_CONFIG
     tmux new-session -d -s $TRUEDAT -n "Truedat"
     tmux select-layout -t truedat:0 main-vertical
     tmux split-window -h -t truedat:0 -p 6
@@ -1372,6 +1286,7 @@ help() {
         print_message "--download-update: Además de descargar el backup de test, lo aplica a las bdd locales" "$COLOR_TERNARY" 1
         print_message "--local-update: Aplica a las bdd locales el backup de una carpeta indicada" "$COLOR_TERNARY" 1
         print_message "--local-backup: Crea un backup de la bdd local" "$COLOR_TERNARY" 1
+        print_message "--clean_local_backup_menu: Para borrar backups de bdd" "$COLOR_TERNARY" 1
         ;;
 
     "--reindex")
@@ -1398,7 +1313,7 @@ help() {
         print_message "Actualiza las rutas de Kong (solo disponible si kong está habilitado)" "$COLOR_SECONDARY"
         ;;
 
-    "--config-kong")
+    "--config_kong")
         print_message "Habilita/deshabilita Kong (usar con cuidaito)" "$COLOR_SECONDARY"
         ;;
 
@@ -1464,6 +1379,10 @@ help() {
 
     "--local-update")
         print_message "Aplica a las bdd locales el backup de una carpeta indicada" "$COLOR_SECONDARY"
+        ;;
+
+    "--clean_local_backup_menu")
+        print_message "--clean_local_backup_menu: Para borrar backups de bdd" "$COLOR_TERNARY" 1
         ;;
 
     "--local-backup")
@@ -1558,7 +1477,7 @@ help() {
         print_message "-kr | --kong-routes: " "$COLOR_PRIMARY" 1 "no"
         print_message "Actualiza las rutas de Kong" "$COLOR_SECONDARY" 0 "after"
 
-        print_message "--config-kong: " "$COLOR_PRIMARY" 1 "no"
+        print_message "--config_kong: " "$COLOR_PRIMARY" 1 "no"
         print_message "Habilita/deshabilita Kong (usar con cuidaito)" "$COLOR_SECONDARY" 0 "after"
 
         print_message "-l | --link-modules: " "$COLOR_PRIMARY" 1 "no"
@@ -1609,7 +1528,7 @@ main_menu() {
         repo_menu
         ;;
 
-    "--º" | "--help")
+    "-h" | "--help")
         trus "$option"
         ;;
 
@@ -1677,21 +1596,74 @@ ddbb_menu() {
         ;;
 
     "--local-update")
-        trus -d -lu
+        local_backup_menu
         ;;
 
     "--local-backup")
         trus -d -lb
         ;;
 
+    "--clean_local_backups")
+        clean_local_backup_menu
+        ;;
+
     "Volver")
         main_menu
         ;;
+
     "*")
         echo "option => $option"
         ;;
     esac
 }
+
+local_backup_menu(){
+    local backups=("Volver" $(find "$DDBB_BASE_BACKUP_PATH" -mindepth 2 -type d) "Otro...")
+    
+    local option=$(print_menu "${backups[@]}")
+
+    case "$option" in
+        "Volver")
+            ddbb_menu
+            ;;
+
+        "Otro")
+            trus -d -lu
+            ;;
+
+        "*")
+            update_ddbb_from_backup "$backup_path"
+            ;;
+    esac
+}
+
+clean_local_backup_menu(){ 
+    local backups=("Volver" $(find "$DDBB_BASE_BACKUP_PATH" -mindepth 2 -type d) "Borrar todo")
+    
+    local option=$(print_menu "${backups[@]}")
+
+    echo $option
+    case "$option" in
+        "Volver")
+            ddbb_menu
+            ;;
+
+        "Borrar todo")
+            if [ $(print_question "Se van a borrar todos los backups de $DDBB_BASE_BACKUP_PATH" "$COLOR_PRIMARY" 1) == true ]; then
+                rm -fr $DDBB_BASE_BACKUP_PATH/*
+            fi            
+            ;;
+
+        "*")
+            if [ $(print_question "Se van a borrar el backup '$option'" "$COLOR_PRIMARY" 1) == true ]; then
+                rm -fr $option
+            fi            
+            ;; 
+    esac
+
+}
+
+
 
 repo_menu() {
     local option=$(print_menu "${REPO_MENU_SUBOPTIONS[@]}")
@@ -1724,7 +1696,7 @@ repo_menu() {
 kong_menu() {
     local option=$(print_menu "${KONG_MENU_SUBOPTIONS[@]}")
     case "$option" in
-    "--kong-routes" | "--config-kong")
+    "--kong-routes" | "--config_kong")
         trus "$option"
         ;;
 
@@ -1750,7 +1722,7 @@ check_parameters() {
         "-k" | "--kill" | \
         "-r" | "--reindex" | \
         "-l" | "--link-modules" | \
-        "-kr" | "--kong-routes" | "--config-kong" | \
+        "-kr" | "--kong-routes" | "--config_kong" | \
         "-sc" | "--start-containers" | \
         "-sf" | "--start-front" | \
         "-dt" | "--dettach" | \
@@ -1846,7 +1818,7 @@ if ! [ -e "$TRUS_PATH" ]; then
     print_message "Trus no está instalado" "$COLOR_ERROR" 4 "both"
 elif [ -z "$1" ]; then
     print_truedat_logo
-    sleep 0,2
+    sleep 0,5
     print_header
     main_menu
 else
@@ -1893,8 +1865,8 @@ else
             kong_routes
             ;;
 
-        "--config-kong")
-            config-kong
+        "--config_kong")
+            config_kong
             ;;
 
         "-h" | "--help")
