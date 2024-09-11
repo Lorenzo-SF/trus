@@ -16,11 +16,12 @@ variables() {
         "3 - Actualizar prompt de BASH"
         "4 - Actualizar splash loader"
         "5 - Archivos de configuración"
-        "6 - Actualizar la memoria SWAP (a $(($SWAP_SIZE_MB/1024)) GB)"
-        "7 - Configurar animación de los mensajes"
-        "8 - Instala TrUs (Truedat Utils)"
-        "9 - Instala Tools" 
-        "10 - Todo"
+        "6 - Fix Google login"
+        "7 - Actualizar la memoria SWAP (a $(($SWAP_SIZE_MB/1024)) GB)"
+        "8 - Configurar animación de los mensajes"
+        "9 - Instala TrUs (Truedat Utils)"
+        "10 - Instala Tools" 
+        "11 - Todo"
     )
 
     CONFIGURATION_MENU_OPTIONS=(
@@ -62,6 +63,40 @@ install_trus() {
     print_message "Truedat Utils (TrUs) instalado con éxito" "$COLOR_SUCCESS" 3 "both"
 }
 
+fix_google_login(){
+    print_header
+    print_semiheader "Fix Google login"
+    check_sudo
+    
+    local NEW_HOSTNAME=$(hostname)
+    if [[ "$NEW_HOSTNAME" != *".bluetab.net" ]]; then
+        NEW_HOSTNAME="$NEW_HOSTNAME.bluetab.net"
+    fi
+
+    print_message "Actualizacion del nombre del equipo de -> $(hostname) a -> $NEW_HOSTNAME" "$COLOR_PRIMARY" 2
+    sudo hostnamectl set-hostname "$NEW_HOSTNAME"
+    
+    USERID=$(id -u $(logname))
+    USERNAME=$(logname)
+
+    if grep -q "^$USERNAME:" /etc/group; then
+        print_message "EL USUARIO $USERNAME YA EXISTE EN /etc/group" "$COLOR_PRIMARY" 2
+    else
+        echo $USERNAME':x:'$USERID':'$USERNAME >> /etc/group
+        print_message "USUARIO AÑADIDO AL GRUPO EN /etc/group" "$COLOR_PRIMARY" 2
+    fi
+
+    BASHRC_PATH="/home/$USERNAME/.bashrc"
+    if ! grep -q "LD_PRELOAD=/lib/x86_64-linux-gnu/libnss_sss.so.2" "$BASHRC_PATH"; then
+        echo 'export LD_PRELOAD=/lib/x86_64-linux-gnu/libnss_sss.so.2' >> "$BASHRC_PATH"
+        print_message "LD_PRELOAD AÑADIDO A .bashrc"  "$COLOR_PRIMARY" 2
+    else
+        print_message "LD_PRELOAD YA ESTÁ PRESENTE EN .bashrc"  "$COLOR_PRIMARY" 2
+    fi
+
+    print_message 'Fix Google login finalizado con éxito' "$COLOR_SUCCESS" 3 "both"
+}
+
 package_installation() {
     print_semiheader "Instalación de origenes de software"
 
@@ -75,7 +110,8 @@ package_installation() {
     print_semiheader "Instalación de paquetes"
 
     print_message_with_animation "Instalando Docker Compose" "$COLOR_TERNARY" 2
-    sudo curl -s -L "https://github.com/docker/compose/releases/download/v2.16.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    sudo curl -s -L "https://github.com/docker/compose/releases/download/v2.16.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/compose
+    
     eval "sudo chmod +x /usr/local/bin/docker-compose $REDIRECT"
     eval "sudo groupadd docker $REDIRECT"
     eval "sudo usermod -aG docker '$USER' $REDIRECT"
@@ -281,6 +317,8 @@ zsh_config() {
     {
         echo 'export ZSH="$HOME/.oh-my-zsh"'
         echo 'export COLORTERM=truecolor'
+        echo 'export LD_PRELOAD=/lib/x86_64-linux-gnu/libnss_sss.so.2'
+        echo ''
         echo 'plugins=('
         echo '    git'
         echo '    elixir'
@@ -293,23 +331,27 @@ zsh_config() {
         echo 'source $ZSH/oh-my-zsh.sh'
         echo '. "$HOME/.asdf/asdf.sh"'
         echo ''
-        echo 'alias update-mint="sudo apt update && sudo apt upgrade"'
-        echo 'alias ai="cd ~/workspace/truedat/back/td-ai"'
-        echo 'alias audit="cd ~/workspace/truedat/back/td-audit"'
-        echo 'alias auth="cd ~/workspace/truedat/back/td-auth"'
-        echo 'alias bg="cd ~/workspace/truedat/back/td-bg"'
-        echo 'alias dd="cd ~/workspace/truedat/back/td-dd"'
-        echo 'alias df="cd ~/workspace/truedat/back/td-df"'
-        echo 'alias i18n="cd ~/workspace/truedat/back/td-i18n"'
-        echo 'alias ie="cd ~/workspace/truedat/back/td-ie"'
-        echo 'alias lm="cd ~/workspace/truedat/back/td-lm"'
-        echo 'alias qx="cd ~/workspace/truedat/back/td-qx"'
-        echo 'alias se="cd ~/workspace/truedat/back/td-se"'
-        echo 'alias web="cd ~/workspace/truedat/front/td-web"'
-        echo 'alias webmodules="cd ~/workspace/truedat/front/td-web-modules"'
-        echo 'alias format="mix format && mix credo --strict"'
+        echo '# comentadas por defecto para evitar molestias'
+        echo '# alias ai="cd ~/workspace/truedat/back/td-ai"'
+        echo '# alias audit="cd ~/workspace/truedat/back/td-audit"'
+        echo '# alias auth="cd ~/workspace/truedat/back/td-auth"'
+        echo '# alias bg="cd ~/workspace/truedat/back/td-bg"'
+        echo '# alias dd="cd ~/workspace/truedat/back/td-dd"'
+        echo '# alias df="cd ~/workspace/truedat/back/td-df"'
+        echo '# alias i18n="cd ~/workspace/truedat/back/td-i18n"'
+        echo '# alias ie="cd ~/workspace/truedat/back/td-ie"'
+        echo '# alias lm="cd ~/workspace/truedat/back/td-lm"'
+        echo '# alias qx="cd ~/workspace/truedat/back/td-qx"'
+        echo '# alias se="cd ~/workspace/truedat/back/td-se"'
+        echo '# alias helm="cd ~/workspace/truedat/back/td-helm"'
+        echo '# alias k8s="cd ~/workspace/truedat/back/k8s"'
+        echo '# alias web="cd ~/workspace/truedat/front/td-web"'
+        echo '# alias webmodules="cd ~/workspace/truedat/front/td-web-modules"'
+        echo '# alias trudev="cd ~/workspace/truedat/true-dev"'
+        echo '# alias format="mix format && mix credo --strict"'
         echo ''
         echo 'autoload -U compinit && compinit'
+        echo '# otro estilo delprompt'
         echo '# autoload -Uz promptinit'
         echo '# promptinit'
         echo '# prompt bigfade'
@@ -400,7 +442,7 @@ trus_config() {
     local KONG_PATH=$BACK_PATH/kong-setup/data
     local DDBB_BASE_BACKUP_PATH=$TRUEDAT_ROOT_PATH"/ddbb_truedat"
     local DDBB_BACKUP_PATH=$DDBB_BASE_BACKUP_PATH/$DATE_NOW
-    local DDBB_LOCAL_BACKUP_PATH=$DDBB_BASE_BACKUP_PATH"/local_backups/$(date +%Y%m%d_%H%M%S)"
+    local DDBB_LOCAL_BACKUP_PATH=$DDBB_BASE_BACKUP_PATH"/local_backups/LB_$(date +%Y%m%d_%H%M%S)"
     local TD_WEB_DEV_CONFIG=$FRONT_PATH/td-web/dev.config.js
     local KUBECONFIG=$KUBE_PATH/config
 
@@ -613,30 +655,33 @@ main_menu() {
         5)
             configurations_menu
             ;;
-
         6)
+            fix_google_login
+            ;;
+        7)
             swap
             ;;
 
-        7)
+        8)
             select_animation_menu
             ;;
 
-        8)
+        9)
             install_trus
             ;;
 
-        9)
+        10)
             cp -f "$TOOLS_ACTUAL_PATH" "$TOOLS_PATH"
             print_message "Tools instalado con éxito" "$COLOR_SUCCESS" 3 "both"
             ;;
 
-        10)
+        11)
             package_installation
             install_zsh
             bash_prompt
             splash_loader
             configurations
+            fix_google_login
             install_trus
             swap
             ;;
@@ -653,7 +698,7 @@ configurations_menu() {
     print_header
     local option=$(print_menu "${CONFIGURATION_MENU_OPTIONS[@]}")
 
-    option=$(extract_option "$option")
+    option=$(extract_menu_option "$option")
 
     case "$option" in
         "ZSH")
@@ -708,24 +753,30 @@ help() {
     5)
         print_message "Creación de los archivos de confiuración por defecto de ZSH, TMUX, TLP y TrUs" "$COLOR_SECONDARY"
         ;;
-
+    
     6)
-        print_message "Modificación del tamaño del archivo de intercambio. Se crea con un tamaño del 150% de la RAM actual del equipo." "$COLOR_SECONDARY"
+        print_message "Correccion del login de la cuenta de Google" "$COLOR_SECONDARY"
+        print_message "Tanto para logear en el equipo como para hacer acciones que utilicen el login, como commits en gitlab" "$COLOR_SECONDARY"
+        print_message "creada por el equipo de infraestructura de Bluetab" "$COLOR_SECONDARY"
         ;;
 
     7)
-        print_message "Permite configurar la animación activa en los mensajes con animación" "$COLOR_SECONDARY"
+        print_message "Modificación del tamaño del archivo de intercambio. Se crea con un tamaño del 150% de la RAM actual del equipo." "$COLOR_SECONDARY"
         ;;
 
     8)
-        print_message "Instalación de Truedat Utils (TrUs)." "$COLOR_SECONDARY"
+        print_message "Permite configurar la animación activa en los mensajes con animación" "$COLOR_SECONDARY"
         ;;
 
     9)
-        print_message "Instalación de Tools, libreria de funciones genericas utilizadas por este instalador y TrUs." "$COLOR_SECONDARY"
+        print_message "Instalación de Truedat Utils (TrUs)." "$COLOR_SECONDARY"
         ;;
 
     10)
+        print_message "Instalación de Tools, libreria de funciones genericas utilizadas por este instalador y TrUs." "$COLOR_SECONDARY"
+        ;;
+
+    11)
         print_message "Instalación completa. Se lanzan todas las opciones." "$COLOR_SECONDARY"
         ;;
 

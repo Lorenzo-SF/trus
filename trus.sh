@@ -315,12 +315,12 @@ create_backup_local_ddbb() {
 install_docker() {
     aws ecr get-login-password --profile truedat --region eu-west-1 | docker login --username AWS --password-stdin 576759405678.dkr.ecr.eu-west-1.amazonaws.com
 
+    cd "$DEV_PATH"
     set -e
     set -o pipefail
-    cd "$DEV_PATH"
 
     ip=$(ip -4 addr show docker0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
-    echo SERVICES_HOST="$ip" >local_ip.env
+    echo SERVICES_HOST="$ip" > local_ip.env
     sudo chmod 666 /var/run/docker.sock
 
     start_containers
@@ -402,6 +402,7 @@ install() {
             update_repositories "-a"
             link_web_modules
             ddbb "-du"
+            install_docker
             config_kong
 
             sudo sh -c '{
@@ -436,7 +437,8 @@ install() {
     else
         print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3 "both"
         
-        if [ $(print_question "Si deseas reinstalarlo, puedes hacerlo borrando el archivo '/temp/truedat_installation'") == true ]; then            rm "/tmp/truedat_installation"
+        if [ $(print_question "Si deseas reinstalarlo, puedes hacerlo borrando el archivo '/temp/truedat_installation'") == true ]; then            
+            rm "/tmp/truedat_installation"
             print_message "Archivo '/tmp/truedat_installation' eliminado correctamente" "$COLOR_PRIMARY" 3 "both"
         fi            
     fi
@@ -1089,7 +1091,7 @@ start_containers() {
         eval "docker-compose up -d '${container}' $REDIRECT"
     done
 
-    if [[ "$USE_KONG" = true ]]; then
+    if "$USE_KONG" = true ; then
         eval "docker-compose up -d '${container}' $REDIRECT"            
     fi
 }
@@ -1642,7 +1644,6 @@ clean_local_backup_menu(){
     
     local option=$(print_menu "${backups[@]}")
 
-    echo $option
     case "$option" in
         "Volver")
             ddbb_menu
@@ -1655,15 +1656,12 @@ clean_local_backup_menu(){
             ;;
 
         "*")
-            if [ $(print_question "Se van a borrar el backup '$option'" "$COLOR_PRIMARY" 1) == true ]; then
+            if [ $(print_question "Se van a borrar el backup '$(basename $option)'" "$COLOR_PRIMARY" 1) == true ]; then
                 rm -fr $option
             fi            
             ;; 
     esac
-
 }
-
-
 
 repo_menu() {
     local option=$(print_menu "${REPO_MENU_SUBOPTIONS[@]}")
