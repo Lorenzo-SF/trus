@@ -317,7 +317,6 @@ zsh_config() {
     {
         echo 'export ZSH="$HOME/.oh-my-zsh"'
         echo 'export COLORTERM=truecolor'
-        echo 'export LD_PRELOAD=/lib/x86_64-linux-gnu/libnss_sss.so.2'
         echo ''
         echo 'plugins=('
         echo '    git'
@@ -433,7 +432,6 @@ trus_config() {
     local TRUS_PATH=$TRUS_DIRECTORY/trus.sh
     local SSH_PUBLIC_FILE=$SSH_PATH/truedat.pub
     local SSH_PRIVATE_FILE=$SSH_PATH/truedat
-    local SSH_BACKUP_FOLDER=$SSH_PATH"/backup_$(date +%Y%m%d_%H%M%S)"
     local WORKSPACE_PATH=$USER_HOME/workspace
     local TRUEDAT_ROOT_PATH=$WORKSPACE_PATH/truedat
     local BACK_PATH=$TRUEDAT_ROOT_PATH/back
@@ -442,7 +440,7 @@ trus_config() {
     local KONG_PATH=$BACK_PATH/kong-setup/data
     local DDBB_BASE_BACKUP_PATH=$TRUEDAT_ROOT_PATH"/ddbb_truedat"
     local DDBB_BACKUP_PATH=$DDBB_BASE_BACKUP_PATH/$DATE_NOW
-    local DDBB_LOCAL_BACKUP_PATH=$DDBB_BASE_BACKUP_PATH"/local_backups/LB_$(date +%Y%m%d_%H%M%S)"
+    local DDBB_LOCAL_BACKUP_PATH=$DDBB_BASE_BACKUP_PATH"/local_backups"
     local TD_WEB_DEV_CONFIG=$FRONT_PATH/td-web/dev.config.js
     local KUBECONFIG=$KUBE_PATH/config
 
@@ -471,6 +469,7 @@ trus_config() {
         echo 'TERMINAL_ANIMATION_BRAILLE=(⣷ ⣯ ⣟ ⡿ ⢿ ⣻ ⣽ ⣾)'
         echo 'TERMINAL_ANIMATION_BREATHE=("  ()  " " (  ) " "(    )" " (  ) ")'
         echo 'TERMINAL_ANIMATION_BUBBLE=(· o O O o ·)'
+        echo 'TERMINAL_ANIMATION_OTHER_BUBBLE=("  (·)  " "  (·)  " " ( o ) " " ( o ) " "(  O  )" "(  O  )" " ( o ) " " ( o ) " "  (·)  " "  (·)  ")'
         echo 'TERMINAL_ANIMATION_CLASSIC_UTF8=("—" "\\" "|" "/")'
         echo 'TERMINAL_ANIMATION_CLASSIC=("-" "\\" "|" "/")'
         echo 'TERMINAL_ANIMATION_DOT=(∙∙∙∙∙∙∙∙∙∙∙∙∙∙∙ ●∙∙∙∙∙∙∙∙∙∙∙∙∙∙ ∙●∙∙∙∙∙∙∙∙∙∙∙∙∙ ∙∙●∙∙∙∙∙∙∙∙∙∙∙∙ ∙∙∙●∙∙∙∙∙∙∙∙∙∙∙ ∙∙∙∙●∙∙∙∙∙∙∙∙∙∙ ∙∙∙∙∙●∙∙∙∙∙∙∙∙∙ ∙∙∙∙∙∙●∙∙∙∙∙∙∙∙ ∙∙∙∙∙∙∙●∙∙∙∙∙∙∙ ∙∙∙∙∙∙∙∙●∙∙∙∙∙∙ ∙∙∙∙∙∙∙∙∙●∙∙∙∙∙ ∙∙∙∙∙∙∙∙∙∙●∙∙∙∙ ∙∙∙∙∙∙∙∙∙∙∙●∙∙∙ ∙∙∙∙∙∙∙∙∙∙∙∙●∙∙ ∙∙∙∙∙∙∙∙∙∙∙∙∙●∙ ∙∙∙∙∙∙∙∙∙∙∙∙∙∙● ∙∙∙∙∙∙∙∙∙∙∙∙∙●∙ ∙∙∙∙∙∙∙∙∙∙∙∙●∙∙ ∙∙∙∙∙∙∙∙∙∙∙●∙∙∙ ∙∙∙∙∙∙∙∙∙∙●∙∙∙∙ ∙∙∙∙∙∙∙∙∙●∙∙∙∙∙ ∙∙∙∙∙∙∙∙●∙∙∙∙∙∙ ∙∙∙∙∙∙∙●∙∙∙∙∙∙∙ ∙∙∙∙∙∙●∙∙∙∙∙∙∙∙ ∙∙∙∙∙●∙∙∙∙∙∙∙∙∙ ∙∙∙∙●∙∙∙∙∙∙∙∙∙∙ ∙∙∙●∙∙∙∙∙∙∙∙∙∙∙ ∙∙●∙∙∙∙∙∙∙∙∙∙∙∙ ∙●∙∙∙∙∙∙∙∙∙∙∙∙∙ ●∙∙∙∙∙∙∙∙∙∙∙∙∙∙ ∙∙∙∙∙∙∙∙∙∙∙∙∙∙∙)'
@@ -490,7 +489,7 @@ trus_config() {
         echo 'TERMINAL_ANIMATION_TRIANGLE=(◢ ◣ ◤ ◥)'
         echo 'TERMINAL_ANIMATION_TRIGRAM=(☰ ☱ ☳ ☶ ☴)'
         echo 'TERMINAL_ANIMATION_VERTICAL_BLOCK=(▁ ▂ ▃ ▄ ▅ ▆ ▇ █ █ ▇ ▆ ▅ ▄ ▃ ▂ ▁)'
-        echo 'ANIMATION_MENU=("Volver" "ARROW" "BOUNCE" "BOUNCING_BALL" "BOX" "BRAILLE" "BREATHE" "BUBBLE" "CLASSIC_UTF8" "CLASSIC" "DOT" "FILLING_BAR" "FIREWORK" "GROWING_DOTS" "HORIZONTAL_BLOCK" "KITT" "METRO" "PASSING_DOTS" "PONG" "QUARTER" "ROTATING_EYES" "SEMI_CIRCLE" "SIMPLE_BRAILLE" "SNAKE" "TRIANGLE" "TRIGRAM" "VERTICAL_BLOCK" )'
+        echo 'ANIMATION_MENU=("Volver" "ARROW" "BOUNCE" "BOUNCING_BALL" "BOX" "BRAILLE" "BREATHE" "BUBBLE" "OTHER_BUBBLE" "CLASSIC_UTF8" "CLASSIC" "DOT" "FILLING_BAR" "FIREWORK" "GROWING_DOTS" "HORIZONTAL_BLOCK" "KITT" "METRO" "PASSING_DOTS" "PONG" "QUARTER" "ROTATING_EYES" "SEMI_CIRCLE" "SIMPLE_BRAILLE" "SNAKE" "TRIANGLE" "TRIGRAM" "VERTICAL_BLOCK" )'
 
 
         # Rutas
@@ -510,7 +509,6 @@ trus_config() {
         echo "SSH_PATH=~/.ssh"
         echo "SSH_PUBLIC_FILE=$SSH_PUBLIC_FILE"
         echo "SSH_PRIVATE_FILE=$SSH_PRIVATE_FILE"
-        echo "SSH_BACKUP_FOLDER=$SSH_BACKUP_FOLDER"
         
         echo "WORKSPACE_PATH=$WORKSPACE_PATH"
         echo "TRUEDAT_ROOT_PATH=$TRUEDAT_ROOT_PATH"

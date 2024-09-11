@@ -296,9 +296,9 @@ create_backup_local_ddbb() {
     print_header
     print_semiheader "Creando backup de la bdd"
 
-    mkdir -p "$DDBB_LOCAL_BACKUP_PATH"
+    mkdir -p "$DDBB_LOCAL_BACKUP_PATH/LB_$(date +%Y%m%d_%H%M%S)"
 
-    cd "$DDBB_LOCAL_BACKUP_PATH"
+    cd "$DDBB_LOCAL_BACKUP_PATH/LB_$(date +%Y%m%d_%H%M%S)"
 
     for DATABASE in "${DATABASES[@]}"; do
         FILENAME=${DATABASE}"_dev.sql"
@@ -399,7 +399,7 @@ install() {
             sudo cp elastic-search/999-map-count.conf /etc/sysctl.d/
             print_message "Truedat descargado" "$COLOR_SUCCESS" 3 "before"
 
-            update_repositories "-a"
+            update_repositories "-a" "yes"
             link_web_modules
             ddbb "-du"
             install_docker
@@ -417,7 +417,7 @@ install() {
                         echo "127.0.0.1 kong"
                         echo "127.0.0.1 neo"
                         echo "127.0.0.1 vault"
-                        echo "0.0.0.0 local"
+                        echo "0.0.0.0 localhost"
                         echo "##################"
                         echo "# Añadido por trus"
                         echo "##################"
@@ -427,7 +427,9 @@ install() {
             touch "/tmp/truedat_installation"
             print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3 "both"
             
-            if [ $(print_question "Si deseas reinstalarlo, puedes hacerlo borrando el archivo '/temp/truedat_installation'") == true ]; then
+            print_question "Si deseas reinstalarlo, puedes hacerlo borrando el archivo '/temp/truedat_installation'"
+
+            if [[ $(get_print_question_response) == 1 ]]; then
                 rm "/tmp/truedat_installation"
             fi            
         else
@@ -437,7 +439,9 @@ install() {
     else
         print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3 "both"
         
-        if [ $(print_question "Si deseas reinstalarlo, puedes hacerlo borrando el archivo '/temp/truedat_installation'") == true ]; then            
+        print_question "Si deseas reinstalarlo, puedes hacerlo borrando el archivo '/temp/truedat_installation'"
+
+        if [[ $(get_print_question_response) == 1 ]]; then
             rm "/tmp/truedat_installation"
             print_message "Archivo '/tmp/truedat_installation' eliminado correctamente" "$COLOR_PRIMARY" 3 "both"
         fi            
@@ -520,7 +524,9 @@ ddbb() {
 
         update_ddbb_from_backup "$backup_path"
 
-        if [ $(print_question "Se ha realizado la actualizacion de las bbdd correctamente. Es recomendable reindexar ") == true ]; then
+        print_question "Se ha realizado la actualizacion de las bbdd correctamente. Es recomendable reindexar"
+
+        if [[ $(get_print_question_response) == 1 ]]; then
             reindex_all
         fi
     fi
@@ -623,22 +629,23 @@ create_ssh() {
     local continue_ssh_normalized
     print_header
     
-    if [ $(print_question "SE VA A PROCEDER HACER BACKUP DE LAS CLAVES '$TRUEDAT' ACTUALES, BORRAR LA CLAVE EXISTENTE Y CREAR UNA NUEVA HOMÓNIMA " "$COLOR_ERROR") == true ]; then
+    print_question "SE VA A PROCEDER HACER BACKUP DE LAS CLAVES '$TRUEDAT' ACTUALES, BORRAR LA CLAVE EXISTENTE Y CREAR UNA NUEVA HOMÓNIMA " "$COLOR_ERROR"
 
+    if [[ $(get_print_question_response) == 1 ]]; then
         cd $SSH_PATH
 
         if [ -f "$SSH_PUBLIC_FILE" ] || [ -f "$SSH_PRIVATE_FILE" ]; then
             print_message "Haciendo backup del contenido de ~/.ssh..." "$COLOR_SECONDARY" 1
-            mkdir -p "$SSH_BACKUP_FOLDER"
-            print_message "Carpeta creada: $SSH_BACKUP_FOLDER" "$COLOR_TERNARY" 3
+            mkdir -p "$SSH_PATH/backup_$(date +%Y%m%d_%H%M%S)"
+            print_message "Carpeta creada: $SSH_PATH/backup_$(date +%Y%m%d_%H%M%S)" "$COLOR_TERNARY" 3
 
             if [ -f "$SSH_PUBLIC_FILE" ]; then
-                mv "$SSH_PUBLIC_FILE" "$SSH_BACKUP_FOLDER"
+                mv "$SSH_PUBLIC_FILE" "$SSH_PATH/backup_$(date +%Y%m%d_%H%M%S)"
                 print_message "Guardado archivo: $SSH_PUBLIC_FILE" "$COLOR_TERNARY" 3
             fi
 
             if [ -f "$SSH_PRIVATE_FILE" ]; then
-                mv "$SSH_PRIVATE_FILE" "$SSH_BACKUP_FOLDER"
+                mv "$SSH_PRIVATE_FILE" "$SSH_PATH/backup_$(date +%Y%m%d_%H%M%S)"
                 print_message "Guardado archivo: $SSH_PRIVATE_FILE" "$COLOR_TERNARY" 3
             fi
         fi
@@ -697,7 +704,9 @@ link_web_modules() {
     print_header
     print_semiheader "Linkado de modulos"
 
-    if [ $(print_question "Se borrarán los links y se volveran a crear ¿deseas hacerlo? (S/N)" "$COLOR_PRIMARY" 1) == true ]; then
+    print_question "Se borrarán los links y se volveran a crear"
+
+    if [[ $(get_print_question_response) == 1 ]]; then   
         for d in "${FRONT_PACKAGES[@]}"; do
             cd "$FRONT_PATH/td-web-modules/packages/$d"
             eval "yarn unlink $REDIRECT"
@@ -833,8 +842,9 @@ activate_kong() {
     print_message "Se va a actualizar el archivo $TD_WEB_DEV_CONFIG para que apunte a Kong" "$COLOR_SECONDARY" 3
     print_message "Se van a actualizar las rutas de Kong" "$COLOR_SECONDARY" 3
 
-    if [ $(print_question "Se va a activar Kong" "$COLOR_PRIMARY" 1) == true ]; then
+    print_question "Se va a activar Kong"
 
+    if [[ $(get_print_question_response) == 1 ]]; then   
         sed -i 's/USE_KONG=false/USE_KONG=true/' "$PATH_GLOBAL_CONFIG"
 
         source $PATH_GLOBAL_CONFIG
@@ -895,8 +905,10 @@ deactivate_kong() {
     print_message "Kong" "$COLOR_TERNARY" 4
     print_message "Se va a actualizar el archivo $TD_WEB_DEV_CONFIG para que se encargue de enrutar td-web" "$COLOR_SECONDARY" 3
 
-    if [ $(print_question "Se va a desactivar Kong" "$COLOR_PRIMARY" 1) == true ]; then
-        sed -i 's/USE_KONG=true/USE_KONG=false/' "$PATH_GLOBAL_CONFIG"
+    print_question "Se va a desactivar Kong"
+
+    if [[ $(get_print_question_response) == 1 ]]; then   
+            sed -i 's/USE_KONG=true/USE_KONG=false/' "$PATH_GLOBAL_CONFIG"
         source $PATH_GLOBAL_CONFIG
 
         rm -f $BACK_PATH/kong_routes
@@ -1650,13 +1662,26 @@ clean_local_backup_menu(){
             ;;
 
         "Borrar todo")
-            if [ $(print_question "Se van a borrar todos los backups de $DDBB_BASE_BACKUP_PATH" "$COLOR_PRIMARY" 1) == true ]; then
-                rm -fr $DDBB_BASE_BACKUP_PATH/*
+            print_question "Se van a borrar todos los backups de $DDBB_BASE_BACKUP_PATH"
+
+            if [[ $(get_print_question_response) == 1 ]]; then   
+                local files=${DDBB_BASE_BACKUP_PATH}"/*"
+                
+                for FILENAME in $files; do
+                    print_message_with_animation "Borrando backup -> $FILENAME"
+                    rm -fr $FILENAME
+                    print_message "Backup $FILENAME Borrado" "$COLOR_SUCCESS" 1 "before"
+                    
+                done
+
+                print_message "Backups borrados" "$COLOR_SUCCESS" 1
             fi            
             ;;
 
         "*")
-            if [ $(print_question "Se van a borrar el backup '$(basename $option)'" "$COLOR_PRIMARY" 1) == true ]; then
+            print_question "Se van a borrar el backup $option"
+
+            if [[ $(get_print_question_response) == 1 ]]; then
                 rm -fr $option
             fi            
             ;; 

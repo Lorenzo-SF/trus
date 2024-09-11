@@ -159,7 +159,7 @@ play_animation() {
             done
 
             echo -ne "$frame $message\033[0K\r"
-            sleep 0.05
+            sleep 0.075
         done
     done
 }
@@ -217,19 +217,24 @@ print_message() {
 }
 
 print_question(){
-    local question=$1
-    local color=${2:-$COLOR_SECONDARY}
+    local question=${1:-""}
+    local color=${2:-"$COLOR_WARNING"}
     local tabs=${3:-3}
-    print_message "$question ¿Deseas hacerlo ahora? (S/N)" "$color" 3
-    read -r question
-
+    
+    print_message "$question ¿Deseas hacerlo ahora? (S/N)" "$color" "$tabs"
+    read question
+    
     local continue_question=$(normalize_text "$question")
 
     if [ "$continue_question" = "si" ] || [ "$continue_question" = "s" ] || [ "$continue_question" = "y" ] || [ "$continue_question" = "yes" ]; then
-        true
-    else
-        false
+        PRINT_QUESTION_RESPONSE=1
     fi            
+}
+
+get_print_question_response(){
+    local temp=$PRINT_QUESTION_RESPONSE
+    PRINT_QUESTION_RESPONSE=0
+    echo $temp
 }
 
 print_separator() {
