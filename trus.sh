@@ -1,90 +1,581 @@
 #!/bin/bash
+#
+# Nuevo TrUs v5.0
+#     - Monolitico, porque 3 archivos de script y uno de config es complicado de mantener
+#     - Interactivo, con menuses bonitos que faciliten la vida
+#     - Configurable, desde los colorinchis a formas de instalacion o de trabajar
+#     - 
+  
+###################################################################################################
+###### Variables 
+### Principales
 
-#########################################
-####   Variables Configuracion
-#########################################
+trap stop_animation SIGINT
+# git config --global user.email "lorenzo.sanchez@bluetab.net"
+# git config --global user.name "Lorenzo Sánchez Fraile
 
-set_vars() {
-    #########################################
-    # General
+HEADER_MESSAGE="Truedat Utils (TrUs)"
+DESCRIPTION_MESSAGE=""
+SWAP_SIZE_MB=$(free --mega | awk '/^Mem:/ {print int($2 + ($2))}')
+USER_HOME=$(eval echo ~"$SUDO_USER")
+TRUS_DIRECTORY=$USER_HOME/.trus/
+TRUS_ACTUAL_PATH=./trus.sh
+TRUS_PATH=$TRUS_DIRECTORY/trus.sh
+TRUS_LINK_PATH=/usr/local/bin/trus
+AWS_TEST_CONTEXT="test-truedat-eks"
+TMUX_SESION="truedat"
+INSTALLATION_PACKAGES=("redis-tools" "screen" "tmux" "unzip" "curl" "vim" "build-essential" "git" "libssl-dev" "automake" "autoconf" "libncurses5" "libncurses5-dev" "docker.io" "postgresql-client-14" "jq" "gedit" "xclip" "xdotool" "x11-utils" "winehq-stable" "gdebi-core" "libvulkan1" "libvulkan1:i386" "fonts-powerline" "stress" "bluez" "bluez-tools" "tlp" "lm-sensors" "psensor" "xsltproc" "fop" "xmllint" "bc" "wmctrl" "fzf")
+TRUS_CONFIG="~/trus.config"
 
-    PATH_GLOBAL_CONFIG=$USER_HOME/.trus.conf
-    source PATH_GLOBAL_CONFIG
+### Menus
+MAIN_MENU_OPTIONS=("0 - Salir" "1 - Configurar" "2 - Acciones principales" "3 - Actiones secundarias" "4 - Ayuda")
+CONFIGURE_MENU_OPTIONS=("0 - Volver" "1 - Instalación de paquetes y dependencias" "2 - Instalar ZSH y Oh My ZSH" "3 - Archivos de configuración" "4 - Actualizar splash loader" "6 - Actualizar la memoria SWAP (a $(($SWAP_SIZE_MB/1024)) GB)" "7 - Configurar animación de los mensajes" "8 - Configurar colores" "9 - Instala TrUs (Truedat Utils)" "10 - Todo")
+CONFIGURATION_MENU_OPTIONS=("0 - Volver" "1 - ZSH" "2 - TMUX" "3 - TLP" "4 - Todos")
+ANIMATION_MENU_OPTIONS=("0 - Volver" "ARROW" "BOUNCE" "BOUNCING_BALL" "BOX" "BRAILLE" "BREATHE" "BUBBLE" "OTHER_BUBBLE" "CLASSIC_UTF8" "CLASSIC" "DOT" "FILLING_BAR" "FIREWORK" "GROWING_DOTS" "HORIZONTAL_BLOCK" "KITT" "METRO" "PASSING_DOTS" "PONG" "QUARTER" "ROTATING_EYES" "SEMI_CIRCLE" "SIMPLE_BRAILLE" "SNAKE" "TRIANGLE" "TRIGRAM" "VERTICAL_BLOCK")
+PRINCIPAL_ACTIONS_MENU_OPTIONS=("0 - Volver" "1 - Arrancar Truedat" "2 - Matar Truedat" "3 - Operaciones de bdd" "4 - Operaciones de repositorios")
+START_MENU_OPTIONS=("0 - Volver" "1 - Todo" "2 - Solo contenedores" "3 - Solo servicios" "4 - Solo el frontal")
+SECONDARY_ACTIONS_MENU_OPTIONS=("0 - Volver" "1 - Indices de ElasticSearch" "2 - Claves SSH" "3 - Kong" "4 - Linkado de modulos del frontal" "5 - Llamada REST que necesita token de login" "6 -Carga de estructuras" "7 - Carga de linajes" "8 - Entrar en una sesion iniciada de TMUX" "9 - Salir de una sesion inciada de TMUX")
+DDBB_MENU_OPTIONS=("0 - Volver" "1 - Descargar SOLO backup de TEST" "2 - Descargar y aplicar backup de TEST" "3 - Aplicar backup de ruta LOCAL" "4 - Crear backup de las bdd actuales" "5 - Limpieza de backups LOCALES")
+REPO_MENU_OPTIONS=("0 - Volver" "1 - Actualizar TODO" "2 -Actualizar solo back" "3 - Actualizar solo front" "4 - Actualizar solo libs")
+KONG_MENU_OPTIONS=("0 - Volver" "1 - (Re)generar rutas de Kong" "2 - Configurar Kong")
 
-    HEADER_LOGO=("  _________   ______     __  __    ______       "
-        " /________/\ /_____/\   /_/\/_/\  /_____/\      "
-        " \__.::.__\/ \:::_ \ \  \:\ \:\ \ \::::_\/_     "
-        "     \::\ \   \:(_) ) )  \:\ \:\ \ \:\/___/\    "
-        "      \::\ \   \: __ ´\ \ \:\ \:\ \ \_::._\:\   "
-        "       \::\ \   \ \ ´\ \ \ \:\_\:\ \  /____\:\  "
-        "        \__\/    \_\/ \_\/  \_____\/  \_____\/  "
-    )
 
-    MAIN_MENU_OPTIONS=(
-        "Salir"
-        "--start"
-        "--kill-truedat"
-        "--ddbb"
-        "--update-repos"
-        "--help"
-        "Más..."
-    )
+### Esquema de colores
 
-    SECONDARY_MENU_OPTIONS=(
-        "Volver"
-        "--reindex"
-        "--create-ssh"
-        "--install"
-        "--kong"
-        "--link-modules"
-        "--yarn-test"
-        "--load-structures"
-        "--load-lineage"
-        "--rest"
-        "--attach"
-        "--detach"
-    )
+NO_COLOR="FFFCE2"
+COLOR_PRIMARY="BED5E8"
+COLOR_SECONDARY="DEE0B7"
+COLOR_TERNARY="937F5F"
+COLOR_QUATERNARY="808F9C"
+COLOR_SUCCESS="10C90A"
+COLOR_WARNING="FFCE00"
+COLOR_ERROR="C90D0A"   
+COLOR_BACKRGROUND="000000"
 
-    START_MENU_SUBOPTIONS=(
-        "Volver"
-        "--all"
-        "--start-containers"
-        "--start-services"
-        "--start-front"
-    )
+# Echar un ojo para ver qué formato de colores admite (son muchos)
+# https://github.com/aurora-0025/gradient-terminal?tab=readme-ov-file
+GRADIENT_1="orange"
+GRADIENT_2="blue"
+GRADIENT_3=""
+GRADIENT_4=""
+GRADIENT_5=""
+GRADIENT_6=""
 
-    DDBB_MENU_SUBOPTIONS=(
-        "Volver"
-        "--download-test"
-        "--download-update"
-        "--local-update"
-        "--local-backup"
-        "--clean_local_backups"
-    )
 
-    REPO_MENU_SUBOPTIONS=(
-        "Volver"
-        "--all"
-        "--back"
-        "--front"
-        "--libs"
-    )
+### Animaciones
 
-    KONG_MENU_SUBOPTIONS=(
-        "Volver"
-        "--kong-routes"
-        "--config_kong"
-    )
+TERMINAL_ANIMATION_ARROW=(▹▹▹▹▹ ▸▹▹▹▹ ▹▸▹▹▹ ▹▹▸▹▹ ▹▹▹▸▹ ▹▹▹▹▸ ▹▹▹▹▹ ▹▹▹▹▹ ▹▹▹▹▹ ▹▹▹▹▹ ▹▹▹▹▹ ▹▹▹▹▹ ▹▹▹▹▹)
+TERMINAL_ANIMATION_BOUNCE=(. · ˙ ·)
+TERMINAL_ANIMATION_BOUNCING_BALL=("(●     )" "( ●    )" "(  ●   )" "(   ●  )" "(    ● )" "(     ●)" "(    ● )" "(   ●  )" "(  ●   )" "( ●    )")
+TERMINAL_ANIMATION_BOX=(┤ ┴ ├ ┬)
+TERMINAL_ANIMATION_BRAILLE=(⣷ ⣯ ⣟ ⡿ ⢿ ⣻ ⣽ ⣾)
+TERMINAL_ANIMATION_BREATHE=("  ()  " " (  ) " "(    )" " (  ) ")
+TERMINAL_ANIMATION_BUBBLE=(· o O O o ·)
+TERMINAL_ANIMATION_OTHER_BUBBLE=("  (·)  " "  (·)  " " ( o ) " " ( o ) " "(  O  )" "(  O  )" " ( o ) " " ( o ) " "  (·)  " "  (·)  ")
+TERMINAL_ANIMATION_CLASSIC_UTF8=("—" "\\" "|" "/")
+TERMINAL_ANIMATION_CLASSIC=("-" "\\" "|" "/")
+TERMINAL_ANIMATION_DOT=(∙∙∙∙∙∙∙∙∙∙∙∙∙∙∙ ●∙∙∙∙∙∙∙∙∙∙∙∙∙∙ ∙●∙∙∙∙∙∙∙∙∙∙∙∙∙ ∙∙●∙∙∙∙∙∙∙∙∙∙∙∙ ∙∙∙●∙∙∙∙∙∙∙∙∙∙∙ ∙∙∙∙●∙∙∙∙∙∙∙∙∙∙ ∙∙∙∙∙●∙∙∙∙∙∙∙∙∙ ∙∙∙∙∙∙●∙∙∙∙∙∙∙∙ ∙∙∙∙∙∙∙●∙∙∙∙∙∙∙ ∙∙∙∙∙∙∙∙●∙∙∙∙∙∙ ∙∙∙∙∙∙∙∙∙●∙∙∙∙∙ ∙∙∙∙∙∙∙∙∙∙●∙∙∙∙ ∙∙∙∙∙∙∙∙∙∙∙●∙∙∙ ∙∙∙∙∙∙∙∙∙∙∙∙●∙∙ ∙∙∙∙∙∙∙∙∙∙∙∙∙●∙ ∙∙∙∙∙∙∙∙∙∙∙∙∙∙● ∙∙∙∙∙∙∙∙∙∙∙∙∙●∙ ∙∙∙∙∙∙∙∙∙∙∙∙●∙∙ ∙∙∙∙∙∙∙∙∙∙∙●∙∙∙ ∙∙∙∙∙∙∙∙∙∙●∙∙∙∙ ∙∙∙∙∙∙∙∙∙●∙∙∙∙∙ ∙∙∙∙∙∙∙∙●∙∙∙∙∙∙ ∙∙∙∙∙∙∙●∙∙∙∙∙∙∙ ∙∙∙∙∙∙●∙∙∙∙∙∙∙∙ ∙∙∙∙∙●∙∙∙∙∙∙∙∙∙ ∙∙∙∙●∙∙∙∙∙∙∙∙∙∙ ∙∙∙●∙∙∙∙∙∙∙∙∙∙∙ ∙∙●∙∙∙∙∙∙∙∙∙∙∙∙ ∙●∙∙∙∙∙∙∙∙∙∙∙∙∙ ●∙∙∙∙∙∙∙∙∙∙∙∙∙∙ ∙∙∙∙∙∙∙∙∙∙∙∙∙∙∙)
+TERMINAL_ANIMATION_FILLING_BAR=("█▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "██▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "███▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "█████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "██████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "███████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "█████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "██████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "███████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "████████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "█████████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "██████████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "███████████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "████████████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "█████████████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "██████████████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒" "███████████████████▒▒▒▒▒▒▒▒▒▒▒▒▒" "████████████████████▒▒▒▒▒▒▒▒▒▒▒▒" "█████████████████████▒▒▒▒▒▒▒▒▒▒▒" "██████████████████████▒▒▒▒▒▒▒▒▒▒" "███████████████████████▒▒▒▒▒▒▒▒▒" "████████████████████████▒▒▒▒▒▒▒▒" "█████████████████████████▒▒▒▒▒▒▒" "██████████████████████████▒▒▒▒▒▒" "███████████████████████████▒▒▒▒▒" "████████████████████████████▒▒▒▒" "█████████████████████████████▒▒▒" "██████████████████████████████▒▒" "███████████████████████████████▒" "████████████████████████████████")
+TERMINAL_ANIMATION_FIREWORK=("⢀" "⠠" "⠐" "⠈" "*" "*" " ")
+TERMINAL_ANIMATION_GROWING_DOTS=(".  " ".. " "..." ".. " ".  " "   ")
+TERMINAL_ANIMATION_HORIZONTAL_BLOCK=(▏ ▎ ▍ ▌ ▋ ▊ ▉ ▉ ▊ ▋ ▌ ▍ ▎ ▏)
+TERMINAL_ANIMATION_KITT=(▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱ ▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱ ▱▰▰▰▱▱▱▱▱▱▱▱▱▱▱ ▱▱▰▰▰▱▱▱▱▱▱▱▱▱▱ ▱▱▱▰▰▰▱▱▱▱▱▱▱▱▱ ▱▱▱▱▰▰▰▱▱▱▱▱▱▱▱ ▱▱▱▱▱▰▰▰▱▱▱▱▱▱▱ ▱▱▱▱▱▱▰▰▰▱▱▱▱▱▱ ▱▱▱▱▱▱▱▰▰▰▱▱▱▱▱ ▱▱▱▱▱▱▱▱▰▰▰▱▱▱▱ ▱▱▱▱▱▱▱▱▱▰▰▰▱▱▱ ▱▱▱▱▱▱▱▱▱▱▰▰▰▱▱ ▱▱▱▱▱▱▱▱▱▱▱▰▰▰▱ ▱▱▱▱▱▱▱▱▱▱▱▱▰▰▰ ▱▱▱▱▱▱▱▱▱▱▱▱▱▰▰ ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▰ ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱)
+TERMINAL_ANIMATION_METRO=("[    ]" "[=   ]" "[==  ]" "[=== ]" "[ ===]" "[  ==]" "[   =]")
+TERMINAL_ANIMATION_PASSING_DOTS=(".  " ".. " "..." " .." "  ." "   ")
+TERMINAL_ANIMATION_PONG=("▐⠂       ▌" "▐⠈       ▌" "▐ ⠂      ▌" "▐ ⠠      ▌" "▐  ⡀     ▌" "▐  ⠠     ▌" "▐   ⠂    ▌" "▐   ⠈    ▌" "▐    ⠂   ▌" "▐    ⠠   ▌" "▐     ⡀  ▌" "▐     ⠠  ▌" "▐      ⠂ ▌" "▐      ⠈ ▌" "▐       ⠂▌" "▐       ⠠▌" "▐       ⡀▌" "▐      ⠠ ▌" "▐      ⠂ ▌" "▐     ⠈  ▌" "▐     ⠂  ▌" "▐    ⠠   ▌" "▐    ⡀   ▌" "▐   ⠠    ▌" "▐   ⠂    ▌" "▐  ⠈     ▌" "▐  ⠂     ▌" "▐ ⠠      ▌" "▐ ⡀      ▌" "▐⠠       ▌")
+TERMINAL_ANIMATION_QUARTER=(▖ ▘ ▝ ▗)
+TERMINAL_ANIMATION_ROTATING_EYES=(◡◡ ⊙⊙ ⊙⊙ ◠◠)
+TERMINAL_ANIMATION_SEMI_CIRCLE=(◐ ◓ ◑ ◒)
+TERMINAL_ANIMATION_SIMPLE_BRAILLE=(⠁ ⠂ ⠄ ⡀ ⢀ ⠠ ⠐ ⠈)
+TERMINAL_ANIMATION_SNAKE=("[=     ]" "[~<    ]" "[~~=   ]" "[~~~<  ]" "[ ~~~= ]" "[  ~~~<]" "[   ~~~]" "[    ~~]" "[     ~]" "[      ]")
+TERMINAL_ANIMATION_TRIANGLE=(◢ ◣ ◤ ◥)
+TERMINAL_ANIMATION_TRIGRAM=(☰ ☱ ☳ ☶ ☴)
+TERMINAL_ANIMATION_VERTICAL_BLOCK=(▁ ▂ ▃ ▄ ▅ ▆ ▇ █ █ ▇ ▆ ▅ ▄ ▃ ▂ ▁)
 
-    
-    if [[ "$USE_KONG" = "" ]]; then
-        config_kong
+HEADER_LOGO=("  _________   ______     __  __    ______       "
+             " /________/\ /_____/\   /_/\/_/\  /_____/\      "
+             " \__.::.__\/ \:::_ \ \  \:\ \:\ \ \::::_\/_     "
+             "     \::\ \   \:(_) ) )  \:\ \:\ \ \:\/___/\    "
+             "      \::\ \   \: __ ´\ \ \:\ \:\ \ \_::._\:\   "
+             "       \::\ \   \ \ ´\ \ \ \:\_\:\ \  /____\:\  "
+             "        \__\/    \_\/ \_\/  \_____\/  \_____\/  "
+         )
+
+### Rutas
+
+WORKSPACE_PATH=$USER_HOME/workspace
+TRUEDAT_ROOT_PATH=$WORKSPACE_PATH/truedat
+BACK_PATH=$TRUEDAT_ROOT_PATH/back
+KONG_PATH=$BACK_PATH/kong-setup/data
+FRONT_PATH=$TRUEDAT_ROOT_PATH/front
+TD_WEB_DEV_CONFIG=$FRONT_PATH/td-web/dev.config.js
+DEV_PATH=$TRUEDAT_ROOT_PATH/true-dev
+DDBB_BASE_BACKUP_PATH=$TRUEDAT_ROOT_PATH"/ddbb_truedat"
+DDBB_BACKUP_PATH=$DDBB_BASE_BACKUP_PATH/$DATE_NOW
+DDBB_LOCAL_BACKUP_PATH=$DDBB_BASE_BACKUP_PATH"/local_backups"
+
+SSH_PATH=~/.ssh
+SSH_PUBLIC_FILE=$SSH_PATH/truedat.pub
+SSH_PRIVATE_FILE=$SSH_PATH/truedat
+
+KUBE_PATH=~/.kube
+KUBECONFIG_PATH=$KUBE_PATH/config
+AWS_PATH=~/.aws/config
+AWSCONFIG_PATH=~/.aws/config
+
+BASH_PATH_CONFIG=~/.bashrc
+ZSH_PATH_CONFIG=~/.zshrc
+TMUX_PATH_CONFIG=~/.tmux.conf
+TLP_PATH_CONFIG=/etc/tlp.conf
+
+
+### Listados de infraestructura
+
+DATABASES=("td_ai" "td_audit" "td_bg" "td_dd" "td_df" "td_i18n" "td_ie" "td_lm" "td_qx")
+INDEXES=("dd" "bg" "ie" "qx")
+CONTAINERS=("elasticsearch" "redis" "redis_test" "vault")
+CONTAINERS_SETUP=("kong_create" "kong_migrate" "kong_setup" "kong")
+FRONT_PACKAGES=("audit" "auth" "bg" "core" "cx" "dd" "df" "dq" "qx" "ie" "lm" "profile" "se" "test")
+SERVICES=("td-ai" "td-audit" "td-auth" "td-bg" "td-dd" "td-df" "td-i18n" "td-ie" "td-lm" "td-qx" "td-se")
+LIBRARIES=("td-cache" "td-cluster" "td-core" "td-df-lib" "td-helm" "k8s")
+DOCKER_LOCALHOST="172.17.0.1"
+KONG_ADMIN_URL="localhost:8001"
+KONG_ROUTES_SERVICES=("health" "td_audit" "td_auth" "td_bg" "td_dd" "td_qx" "td_dq" "td_lm" "td_qe" "td_se" "td_df" "td_ie" "td_cx" "td_i18n" "td_ai")
+
+
+###### Herramientas
+### General
+
+check_sudo() {
+    message=$1
+    if [ "$EUID" -ne 0 ]; then
+        print_centered_message "$message" "$COLOR_ERROR"
+        exit 1
     fi
 }
 
-#########################################
-####       Operaciones
-#########################################
+normalize_text() {
+    echo "$1" | tr '[:upper:]' '[:lower:]' | iconv -f utf8 -t ascii//TRANSLIT
+}
+
+get_tabs() {
+    local tabs=$(($1 * 4))
+    printf "%*s" $tabs
+}
+
+padding() {
+    local input=$1     
+    local length=$2    
+    local pad_char=${3:-" "}  
+    local direction=${4:-"right"}  
+    local input_length=${#input}  
+
+    local final_length=$((length - input_length))
+
+    if [ "$final_length" -le 0 ]; then
+        echo "$input"
+    else
+        local padding=""
+        
+        for ((i = 0; i < final_length; i++)); do
+            padding="$padding$pad_char"
+        done
+
+        
+        if [ "$direction" = "right" ]; then
+            echo "$input$padding"
+        elif [ "$direction" = "left" ]; then
+            echo "$padding$input"
+        else 
+            echo "$input"
+        fi            
+    fi
+}
+
+message_size() {
+    local message=$1
+    local ancho_terminal
+    local espacios_izquierda
+    local espacios_derecha
+    local longitud_total
+
+    ancho_terminal=$(tput cols)
+    espacios_izquierda=$(((ancho_terminal - ${#message}) / 2))
+    espacios_derecha=$((ancho_terminal - ${#message} - espacios_izquierda))
+    longitud_total=$((espacios_izquierda + ${#message} + espacios_derecha))
+
+    echo "$espacios_izquierda $espacios_derecha $longitud_total"
+}
+
+
+### Colorinchis
+
+get_color() {
+    local COLOR=${1:-$COLOR_PRIMARY}
+    
+    R=$((16#${COLOR:0:2}))
+    G=$((16#${COLOR:2:2}))
+    B=$((16#${COLOR:4:2}))
+
+    BACK_R=$((16#${COLOR_BACKRGROUND:0:2}))
+    BACK_G=$((16#${COLOR_BACKRGROUND:2:2}))
+    BACK_B=$((16#${COLOR_BACKRGROUND:4:2}))
+
+    echo -e "\e[1;38;2;${R};${G};${B}m"
+}
+
+hex_to_rgb() {
+    local hex=$1
+    local r g b
+
+    r=$(printf "%d" "0x${hex:0:2}")
+    g=$(printf "%d" "0x${hex:2:2}")
+    b=$(printf "%d" "0x${hex:4:2}")
+
+    echo "$r $g $b"
+}
+
+euclidean_distance() {
+    local r1=$((16#${1:0:2}))
+    local g1=$((16#${1:2:2}))
+    local b1=$((16#${1:4:2}))
+
+    local r2=$((16#${2:0:2}))
+    local g2=$((16#${2:2:2}))
+    local b2=$((16#${2:4:2}))
+
+    local dr=$((r1 - r2))
+    local dg=$((g1 - g2))
+    local db=$((b1 - b2))
+
+    echo $((dr * dr + dg * dg + db * db))
+}
+
+calculate_closest_color() {
+    desired_color=$1
+
+    closest_color=""
+    closest_distance=-1
+
+    for color in "${TERMINAL_COLORS[@]}"; do
+        distance=$(euclidean_distance "$desired_color" "$color")
+        if [[ $closest_distance == -1 || $distance -lt $closest_distance ]]; then
+            closest_distance=$distance
+            closest_color=$color
+        fi
+    done
+
+    echo
+    echo "Color deseado: #$desired_color"
+    echo "Color más cercano: #$closest_color"
+    echo
+}
+
+set_terminal_config() {
+    source $TRUS_CONFIG
+
+    if [ "$SIMPLE_ECHO" = "" ]; then
+        local background_color_test=${1:-"$COLOR_BACKRGROUND"}
+        local foreground_color_test=${2:-"$NO_COLOR"}
+
+        echo -ne "\e]11;#${COLOR_BACKRGROUND}\e\\"
+        echo -ne "\e]10;#${COLOR_PRIMARY}\e\\"
+        set_active_animation
+    fi
+
+    if [ "$HIDE_OUTPUT" = true ]; then
+        REDIRECT=">/dev/null 2>&1"
+    else
+        REDIRECT=""
+    fi
+}
+
+###### Mensajes
+### Base
+
+print_message() {
+    local message=${1:-""}
+    local color=${2:-"$NO_COLOR"}
+    local tabs=${3:-0}
+    local new_line_before_or_after=${4:-"normal"}
+    
+    local transformed_color=$(get_color "$color")
+    local transformed_no_color=$(get_color "$NO_COLOR")
+    
+    stop_animation
+    
+    message="$(get_tabs $tabs)$message"
+    
+    if [ -z "$SIMPLE_ECHO" ]; then
+        message=$transformed_color$message$transformed_no_color
+
+        if [ "$new_line_before_or_after" = "after" ]; then
+            message="$message\n\n"
+        elif [ "$new_line_before_or_after" = "before" ]; then
+            message="\n$message\n"
+        elif [ "$new_line_before_or_after" = "both" ]; then
+            message="\n$message\n\n"
+        elif [ "$new_line_before_or_after" = "normal" ]; then
+            message="$message\n"
+        fi
+    fi
+
+    echo -ne "$message"
+}
+            
+# para su uso: if print_question "<mensaje>" = 0; then
+print_question(){
+    local question=${1:-""}
+    local color=${2:-"$COLOR_WARNING"}
+    local response=1
+
+    print_centered_message "$question" "$color"
+    
+    if [ -n "$BASH_VERSION" ]; then
+        read -p "¿Deseas hacerlo ahora? (S/N): " user_input
+    else
+        echo -n "¿Deseas hacerlo ahora? (S/N): "
+        read user_input
+    fi    
+
+    local continue_question=$(normalize_text "$question")
+
+    if [ "$continue_question" = "si" ] || [ "$continue_question" = "s" ] || [ "$continue_question" = "y" ] || [ "$continue_question" = "yes" ]; then
+        response=0
+    fi            
+    
+    return $response
+}
+
+print_menu() {
+    local items=("$@")
+    
+    if [ "$HELP_SCRIPT" = "" ]; then
+        HELP_SCRIPT="echo 'No hay ayuda disponible'"
+    else
+        HELP_SCRIPT="$HELP_SCRIPT --help {}"
+    fi
+
+    printf '%s\n' "${items[@]}" | fzf \
+        --ansi \
+        --border=rounded \
+        --height="$((${#items[@]} + 16))" \
+        --info=hidden \
+        --layout=reverse \
+        --margin=0,3 \
+        --padding=1 \
+        --preview-window=right,60%,wrap \
+        --preview="$HELP_SCRIPT"\
+        --prompt="Búsqueda > " 
+}
+
+
+### Especiales
+
+print_centered_message() {
+    local message=$1
+    local color=$2
+    local new_line_before_or_after=${3:-""}
+
+    IFS=' ' read -r espacios_izquierda espacios_derecha longitud_total <<<"$(message_size "$message")"
+
+    if [ -z "$SIMPLE_ECHO" ]; then
+        print_message "$(padding "$message" "$espacios_izquierda" "left")" "$color" 0 "$new_line_before_or_after"
+    fi
+}
+
+print_message_with_gradient(){
+    local message=$1
+    local length=$2
+    local centered=${3:-""}
+    local message_length=${#message}
+    local padding=$((length - message_length))
+
+    if [ ! -z $centered ]; then
+        padding=$((padding / 2))
+        local white_spaces=$(printf "%${padding}s")
+        message=${white_spaces}${message}${white_spaces}
+    else
+        local white_spaces=$(printf "%${padding}s")
+        message=${message}${white_spaces}
+    fi
+
+    print_message "${message}" | gterm $GRADIENT_1 $GRADIENT_2 $GRADIENT_3 $GRADIENT_4 $GRADIENT_5 $GRADIENT_6   
+}
+
+print_separator() {
+    local separator=${1:-"-"}
+    local width=${2:-40}   
+    local message=$(padding "" "$width" "$separator")
+    echo "$message"
+}
+
+print_header() {
+    clear
+    wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz
+    sleep 0.11
+    IFS=' ' read -r espacios_izquierda espacios_derecha longitud_total <<<"$(message_size "")"
+
+    local separador=$(print_separator "-" "$(($longitud_total - 37))")
+
+    local USER_DATA="Usuario: $(echo "$(getent passwd $USER)" | cut -d ':' -f 5 | cut -d ',' -f 1) ($USER)"
+    local EQUIPO="Equipo: $HOSTNAME"
+    
+    print_message_with_gradient "  &           &&&&&&&&&           &  " $longitud_total
+    print_message_with_gradient "   &&&  &&&&&           &&&&&  &&&   " $longitud_total
+    print_message_with_gradient "     &&&&&&&&&&       &&&&&&&&&&     $separador" $longitud_total
+    print_message_with_gradient "     &&&*****&&&&& &&&&&*****&&&       _________   ______     __  __    ______       " $longitud_total
+    print_message_with_gradient "     &&  *******&&&&&*******  &&      /________/\ /_____/\   /_/\/_/\  /_____/\      $HEADER_MESSAGE" $longitud_total
+    print_message_with_gradient "    &&&     **    &   ***     &&&     \__.::.__\/ \:::_ \ \  \:\ \:\ \ \::::_\/_     " $longitud_total
+    print_message_with_gradient "   &&&&                      &&&&&        \::\ \   \:(_) ) )  \:\ \:\ \ \:\/___/\    $USER_DATA" $longitud_total
+    print_message_with_gradient "   &&&                     &&& &&&         \::\ \   \: __ ´\ \ \:\ \:\ \ \_::._\:\   $EQUIPO" $longitud_total
+    print_message_with_gradient "  &&&&                  &&&&&  &&&&         \::\ \   \ \ ´\ \ \ \:\_\:\ \  /____\:\  $DESCRIPTION_MESSAGE" $longitud_total
+    print_message_with_gradient "  &&&&         &&&&&&&&&&&     &&&&          \__\/    \_\/ \_\/  \_____\/  \_____\/  " $longitud_total
+    print_message_with_gradient "   &&&&&  &&&&&&&&&&         &&&&&   " $longitud_total
+    print_message_with_gradient "    &&&&&&&&&&&            &&&&&&    $separador" $longitud_total
+    print_message_with_gradient "      &&&&&&&           &&&&&&       " $longitud_total
+    print_message_with_gradient "         &&&&&&&&   &&&&&&&&         " $longitud_total
+    print_message_with_gradient "             &&&&&&&&&&&             " $longitud_total
+    print_message_with_gradient "                 &&                  " $longitud_total
+}
+
+print_semiheader() {
+    local message=$1
+    local separator="--"
+    local longitud_separador
+
+    if [ -z "$SIMPLE_ECHO" ]; then
+        IFS=' ' read -r espacios_izquierda espacios_derecha longitud_total <<<"$(message_size "$message")"
+        espacios_izquierda=$((espacios_izquierda / 4))
+        message=$(printf "%-${espacios_izquierda}s" | tr ' ' $separator)" "$message
+        longitud_separador=$((${#message} + espacios_izquierda))
+
+        print_separator "$separator" $longitud_separador "before"
+    fi
+
+    print_message "$message\n" "" 0 "" "after"
+}
+
+print_logo() {
+    clear
+    wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz
+    IFS=' ' read -r espacios_izquierda espacios_derecha longitud_total <<<"$(message_size "")"
+    
+    print_message_with_gradient "              &&             &&&&&&&&&&&&&&&&&&&&              &&               " $longitud_total "yes"
+    print_message_with_gradient "                &&&&&   &&&&&&&                 &&&&&&&   &&&&&                 " $longitud_total "yes"
+    print_message_with_gradient "                  &&&&&&&&&&&&&                 &&&&&&&&&&&&&                   " $longitud_total "yes"
+    print_message_with_gradient "                     &&&&&&&&&&&&&&&       &&&&&&&&&&&&&&&                      " $longitud_total "yes"
+    print_message_with_gradient "                    &&& ********&&&&&&& &&&&&&&******** &&&                     " $longitud_total "yes"
+    print_message_with_gradient "                   &&&& ***********&&&&&&&&&*********** &&&&                    " $longitud_total "yes"
+    print_message_with_gradient "                  &&&&&  ************&&&&&************  &&&&&                   " $longitud_total "yes"
+    print_message_with_gradient "                  &&&&       *****     &     *****      &&&&&                   " $longitud_total "yes"
+    print_message_with_gradient "                 &&&&&                                  &&&&&&                  " $longitud_total "yes"
+    print_message_with_gradient "                &&&&&                                  &&&&&&&                  " $longitud_total "yes"
+    print_message_with_gradient "                &&&&&                                &&&& &&&&&                 " $longitud_total "yes"
+    print_message_with_gradient "               &&&&&&                             &&&&&&  &&&&&                 " $longitud_total "yes"
+    print_message_with_gradient "               &&&&&                         &&&&&&&&&    &&&&&&                " $longitud_total "yes"
+    print_message_with_gradient "               &&&&&&               &&&&&&&&&&&&&&&       &&&&&&                " $longitud_total "yes"
+    print_message_with_gradient "               &&&&&&&       &&&&&&&&&&&&&&&&&           &&&&&&                 " $longitud_total "yes"
+    print_message_with_gradient "                &&&&&&&& &&&&&&&&&&&&&&                &&&&&&&                  " $longitud_total "yes"
+    print_message_with_gradient "                  &&&&&&&&&&&&&&&&&                  &&&&&&&&                   " $longitud_total "yes"
+    print_message_with_gradient "                    &&&&&&&&&&&&&                 &&&&&&&&&                     " $longitud_total "yes"
+    print_message_with_gradient "                      &&&&&&&&&&               &&&&&&&&&&                       " $longitud_total "yes"
+    print_message_with_gradient "                         &&&&&&&&&&&       &&&&&&&&&&&                          " $longitud_total "yes"
+    print_message_with_gradient "                            &&&&&&&&&&&&&&&&&&&&&&                              " $longitud_total "yes"
+    print_message_with_gradient "                                &&&&&&&&&&&&&&&                                 " $longitud_total "yes"
+    print_message_with_gradient "                                    &&&&&&&                                     " $longitud_total "yes"
+    print_message_with_gradient "                                                                                " $longitud_total "yes"
+    print_message_with_gradient "                                                            **                  " $longitud_total "yes"
+    print_message_with_gradient "    &&&    &&&                                             ***             ***  " $longitud_total "yes"
+    print_message_with_gradient "   &&&     &&&&&  &&&&&& &&&     &&&   &&&&&&&&      *********   ********  *****" $longitud_total "yes"
+    print_message_with_gradient "  &&&&     &&&   &&&     &&&     &&&  &&&    &&&&  ***    **** ****   (*** ***  " $longitud_total "yes"
+    print_message_with_gradient " &&&&      &&&   &&&     &&&     &&& &&&&&&&&&&&& ***      ***   ********* ***  " $longitud_total "yes"
+    print_message_with_gradient "&&&&       &&&   &&&     &&&    &&&& &&&          ****     *** ***    **** ***  " $longitud_total "yes"
+    print_message_with_gradient "&&&        &&&&& &&&      &&&&&&&&&   &&&&&&&&&&    **********  *********  *****" $longitud_total "yes"
+    
+    sleep 1
+}
+
+
+### Animaciones. Original aqui: https://github.com/Silejonu/bash_loading_animations
+
+set_active_animation(){
+    local selected=${1:-$SELECTED_ANIMATION}
+
+    list_name="TERMINAL_ANIMATION_$selected"    
+    eval "active_animation=(\"\${$list_name[@]}\")"
+    sed -i "s/^SELECTED_ANIMATION=.*/SELECTED_ANIMATION='$selected'/" "$PATH_GLOBAL_CONFIG"
+}
+
+play_animation() {
+    message=$1
+    tabs=$2
+    color=$3
+    tput civis
+    message=$(get_color "$color")$message
+
+    while true; do
+        for frame in "${active_animation[@]}"; do
+            for ((i = 1; i <= tabs; i++)); do
+                frame="\t"${frame}
+            done
+
+            echo -ne "$frame $message\033[0K\r"
+            sleep 0.075
+        done
+    done
+}
+
+stop_animation() {
+    kill "${animation_pid}" &>/dev/null
+    echo -ne "\033[0K"
+    tput cnorm
+}
+
+print_message_with_animation() {
+    local message=${1:-""}
+    local color=${2:-"${COLOR_PRIMARY}"}
+    local tabs=${3:-0}
+
+    if [ -z "$SIMPLE_ECHO" ]; then
+        stop_animation
+        unset "active_animation[0]"
+        play_animation "$message" "$tabs" "$color" &
+        animation_pid="${!}"
+    else
+      print_message "$message" "$color" "$tabs"
+    fi    
+}
+
+
+### Git
+
+checkout() {
+    local HEADER=${1:-""}
+
+    print_message_with_animation "Apuntando a $HEADER..." "$COLOR_SECONDARY" 3
+    eval "git checkout $HEADER $REDIRECT"
+    print_message "Apuntando a $HEADER (HECHO)" "$COLOR_SUCCESS" 3
+}
+
+update_git() {
+    print_message_with_animation "Actualizando repositorio..." "$COLOR_SECONDARY" 3
+    eval "git fetch $REDIRECT"
+    eval "git pull  $REDIRECT"
+    print_message "Actualizando repositorio (HECHO)" "$COLOR_SUCCESS" 3
+}
+
+clone_if_not_exists() {
+    local repo_url=$1
+    local target_dir=$2
+
+    if [ ! -d "$target_dir" ]; then
+        print_message "Clonando el repositorio desde '$repo_url' en '$target_dir'..." "$COLOR_SUCCESS" 3 
+        git clone "$repo_url" "$target_dir"
+    else
+        print_message "El directorio '$target_dir' ya existe. No se clonará el repositorio."  "$COLOR_WARNING" 3 
+    fi
+}
 
 update_services() {
     local create_dbb=${1:-""}
@@ -165,24 +656,98 @@ update_web() {
     cd ..
 }
 
-yarn_test() {
-    local packages=("$@")
+update_repositories() {
+    local updated_option=${1:-"-a"}
+    local create_dbb=${2:-""}
 
-    if [ ${#packages[@]} -eq 0 ]; then
-        packages=$FRONT_PACKAGES
-    fi
+    print_header
 
-    for package in "${packages[@]}"; do
-        print_header
+    case "$updated_option" in
+    "-b" | "--back")
+        update_services "$create_dbb"
+        updated_option="de back"
+        ;;
 
-        cd $FRONT_PATH/td-web-modules/packages/$package
-        yarn test
-        sleep 2
-    done
+    "-f" | "--front")
+        update_web
+        updated_option="de front"
+        ;;
+
+    "-l" | "--libs")
+        update_libraries
+        updated_option="de librerias"
+        ;;
+
+    "-a" | "--all" | "")
+        update_services "$create_dbb"
+        update_libraries
+        update_web
+        updated_option="de back, librerias y front"
+        ;;
+    esac
+
+    print_centered_message "REPOSITORIOS $updated_option ACTUALIZADOS" "$COLOR_SUCCESS" "both"
 }
 
-#########################################
-# ddbb
+
+### Compilaciones
+
+compile_web() {
+    print_message_with_animation "Compilando React..." "$COLOR_SECONDARY" 3
+    eval "yarn $REDIRECT"
+    print_message "Compilando React (HECHO)" "$COLOR_SUCCESS" 3
+}
+
+compile_elixir() {
+    local create_ddbb=${1:-""}
+
+    print_message_with_animation "Actualizando dependencias Elixir..." "$COLOR_SECONDARY" 3
+    eval "mix deps.get --force $REDIRECT"
+    print_message "Actualizando dependencias Elixir (HECHO)" "$COLOR_SUCCESS" 3
+
+    print_message_with_animation "Compilando Elixir..." "$COLOR_SECONDARY" 3
+    eval "mix compile $REDIRECT"
+    print_message "Compilando Elixir (HECHO)" "$COLOR_SUCCESS" 3
+
+    if [ ! "$create_ddbb" = "" ]; then
+        print_message_with_animation "Creando bdd..." "$COLOR_SECONDARY" 3
+        eval "yes | mix ecto.create $REDIRECT"
+        print_message "Creacion de bdd (HECHO)" "$COLOR_SUCCESS" 3
+    fi
+}
+
+
+### ddbb
+
+ddbb() {
+    local options=$1
+    local backup_path=""
+
+    if [ "$options" = "-d" ] || [ "$options" = "--download-test" ] || [ "$options" = "-du" ] || [ "$options" = "--download-update" ]; then
+        download_test_backup
+        backup_path=$DDBB_BACKUP_PATH
+    fi
+
+    if [ "$options" = "-lu" ] || [ "$options" = "--local-update" ]; then
+        get_local_backup_path
+    fi
+
+    if [ "$options" = "-lb" ] || [ "$options" = "--local-backup" ]; then
+        create_backup_local_ddbb
+    fi
+
+    if { [ -d "$backup_path" ] && [ "$backup_path" != "" ]&& [ "$options" = "-du" ] || [ "$options" = "--download-update" ] || [ "$options" = "-lu" ] || [ "$options" = "--local-update" ]; }; then
+        local continue_reindex
+
+        remove_all_redis
+
+        update_ddbb_from_backup "$backup_path"
+
+        if print_question "Se ha realizado la actualizacion de las bbdd correctamente. Es recomendable reindexar" = 0; then
+            reindex_all
+        fi
+    fi
+}
 
 download_test_backup() {
     print_header
@@ -309,234 +874,48 @@ create_backup_local_ddbb() {
     print_message " Backup creado en $DDBB_LOCAL_BACKUP_PATH" "$COLOR_WARNING" 1 "both"
 }
 
-#########################################
-# Install
 
-install_docker() {
-    aws ecr get-login-password --profile truedat --region eu-west-1 | docker login --username AWS --password-stdin 576759405678.dkr.ecr.eu-west-1.amazonaws.com
+### No-SQL
 
-    cd "$DEV_PATH"
-    set -e
-    set -o pipefail
-
-    ip=$(ip -4 addr show docker0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
-    echo SERVICES_HOST="$ip" > local_ip.env
-    sudo chmod 666 /var/run/docker.sock
-
-    start_containers
-
-    print_message "Contenedores instalados y arrancados" "$COLOR_SECONDARY" 1 "before"
-}
-
-set_elixir_versions() {
-    eval "cd $BACK_PATH/td-auth && asdf local elixir 1.14.5-otp-25 $REDIRECT"
-    eval "cd $BACK_PATH/td-audit && asdf local elixir 1.14.5-otp-25 $REDIRECT"
-    eval "cd $BACK_PATH/td-ai && asdf local elixir 1.15 $REDIRECT"
-    eval "cd $BACK_PATH/td-bg && asdf local elixir 1.14.5-otp-25 $REDIRECT"
-    eval "cd $BACK_PATH/td-cluster && asdf local elixir 1.14.5-otp-25 $REDIRECT"
-    eval "cd $BACK_PATH/td-core && asdf local elixir 1.14.5-otp-25 $REDIRECT"
-    eval "cd $BACK_PATH/td-dd && asdf local elixir 1.14.5-otp-25 $REDIRECT"
-    eval "cd $BACK_PATH/td-df && asdf local elixir 1.14.5-otp-25 $REDIRECT"
-    eval "cd $BACK_PATH/td-df-lib && asdf local elixir 1.14.5-otp-25 $REDIRECT"
-    eval "cd $BACK_PATH/td-ie && asdf local elixir 1.14.5-otp-25 $REDIRECT"
-    eval "cd $BACK_PATH/td-lm && asdf local elixir 1.14.5-otp-25 $REDIRECT"
-    eval "cd $BACK_PATH/td-qx && asdf local elixir 1.14.5-otp-25 $REDIRECT"
-    eval "cd $BACK_PATH/td-se && asdf local elixir 1.16 $REDIRECT"
-    print_message "Versiones específicas de Elixir configuradas" "$COLOR_SUCCESS" 2 "both"
-}
-
-#########################################
-# Acciones Principales
-
-install() {
-    print_header
-    print_message "Guia de instalación: https://confluence.bluetab.net/pages/viewpage.action?pageId=136022683" "$COLOR_QUATERNARY" 5 "both"
-
-    if [ ! -e "/tmp/truedat_installation" ]; then
-        print_header
-
-        if [ -f "$SSH_PUBLIC_FILE" ]; then
-            if [ ! -e "$AWSCONFIG" ]; then
-                print_message "ATENCIÓN, SE VA A SOLICITAR LA CONFIGURACIÓN DE AWS 2 VECES" "$COLOR_WARNING" 2 "before"
-                print_message "Una para el perfil predeterminado y otra para el de truedat" "$COLOR_WARNING" 2 "both"
-                print_message "Estos datos te los debe dar tu responsable" "$COLOR_SECONDARY" 2 "both"
-                
-                aws configure
-                aws configure --profile truedat    
-            fi
-
-            aws ecr get-login-password --profile truedat --region eu-west-1 | docker login --username AWS --password-stdin 576759405678.dkr.ecr.eu-west-1.amazonaws.com
-            print_message "Configuración de aws (HECHO)" "$COLOR_SUCCESS" 3 "before"
-
-            asdf plugin add erlang https://github.com/asdf-vm/asdf-erlang.git
-            asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git
-            asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
-            asdf plugin-add yarn
-            KERL_BUILD_DOCS=yes asdf install erlang 25.3
-            asdf install elixir 1.13.4
-            asdf install elixir 1.14.5-otp-25
-            asdf install elixir 1.15
-            asdf install elixir 1.16
-            asdf install nodejs 18.20.3
-            asdf install yarn latest
-            print_message "Instalando plugins y librerias de ASDF (HECHO)" "$COLOR_SUCCESS" 3 "before"
-
-            asdf global erlang 25.3
-            asdf global elixir 1.13.4
-            asdf global nodejs 18.20.3
-            asdf global yarn latest
-            print_message "Configurando ASDF (HECHO)" "$COLOR_SUCCESS" 3 "before"
-
-            #Este eval está porque si se instala el entorno en el WSL de windows, el agente no se mantiene levantado
-            #En linux no es necesario pero no molesta
-            eval "$(ssh-agent -s)"
-            ssh-add $SSH_PRIVATE_FILE
-
-            clone_truedat_project
-
-            cd $DEV_PATH
-            sudo sysctl -w vm.max_map_count=262144
-            sudo cp elastic-search/999-map-count.conf /etc/sysctl.d/
-            print_message "Truedat descargado" "$COLOR_SUCCESS" 3 "before"
-
-            update_repositories "-a" "yes"
-            link_web_modules
-            ddbb "-du"
-            install_docker
-            config_kong
-
-            sudo sh -c '{
-                        echo "##################"
-                        echo "# Añadido por trus"
-                        echo "##################"
-                        echo "127.0.0.1 localhost"
-                        echo "127.0.0.1 $(uname -n).bluetab.net $(uname -n)"
-                        echo "127.0.0.1 redis"
-                        echo "127.0.0.1 postgres"
-                        echo "127.0.0.1 elastic"
-                        echo "127.0.0.1 kong"
-                        echo "127.0.0.1 neo"
-                        echo "127.0.0.1 vault"
-                        echo "0.0.0.0 localhost"
-                        echo "##################"
-                        echo "# Añadido por trus"
-                        echo "##################"
-                    } > /etc/hosts'
-
-
-            touch "/tmp/truedat_installation"
-            print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3 "both"
-            
-            print_question "Si deseas reinstalarlo, puedes hacerlo borrando el archivo '/temp/truedat_installation'"
-
-            if [[ $(get_print_question_response) == 1 ]]; then
-                rm "/tmp/truedat_installation"
-            fi            
-        else
-            print_message "- Claves SSH (NO CREADAS): Tienes que tener creada una clave SSH (el script chequea que la clave se llame 'truedat') en la carpeta ~/.ssh" "$COLOR_ERROR" 3 "before"
-            print_message "RECUERDA que tiene que estar registrada en el equipo y en Gitlab. Si no, debes crearla con 'trus -cr' y registarla en la web'" "$COLOR_WARNING" 3 "after"
-        fi
-    else
-        print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3 "both"
-        
-        print_question "Si deseas reinstalarlo, puedes hacerlo borrando el archivo '/temp/truedat_installation'"
-
-        if [[ $(get_print_question_response) == 1 ]]; then
-            rm "/tmp/truedat_installation"
-            print_message "Archivo '/tmp/truedat_installation' eliminado correctamente" "$COLOR_PRIMARY" 3 "both"
-        fi            
+remove_all_redis() {
+    if print_question "¿Quieres borrar todos los datos de Redis?" = 0; then
+        eval "redis-cli flushall  $REDIRECT"
+        print_message "✳ Borrado de Redis completado ✳" "$COLOR_SUCCESS" 1 "both"
     fi
 }
 
-clone_truedat_project(){
-    mkdir -p $WORKSPACE_PATH
-    mkdir -p $TRUEDAT_ROOT_PATH
-    mkdir -p $BACK_PATH
-    mkdir -p $BACK_PATH/logs
-    mkdir -p $FRONT_PATH
-    mkdir -p $DEV_PATH
-    
-    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-ai.git $BACK_PATH/td-ai
-    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-audit.git $BACK_PATH/td-audit
-    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-auth.git $BACK_PATH/td-auth
-    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-bg.git $BACK_PATH/td-bg
-    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-dd.git $BACK_PATH/td-dd
-    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-df.git $BACK_PATH/td-df
-    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-ie.git $BACK_PATH/td-ie
-    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-qx.git $BACK_PATH/td-qx
-    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-i18n.git $BACK_PATH/td-i18n
-    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-lm.git $BACK_PATH/td-lm
-    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-se.git $BACK_PATH/td-se
-    
-    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/td-helm.git $BACK_PATH/td-helm
-    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/clients/demo/k8s.git $BACK_PATH/k8s
+remove_all_index() {
+    local remove_all_indexes=${1:-""}
+    local continue_elastic_clean
 
-    clone_if_not_exists git@github.com:Bluetab/td-df-lib.git $BACK_PATH/td-df-lib
-    clone_if_not_exists git@github.com:Bluetab/td-cache.git $BACK_PATH/td-cache
-    clone_if_not_exists git@github.com:Bluetab/td-core.git $BACK_PATH/td-core
-    clone_if_not_exists git@github.com:Bluetab/td-cluster.git $BACK_PATH/td-cluster
-    
-    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/front-end/td-web-modules.git $FRONT_PATH/td-web-modules
-    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/front-end/td-web.git $FRONT_PATH/td-web.git 
-
-    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/true-dev.git $DEV_PATH
-    
-}
-
-config_kong() {
-    print_header
-    print_semiheader "Kong"
-    print_message "¿Quién quieres que enrute, Kong(k) o td-web(w)? (k/w)" "$COLOR_PRIMARY" 1
-    read -r install_kong
-
-    local router=$(normalize_text "$install_kong")
-
-    if [ ! "$router" == "" ]; then
-        if [ "$router" == "k" ]; then
-            activate_kong
-        elif [ "$router" == "w" ]; then
-            deactivate_kong
-        fi
-    fi 
-}
-
-ddbb() {
-    local options=$1
-    local backup_path=""
-
-    if [ "$options" = "-d" ] || [ "$options" = "--download-test" ] || [ "$options" = "-du" ] || [ "$options" = "--download-update" ]; then
-        download_test_backup
-        backup_path=$DDBB_BACKUP_PATH
-    fi
-
-    if [ "$options" = "-lu" ] || [ "$options" = "--local-update" ]; then
-        get_local_backup_path
-    fi
-
-    if [ "$options" = "-lb" ] || [ "$options" = "--local-backup" ]; then
-        create_backup_local_ddbb
-    fi
-
-    if { [ -d "$backup_path" ] && [ "$backup_path" != "" ]&& [ "$options" = "-du" ] || [ "$options" = "--download-update" ] || [ "$options" = "-lu" ] || [ "$options" = "--local-update" ]; }; then
-        local continue_reindex
-
-        remove_all_redis
-
-        update_ddbb_from_backup "$backup_path"
-
-        print_question "Se ha realizado la actualizacion de las bbdd correctamente. Es recomendable reindexar"
-
-        if [[ $(get_print_question_response) == 1 ]]; then
-            reindex_all
-        fi
+    if [ "$remove_all_indexes" = "-r" ] || [ print_question "¿Quieres borrar todos los datos de ElasticSearch antes de reindexar?" = 0]; then
+        do_api_call "" "http://localhost:9200/_all" "DELETE" "--fail"
+        print_message "✳ Borrado de ElasticSearch completado ✳" "$COLOR_SUCCESS" 1 "both"
     fi
 }
+
+
+### tmux y screen
+
+go_to_session() {
+    local session_name=$1
+
+    clear
+
+    tmux attach-session -t "$session_name"
+}
+
+go_out_session() {
+    tmux detach-client
+}
+
+
+### Elasticsearch
 
 reindex_all() {
     local remove_all_indexes=${1:-""}
     print_header
     print_semiheader "Reindexado de Elasticsearch"
-
 
     remove_all_index "$remove_all_indexes"
 
@@ -608,30 +987,14 @@ reindex_one() {
     esac
 }
 
-kill_truedat() {
-    #back - mix
-    eval "pkill -9 mix $REDIRECT"
 
-    # back - tmux
-    eval "tmux kill-server $REDIRECT"
-
-    # back - screen
-    eval "screen -ls | grep -oP \"^\s*\K\d+\.(?=[^\t])\" | xargs -I {} screen -X -S {} quit $REDIRECT"
-    eval "screen -wipe $REDIRECT"
-
-    # front
-    eval "pkill -9 $(pgrep -f \"yarn\") $REDIRECT"
-
-    print_header
-}
+### ssh
 
 create_ssh() {
     local continue_ssh_normalized
     print_header
     
-    print_question "SE VA A PROCEDER HACER BACKUP DE LAS CLAVES '$TRUEDAT' ACTUALES, BORRAR LA CLAVE EXISTENTE Y CREAR UNA NUEVA HOMÓNIMA " "$COLOR_ERROR"
-
-    if [[ $(get_print_question_response) == 1 ]]; then
+    # if print_question "SE VA A PROCEDER HACER BACKUP DE LAS CLAVES '$TRUEDAT' ACTUALES, BORRAR LA CLAVE EXISTENTE Y CREAR UNA NUEVA HOMÓNIMA" "$COLOR_ERROR" = 0; then
         cd $SSH_PATH
 
         if [ -f "$SSH_PUBLIC_FILE" ] || [ -f "$SSH_PRIVATE_FILE" ]; then
@@ -664,49 +1027,17 @@ create_ssh() {
         else
             print_centered_message "Hubo un problema al registrar la clave: $ssh_add_result" "$COLOR_ERROR"
         fi
-    fi
+    # fi
 }
 
-update_repositories() {
-    local updated_option=${1:-"-a"}
-    local create_dbb=${2:-""}
 
-    print_header
-
-    case "$updated_option" in
-    "-b" | "--back")
-        update_services "$create_dbb"
-        updated_option="de back"
-        ;;
-
-    "-f" | "--front")
-        update_web
-        updated_option="de front"
-        ;;
-
-    "-l" | "--libs")
-        update_libraries
-        updated_option="de librerias"
-        ;;
-
-    "-a" | "--all" | "")
-        update_services "$create_dbb"
-        update_libraries
-        update_web
-        updated_option="de back, librerias y front"
-        ;;
-    esac
-
-    print_centered_message "REPOSITORIOS $updated_option ACTUALIZADOS" "$COLOR_SUCCESS" "both"
-}
+### Link webmodules
 
 link_web_modules() {
     print_header
     print_semiheader "Linkado de modulos"
 
-    print_question "Se borrarán los links y se volveran a crear"
-
-    if [[ $(get_print_question_response) == 1 ]]; then   
+    if print_question "Se borrarán los links y se volveran a crear" = 0; then   
         for d in "${FRONT_PACKAGES[@]}"; do
             cd "$FRONT_PATH/td-web-modules/packages/$d"
             eval "yarn unlink $REDIRECT"
@@ -716,6 +1047,670 @@ link_web_modules() {
         done
     fi
 }
+
+#### Otros
+
+extract_menu_option() {
+    local input="$1"
+    local first_value=$(echo "$input" | cut -d' ' -f1)
+    if [[ "$input" == *" - "* ]]; then
+        first_value=$(echo "$input" | cut -d' ' -f1)
+    fi
+
+    echo "$first_value"
+}
+
+
+###### Herramientas para de la instalación
+### Configuración
+
+create_configurations() {
+    bash_config
+    zsh_config
+    tmux_config
+    tlp_config
+}
+
+bash_config() {
+    print_semiheader "Prompt de Bash (Incluye fix de login de Google)"
+
+    if ! grep -q "LD_PRELOAD=/lib/x86_64-linux-gnu/libnss_sss.so.2" "$BASH_PATH_CONFIG"; then
+        echo 'export LD_PRELOAD=/lib/x86_64-linux-gnu/libnss_sss.so.2' >> "$BASH_PATH_CONFIG"
+        print_message "LD_PRELOAD AÑADIDO A .bashrc"  "$COLOR_PRIMARY" 2
+    else
+        print_message "LD_PRELOAD YA ESTÁ PRESENTE EN .bashrc" "$COLOR_PRIMARY" 2
+    fi
+
+    {
+        echo 'export COLORTERM=truecolor'
+        echo '. "$HOME/.asdf/asdf.sh"'
+        echo '. "$HOME/.asdf/completions/asdf.bash"'
+        echo 'parse_git_branch() {'
+        echo ' git branch 2> /dev/null | sed -e "/^[^*]/d" -e "s/* \(.*\)/(\1)/"'
+        echo '}'
+        echo
+        echo 'PS1="${debian_chroot:+($debian_chroot)}\[\033[1;38;5;231;48;5;208m\]\w\[\033[00m\]\[\033[1;38;5;039m\] $(parse_git_branch)\[\033[00m\]-> "'
+    } >> $BASH_PATH_CONFIG
+    
+    source $BASH_PATH_CONFIG
+
+    print_message "Prompt de Bash actualizado" "$COLOR_SUCCESS" 3 "both"
+}
+
+zsh_config() {
+    print_semiheader "ZSH"
+
+    {
+        echo '# If you come from bash you might have to change your $PATH.'
+        echo '# export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH'
+        echo 'ZSH_THEME="agnoster"'
+        echo ''
+        echo 'export ZSH="$HOME/.oh-my-zsh"'
+        echo 'export COLORTERM=truecolor'
+        echo 'source $ZSH/oh-my-zsh.sh'
+        echo ''
+        echo 'zstyle ':omz:update' mode auto      # update automatically without asking'
+        echo 'zstyle ':omz:update' frequency 1'
+        echo 'HIST_STAMPS="dd/mm/yyyy"'
+        echo ''
+        echo ''
+        echo '# User configuration'
+        echo 'export MANPATH="/usr/local/man:$MANPATH"'
+        echo 'export LANG=en_US.UTF-8'
+        echo 'EDITOR='code''
+        echo 'export ARCHFLAGS="-arch $(uname -m)"'
+        echo 'plugins=(git elixir asdf git-prompt zsh-autosuggestions zsh-syntax-highlighting zsh-completions)'
+        echo ''
+        echo 'alias ai="cd ~/workspace/truedat/back/td-ai"'
+        echo 'alias audit="cd ~/workspace/truedat/back/td-audit"'
+        echo 'alias auth="cd ~/workspace/truedat/back/td-auth"'
+        echo 'alias bg="cd ~/workspace/truedat/back/td-bg"'
+        echo 'alias dd="cd ~/workspace/truedat/back/td-dd"'
+        echo 'alias df="cd ~/workspace/truedat/back/td-df"'
+        echo 'alias i18n="cd ~/workspace/truedat/back/td-i18n"'
+        echo 'alias ie="cd ~/workspace/truedat/back/td-ie"'
+        echo 'alias lm="cd ~/workspace/truedat/back/td-lm"'
+        echo 'alias qx="cd ~/workspace/truedat/back/td-qx"'
+        echo 'alias se="cd ~/workspace/truedat/back/td-se"'
+        echo 'alias helm="cd ~/workspace/truedat/back/td-helm"'
+        echo 'alias k8s="cd ~/workspace/truedat/back/k8s"'
+        echo 'alias web="cd ~/workspace/truedat/front/td-web"'
+        echo 'alias webmodules="cd ~/workspace/truedat/front/td-web-modules"'
+        echo 'alias trudev="cd ~/workspace/truedat/true-dev"'
+        echo 'alias format="mix format && mix credo --strict"'
+        echo ''
+        echo 'local -A schars'
+        echo 'setopt PROMPT_SUBST'
+        echo 'autoload -U compinit && compinit'
+        echo 'autoload -Uz prompt_special_chars && prompt_special_chars'
+        echo ''
+        echo '# otro estilo del prompt'
+        echo '# autoload -Uz promptinit && promptinit'
+        echo '# prompt bigfade'
+        echo ''
+        echo '# PROMPT="%B%F{208}$schars[333]$schars[262]$schars[261]$schars[260]%B%~/$schars[260]$schars[261]$schars[262]$schars[333]%b%F{208}%b%f%k "'
+        echo ''
+    } > $ZSH_PATH_CONFIG
+
+    source $ZSH_PATH_CONFIG
+
+    print_message "Archivo de configuración creado con éxito" "$COLOR_SUCCESS" 3
+}
+
+tmux_config() {
+    print_semiheader "TMUX"
+
+    touch $TMUX_PATH_CONFIG
+
+    {
+        echo 'set -g mouse on'
+        echo '# To copy, left click and drag to highlight text in yellow, '
+        echo '# once you release left click yellow text will disappear and will automatically be available in clibboard'
+        echo '# # Use vim keybindings in copy mode'
+        echo 'setw -g mode-keys vi'
+        echo '# Update default binding of `Enter` to also use copy-pipe'
+        echo 'unbind -T copy-mode-vi Enter'
+        echo 'bind-key -T copy-mode-vi Enter send-keys -X copy-pipe-and-cancel "xclip -selection c"'
+        echo 'bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "xclip -in -selection clipboard"'
+    } > $TMUX_PATH_CONFIG
+
+    print_message "Archivo de configuración creado con éxito" "$COLOR_SUCCESS" 3
+}
+
+tlp_config() {
+    print_semiheader "TLP"
+    
+    sudo sh -c " touch $TLP_PATH_CONFIG"
+
+    sudo sh -c "
+        {
+            echo 'TLP_ENABLE=1'
+            echo 'TLP_DEFAULT_MODE=AC'
+            echo 'CPU_SCALING_GOVERNOR_ON_AC=performance'
+            echo 'CPU_SCALING_GOVERNOR_ON_BAT=powersave'
+            echo 'CPU_ENERGY_PERF_POLICY_ON_AC=performance'
+            echo 'CPU_ENERGY_PERF_POLICY_ON_BAT=power-saver'
+            echo 'CPU_MIN_PERF_ON_AC=0'
+            echo 'CPU_MAX_PERF_ON_AC=100'
+            echo 'CPU_MIN_PERF_ON_BAT=0'
+            echo 'CPU_MAX_PERF_ON_BAT=70'
+            echo 'CPU_BOOST_ON_AC=1'
+            echo 'CPU_BOOST_ON_BAT=0'
+            echo 'CPU_HWP_DYN_BOOST_ON_AC=1'
+            echo 'CPU_HWP_DYN_BOOST_ON_BAT=0'
+            echo 'SCHED_POWERSAVE_ON_AC=0'
+            echo 'SCHED_POWERSAVE_ON_BAT=1'
+            echo 'PLATFORM_PROFILE_ON_AC=performance'
+            echo 'PLATFORM_PROFILE_ON_BAT=low-power'
+            echo 'RUNTIME_PM_ON_AC=auto'
+            echo 'RUNTIME_PM_ON_BAT=auto'
+        } > $TLP_PATH_CONFIG"
+
+    print_message "Archivo de configuración creado con éxito" "$COLOR_SUCCESS" 3
+
+    eval "sudo tlp start $REDIRECT"
+    eval "sudo systemctl enable tlp.service $REDIRECT"
+}
+
+trus_config(){    
+    {
+        echo 'HIDE_OUTPUT=true'
+        echo 'USE_KONG=false'
+        echo 'SELECTED_ANIMATION="BUBBLE"'
+        echo 'SIMPLE_ECHO='''
+    } > $TRUS_CONFIG
+
+    source TRUS_CONFIG
+}
+
+configure_asdf(){
+    asdf plugin add erlang https://github.com/asdf-vm/asdf-erlang.git
+    asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git
+    asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
+    asdf plugin-add yarn
+    KERL_BUILD_DOCS=yes asdf install erlang 25.3
+    asdf install elixir 1.13.4
+    asdf install elixir 1.14.5-otp-25
+    asdf install elixir 1.15
+    asdf install elixir 1.16
+    asdf install nodejs 18.20.3
+    asdf install yarn latest
+    print_message "Instalando plugins y librerias de ASDF (HECHO)" "$COLOR_SUCCESS" 3 "before"
+
+    asdf global erlang 25.3
+    asdf global elixir 1.13.4
+    asdf global nodejs 18.20.3
+    asdf global yarn latest
+    print_message "Configurando ASDF (HECHO)" "$COLOR_SUCCESS" 3 "before"
+}
+
+
+### Instalación de dependencias
+ 
+install_trus() {
+    cp "$TRUS_ACTUAL_PATH" "$TRUS_PATH"
+
+    sudo rm -f "$TRUS_LINK_PATH"
+    sudo ln -s "$TRUS_PATH" "$TRUS_LINK_PATH"
+    
+    print_message "Truedat Utils (TrUs) instalado con éxito" "$COLOR_SUCCESS" 3 "both"
+}
+
+add_origins(){
+    print_semiheader "Instalación de origenes de software"
+    
+    #postgres
+    print_message_with_animation "Añadiendo origen de Postgres" "$COLOR_TERNARY" 2
+    eval "wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add - $REDIRECT"
+    eval "echo 'deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main' | sudo tee /etc/apt/sources.list.d/pgdg.list$REDIRECT"
+    print_message "Origen de Postgres añadido" "$COLOR_SUCCESS" 3
+
+    # wine
+    print_message_with_animation "Instalando Wine" "$COLOR_TERNARY" 2
+    eval "sudo dpkg --add-architecture i386 $REDIRECT"
+    eval "wget -q -O- https://dl.winehq.org/wine-builds/winehq.key | sudo apt-key add - $REDIRECT"
+    eval "sudo apt-add-repository -y 'deb https://dl.winehq.org/wine-builds/ubuntu/ jammy main' $REDIRECT"
+    print_message "Wine instalado" "$COLOR_SUCCESS" 3
+
+    # para añadir soporte vulkan, que ayuda con temas de temperatura
+    print_message_with_animation "Instalando soporte Vulkan" "$COLOR_TERNARY" 2
+    eval "sudo add-apt-repository -y ppa:graphics-drivers/ppa $REDIRECT"
+    print_message "Vulkan instalado" "$COLOR_SUCCESS" 3
+}
+
+preinstallation(){
+    package_installation
+    install_zsh
+    configure_omz
+    configuration_menu
+    install_trus
+}
+
+package_installation() {
+    add_origins
+
+    print_message_with_animation "Actualizando sistema" "$COLOR_TERNARY" 2
+    eval "sudo apt update $REDIRECT"
+    eval "sudo apt upgrade -y $REDIRECT"
+    print_message "Sistema actualizado" "$COLOR_SUCCESS" 3
+
+    print_semiheader "Instalación de paquetes"
+
+    print_message_with_animation "Instalando Docker Compose" "$COLOR_TERNARY" 2
+    sudo curl -s -L "https://github.com/docker/compose/releases/download/v2.16.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/compose
+    
+    eval "sudo chmod +x /usr/local/bin/docker-compose $REDIRECT"
+    eval "sudo groupadd docker $REDIRECT"
+    eval "sudo usermod -aG docker '$USER' $REDIRECT"
+    print_message "Docker Compose instalado" "$COLOR_SUCCESS" 3
+
+    for package in "${INSTALLATION_PACKAGES[@]}"; do
+        print_message_with_animation "Instalando $package" "$COLOR_TERNARY" 2
+        eval "sudo apt install -y --install-recommends $package $REDIRECT"
+        print_message "$package instalado" "$COLOR_SUCCESS" 3
+    done
+
+    install_asdf
+    instal_awscli
+    install_kubectl     
+    install_gradient_terminal
+    
+    print_centered_message "Paquetes instalados" "$COLOR_SUCCESS"
+}
+
+install_asdf() {
+    if [ -e "~/.asdf" ]; then   
+        rm "~/.asdf"
+    fi
+
+    print_message_with_animation "Instalando ASDF" "$COLOR_TERNARY" 2
+    eval "git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.14.0 $REDIRECT"
+    print_message "ASDF instalado" "$COLOR_SUCCESS" 3
+       
+    source $BASHRC_PATH
+    source $ZSH_PATH_CONFIG
+}
+
+instal_awscli(){
+    mkdir ~/.aws
+    cd ~/.aws
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    unzip awscliv2.zip
+    cd aws
+    sudo ./install
+}
+
+install_kubectl() {
+    if [ ! -e "$KUBE_PATH" ]; then
+        print_message_with_animation "Instalando Kubectl" "$COLOR_TERNARY" 2
+
+        mkdir $KUBE_PATH   
+
+        cd $KUBE_PATH
+
+        eval "curl -LO https://dl.k8s.io/release/v1.23.6/bin/linux/amd64/kubectl && sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl $REDIRECT"
+        
+        touch "$KUBECONFIG"
+
+        {
+            echo 'apiVersion: v1'
+            echo 'clusters:'
+            echo '- cluster:'
+            echo '    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUN5RENDQWJDZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwcmRXSmwKY201bGRHVnpNQjRYRFRFNE1URXlPVEF4TlRJeU5Gb1hEVEk0TVRFeU5qQXhOVEl5TkZvd0ZURVRNQkVHQTFVRQpBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBTGtjCnBhOWlvSGNYNmIyTGEycmtJQnpqdUd3SkFMYjR6QkxiSzl2b2ZkZGdRODNFeUZaMFExR2UrT3JuUmNZUEowT04KeHBGUTNYT2o2RW9HSGYxbGVQQU8zZG84WlR1UGp6YnluOWVNdU55YkxqWkY1NXNGaGVEYzhtYUlIWW4yV0VzcApkeHl6UllFWUVtRjlHU0EyblZ0bDk2NGxnOEpVMjJMN092THV6bWFhSHlJZGN4VU1JS2I0RThFdG03T3d6aElMClNKZUdTU0xvYUNDQzVaVXFObWx3Yk1tQlE3QkNqUzhwblo3c0FSWjRtbUhDa3ZzQ2RrN01pYUJDMStvZXk3b3IKcjhSbW1yeUN6MndER0R5NTlNamlrOElNRG92cldLQXlPSE9zZXBuS3VRTjRGd0E0U2g5M3g1Rml5bEpyamVRMAo0Y0FxN2swd0xKRFFpb3BTR3ZrQ0F3RUFBYU1qTUNFd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWRFd0VCCi93UUZNQU1CQWY4d0RRWUpLb1pJaHZjTkFRRUxCUUFEZ2dFQkFHS1hDMFdJSWZHVmhDRXFKUUVRY2xzS1Q1MlUKSkdFMmtlS2piYytwdWVuL0tZTSs2b2hRZE4wbjRDNHZRZzVaNC9NTW1kZ1Vmb0Z2TmcyTy9DKzFSb0ZkajBCOQpNWG1Zc1BzZTVCcEQ1YUkzY0praU1mcElmUC9JYmRRbGVWOW1YYkZoa0lKKzRWYzhjN3FabUdUbzdqdTZvdHRGCkpuVjQxMmZNS25PWHp4NC9MYm1kSjcrdkhGZ053M2kvbjc2Q24wOVNsWTMxRVBtc25ZekYwUUlJczhHZjlZby8Kdm02T3VzbjIyTDZBeUVWNVNnTDBsaWorZEVOR1FoMkpnYUpRYURLM3QySkN3YTg5U2ZFSTZKZHFBaDVSVllLdApQYk82bW1TeTRFTEJWNy9WM1lTTnplZ0ZyR0EvRStaL01CbTBoS3FxcStPUERwUlVmVkk1djlmYTdtZz0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo='
+            echo '    server: https://B4E4C4ED51C8A123744DE0E261A4C8F7.sk1.eu-west-1.eks.amazonaws.com'
+            echo '  name: arn:aws:eks:eu-west-1:576759405678:cluster/truedat'
+            echo '- cluster:'
+            echo '    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURCVENDQWUyZ0F3SUJBZ0lJVEhPc2VHTWkrRm93RFFZSktvWklodmNOQVFFTEJRQXdGVEVUTUJFR0ExVUUKQXhNS2EzVmlaWEp1WlhSbGN6QWVGdzB5TkRBeE1UQXhOREk0TkRKYUZ3MHpOREF4TURjeE5ETXpOREphTUJVeApFekFSQmdOVkJBTVRDbXQxWW1WeWJtVjBaWE13Z2dFaU1BMEdDU3FHU0liM0RRRUJBUVVBQTRJQkR3QXdnZ0VLCkFvSUJBUURQQzZRQjIrZUNCbGE0a1pWVjVrMEx1OFJSRlozN2M3c3VvSnYxUlhwUFhHb2c4d1RpbkZiNVVpSzQKUFJHc3c2ZDU5M2l5YlI4TzYzRTBmM05HTFNGcEUyMkpscW9DQUNyRmpDTEF3NzN6Z0NiQXY1Ym8xdWh2Mk5DVQpjVFN5RjFQN29qK3RXQ0o0QUVDQlA1KzgyZXVUK0czOUFKelRhdDFrUUpVVWtlbUllR1dWM2Zvblk5YS91SkVECkJUcllmMnJEVWUxOG02T2xEVlBQNEdoRG85Q3Yya0J1bVJ0Z0ovYnRkbWpFYkpOdkFTYjB5QTRpWnJxeGYxeE8KakFOZTdJWnFBbjVBWm42NU1zbmNNTW5ISmw2Q3k2LzJmSU0yMWNOeUxXU1JoVFI4ZkJXdlRXWFNDNUZJUjBXdQpTSzNnRG9lTEI2YnZMN2dxZ21Mbyt4WnNDMWVOQWdNQkFBR2pXVEJYTUE0R0ExVWREd0VCL3dRRUF3SUNwREFQCkJnTlZIUk1CQWY4RUJUQURBUUgvTUIwR0ExVWREZ1FXQkJUZjBLVEhYVU9SZnFUSU93Rm5nOUdRY2lBNGpqQVYKQmdOVkhSRUVEakFNZ2dwcmRXSmxjbTVsZEdWek1BMEdDU3FHU0liM0RRRUJDd1VBQTRJQkFRQ3dwZWVQODQzRQpTWFFya0piK2NQakIyZDk1eHNRUG1vL0NRL0l2MGdQd2tKam1ZcXdDU1ptUE1qcmV6WE5mUVZVUSt4bU94M3BaCjBrL0dBTEVOLzYyei9RVm9rQnZkakxwN0dJblhsb2dwUFZxN0ZOUkZSckpYTy9jOTZpWUVoZFFSdDVpMmRtVmYKcWltNnAzMXZSVTVBclFpUktBcW5KZzFuYnA0Q0NTb0pERmhUWlh0dFBFU2RJZ3Mwb05wUmZjWm9xZXNQQlJvOAorZDFYRUdzeGw4bXJJN0FNRXIzMVdSRlNwdHQ5eFpRenhKQU9WY3V2NkFJK2dQMmhnWnBEQTJPY3BhRk40bkkyCmpJTmhrVUVTRWRRSlFUNUJwa2hVUmkxNTBjMStSTm0zclRBbmVEQ1IydjMzQUNXc2h1bmdhdlJ0cy9mVTIzbWoKc1JRTjFpZFBIcEdMCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K'
+            echo '    server: https://69A8FA57BC0A79CAB4BBAD796024AB81.gr7.eu-west-1.eks.amazonaws.com'
+            echo '  name: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
+            echo 'contexts:'
+            echo '- context:'
+            echo '    cluster: arn:aws:eks:eu-west-1:576759405678:cluster/truedat'
+            echo '    user: arn:aws:eks:eu-west-1:576759405678:cluster/truedat'
+            echo '  name: truedat'
+            echo '- context:'
+            echo '    cluster: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
+            echo '    user: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
+            echo '  name: test-truedat-eks'
+            echo '- context:'
+            echo '    cluster: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
+            echo '    user: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
+            echo '  name: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
+            echo 'current-context: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
+            echo 'kind: Config'
+            echo 'preferences: {}'
+            echo 'users:'
+            echo '- name: arn:aws:eks:eu-west-1:576759405678:cluster/truedat'
+            echo '  user:'
+            echo '    exec:'
+            echo '      apiVersion: client.authentication.k8s.io/v1alpha1'
+            echo '      args:'
+            echo '      - --region'
+            echo '      - eu-west-1'
+            echo '      - eks'
+            echo '      - get-token'
+            echo '      - --cluster-name'
+            echo '      - truedat'
+            echo '      command: aws'
+            echo '- name: arn:aws:eks:eu-west-1:576759405678:cluster/test-truedat-eks'
+            echo '  user:'
+            echo '    exec:'
+            echo '      apiVersion: client.authentication.k8s.io/v1beta1'
+            echo '      args:'
+            echo '      - --region'
+            echo '      - eu-west-1'
+            echo '      - eks'
+            echo '      - get-token'
+            echo '      - --cluster-name'
+            echo '      - test-truedat-eks'
+            echo '      - --output'
+            echo '      - json'
+            echo '      command: aws'
+
+        } >$KUBECONFIG
+        
+        print_message "Kubectl instalado y configurado" "$COLOR_SUCCESS" 3
+    fi
+    print_message "Paquetes y dependencias (extra) instalado correctamente" "$COLOR_SUCCESS" 3 "both"
+}
+
+install_gradient_terminal() {
+    # https://github.com/aurora-0025/gradient-terminal?tab=readme-ov-file
+    npm install -g gradient-terminal
+    npm install tinygradient
+    npm install ansi-regex
+}
+
+
+### Personalizacion del equipo
+
+install_zsh() {
+    print_semiheader "Instalación de ZSH"
+
+    print_message_with_animation "Instalando $package" "$COLOR_TERNARY" 2
+    eval "sudo apt install -y --install-recommends zsh $REDIRECT"
+    print_message "$package instalado" "$COLOR_SUCCESS" 3
+
+    chsh -s $(which zsh)
+}
+
+configure_omz(){
+    cd ~
+
+    if [ -e "~/.oh-my-zsh" ]; then
+        rm -r -f ~/.oh-my-zsh
+    fi
+
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+
+    clone_if_not_exists https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+    clone_if_not_exists https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+    clone_if_not_exists https://github.com/zsh-users/zsh-completions ${ZSH_CUSTOM:-${ZSH:-~/.oh-my-zsh}/custom}/plugins/zsh-completions
+    clone_if_not_exists https://github.com/gusaiani/elixir-oh-my-zsh.git ${ZSH_CUSTOM:-${ZSH:-~/.oh-my-zsh}/custom}/plugins/elixir
+
+    zsh_config
+
+    print_message "ZSH Instalado correctamente. ZSH estará disponible en el próximo inicio de sesión" "$COLOR_SUCCESS" 3 "both"
+}
+
+splash_loader() {
+    print_semiheader "Splash loader"
+
+    cd ~/
+    git clone https://github.com/adi1090x/plymouth-themes.git ~/plymouth-themes
+    cd plymouth-themes/pack_3
+    sudo cp -r loader /usr/share/plymouth/themes/
+    sudo update-alternatives --install /usr/share/plymouth/themes/default.plymouth default.plymouth /usr/share/plymouth/themes/loader/loader.plymouth 10000
+    sudo update-alternatives --config default.plymouth
+    sudo update-initramfs -u
+    print_message "Splash loader Instalado correctamente" "$COLOR_SUCCESS" 3 "both"
+}
+
+swap() {
+    print_semiheader "Ampliación de memoria SWAP"
+
+    if [ -e "$SWAP_FILE" ]; then
+        print_message_with_animation "Ya existe un archivo de intercambio. Eliminando..." "$COLOR_TERNARY" 3
+
+        sudo swapoff "$SWAP_FILE"
+        sudo rm "$SWAP_FILE"
+
+        print_message "Archivo de intercambio eliminado" "$COLOR_SUCCESS" 3
+    fi
+
+    print_message "Creando un nuevo archivo de intercambio de $((SWAP_SIZE_MB / 1024))GB..." "$COLOR_TERNARY" 3
+
+    sudo fallocate -l "${SWAP_SIZE_MB}M" "$SWAP_FILE"
+    sudo chmod 600 "$SWAP_FILE"
+    sudo mkswap "$SWAP_FILE"
+    sudo swapon "$SWAP_FILE"
+    echo "$SWAP_FILE none swap sw 0 0" >>/etc/fstab
+
+    print_message "Memoria SWAP ampliada a $((SWAP_SIZE_MB / 1024))GB" "$COLOR_SUCCESS" 3 "both"
+}
+
+
+
+
+
+
+
+
+
+###### Operaciones secundarias
+### Llamadas a apis
+
+do_api_call() {
+    local token="${1:-""}"
+    local url="$2"
+    local rest_method="${3:-""}"
+    local params="${4:-""}"
+
+    local command="curl --silent --globoff --fail "
+
+    if [ ! -z "$token" ]; then
+        command+="'header: Bearer ${token}' "
+    fi
+
+    if [ ! -z "$rest_method" ]; then
+        command+="--request $rest_method "
+        if [[ "$rest_method" == "POST" || "$rest_method" == "PUT" || "$rest_method" == "PATCH" ]]; then
+            command+="--header \"Content-Type: application/json\" "
+        fi
+    fi
+
+    if [ ! -z "$params" ]; then
+        command+="$params "
+    fi  
+
+    command+="--location \"$url\" "
+
+    eval "$command $REDIRECT"
+}
+
+get_token() {
+    local response=$(do_api_call \
+        "" \
+        "localhost:8080/api/sessions/" \
+        "" \
+        "--data '{\"access_method\": \"alternative_login\",\"user\": {\"user_name\": \"admin\",\"password\": \"patata\"}}'")
+    echo "$(echo "$response" | jq -r '.token')"
+}
+
+load_structures() {
+    local path=$1
+    local system="$2"
+    local token=$(get_token)
+    
+    cd "$path"
+    do_api_call \
+        "$token" \
+        "http://localhost:4005/api/systems/${system}/metadata" \
+        "POST" \
+        "-F \"data_structures=@structures.csv\" -F \"data_structure_relations=@relations.csv\""
+}
+
+load_linages() {
+    local path=$
+    local token
+
+    path=$(eval echo "$1")
+    token=$(get_token)
+
+    cd "$path"
+
+    do_api_call \
+        "$token" \
+        "http://localhost:4005/api/units/test" \
+        "PUT" \
+        "-F \"nodes=@nodes.csv\" -F \"rels=@rels.csv\""
+}
+
+
+###
+###### Operaciones principales
+### Arranque de Truedat (TMUX y Screen)
+
+start_containers() {
+    print_header
+    print_semiheader "Arrancando contenedores..."
+
+    cd $DEV_PATH
+
+    for container in "${CONTAINERS[@]}"; do
+        eval "docker-compose up -d '${container}' $REDIRECT"
+    done
+
+    if "$USE_KONG" = true ; then
+        eval "docker-compose up -d 'kong' $REDIRECT"            
+    fi
+}
+
+stop_docker() {
+    print_header
+    print_semiheader "Apagando contenedores..."
+    cd "$DEV_PATH"
+
+    for container in "${CONTAINERS[@]}"; do
+        eval "docker stop '${container}' $REDIRECT"                    
+    done
+
+    if "$USE_KONG" = true ; then
+        eval "docker stop 'kong' $REDIRECT"            
+    fi
+}
+
+start_services() {
+    local SERVICES_TO_IGNORE=("$@")
+    local SERVICES_TO_START=()
+
+    for SERVICE in "${SERVICES[@]}"; do
+        SERVICE_NAME="${SERVICE#td-}"
+        if [[ ! " ${SERVICES_TO_IGNORE[*]} " =~ $SERVICE_NAME ]]; then
+            SERVICES_TO_START+=("$SERVICE")
+        fi
+    done
+
+    for SERVICE in "${SERVICES_TO_START[@]}"; do
+        screen -h 10000 -mdS "$SERVICE" bash -c "cd $BACK_PATH/$SERVICE && iex --sname ${SERVICE#td-} -S mix phx.server"
+    done
+
+    print_message "Servicios arrancados:" "$COLOR_PRIMARY" 1
+    screen -ls | awk '/\.td-/ {print $1}' | sed 's/\.\(td-[[:alnum:]]*\)/ => \1/'
+}
+
+start_front() {
+    cd "$FRONT_PATH"/td-web
+    yarn start
+}
+
+add_terminal_to_tmux_session() {
+    local PANEL=$1
+    local COMMAND=$2
+    tmux select-pane -t truedat:0."$PANEL"
+    tmux send-keys -t truedat:0."$PANEL" "${COMMAND}" C-m
+}
+
+start_truedat() {
+    local TMUX_SERVICES=("$@")
+    local SCREEN_SERVICES=()
+    local WINDOW_TOTAL_HEIGHT
+    local WINDOW_TOTAL_WIDTH
+    local SMALL_COLUMN
+    local LARGE_COLUMN
+    local TERMINAL_SIZE
+
+    WINDOW_TOTAL_HEIGHT=$(tmux display-message -p '#{window_height}')
+    WINDOW_TOTAL_WIDTH=$(tmux display-message -p '#{window_width}')
+    SMALL_COLUMN=$((WINDOW_TOTAL_WIDTH / 4))
+    LARGE_COLUMN=$((WINDOW_TOTAL_WIDTH / 4 * 3))
+    PRINCIPAL_TERMINAL_HEIGHT=$((WINDOW_TOTAL_HEIGHT / 4 * 3))
+
+    kill_truedat
+
+    for SERVICE in "${SERVICES[@]}"; do
+        local founded_service="false"
+        SERVICE=${SERVICE/td-/}
+        for SPLIT in "${TMUX_SERVICES[@]}"; do
+            if [[ "${SERVICE/td-/}" = "$SPLIT" ]]; then
+                founded_service="true"
+                break
+            fi
+        done
+
+        if [[ "$founded_service" = "false" ]]; then
+            SCREEN_SERVICES+=("${SERVICE}")
+        fi
+    done
+
+    start_containers
+    start_services "${TMUX_SERVICES[@]}"
+
+    tmux source-file $TMUX_PATH_CONFIG
+    tmux new-session -d -s $TMUX_SESION -n "Truedat"
+    tmux select-layout -t truedat:0 main-vertical
+    tmux split-window -h -t truedat:0 -p 6
+
+    if [ ${#TMUX_SERVICES[@]} -gt 0 ]; then
+        TERMINAL_SIZE=$((WINDOW_TOTAL_HEIGHT / ${#TMUX_SERVICES[@]}))
+
+        for i in "${!TMUX_SERVICES[@]}"; do
+            tmux split-window -v -t truedat:0
+
+            SERVICE="${TMUX_SERVICES[$i]}"
+            SERVICE_NAME="td-${SERVICE}"
+            COMMAND="cd $BACK_PATH/$SERVICE_NAME && iex --sname ${SERVICE} -S mix phx.server"
+
+            add_terminal_to_tmux_session "$i" "$COMMAND"
+        done
+    fi
+
+    add_terminal_to_tmux_session "$(tmux list-panes -t truedat | awk 'END {print $1 + 0}')" "trus --start-front"
+    add_terminal_to_tmux_session "$(($(tmux list-panes -t truedat | awk 'END {print $1 + 0}') + 1))" "source tools 'Truedat Utils (TrUs)'; print_semiheader 'Truedat'; print_message 'Truedat está arrancado' '$COLOR_PRIMARY' 1; print_message 'Para acceder a la session, utiliza \"trus --attach\"' '$COLOR_SECONDARY' 2;"
+    tmux select-pane -t truedat:0."$(($(tmux list-panes -t truedat | awk 'END {print $1 + 0}') - 1))"
+
+    go_to_session $TRUEDAT
+}
+
+kill_truedat() {
+    print_header
+    print_semiheader "Matando procesos 'mix' (elixir)"
+    eval "pkill -9 mix $REDIRECT"
+
+    print_semiheader "Matando sesiones TMUX"
+    eval "tmux kill-server $REDIRECT"
+
+    print_semiheader "Matando sesiones Screen"
+    eval "screen -ls | grep -oP \"^\s*\K\d+\.(?=[^\t])\" | xargs -I {} screen -X -S {} quit $REDIRECT"
+    eval "screen -wipe $REDIRECT"
+
+    print_semiheader "Matando front"
+    eval "pkill -9 $(pgrep -f \"yarn\") $REDIRECT"
+
+}
+
+
+### Gestion de Kong
 
 get_service_port() {
     local SERVICE_NAME=$1
@@ -842,9 +1837,7 @@ activate_kong() {
     print_message "Se va a actualizar el archivo $TD_WEB_DEV_CONFIG para que apunte a Kong" "$COLOR_SECONDARY" 3
     print_message "Se van a actualizar las rutas de Kong" "$COLOR_SECONDARY" 3
 
-    print_question "Se va a activar Kong"
-
-    if [[ $(get_print_question_response) == 1 ]]; then   
+    if print_question "Se va a activar Kong" = 0; then   
         sed -i 's/USE_KONG=false/USE_KONG=true/' "$PATH_GLOBAL_CONFIG"
 
         source $PATH_GLOBAL_CONFIG
@@ -905,10 +1898,8 @@ deactivate_kong() {
     print_message "Kong" "$COLOR_TERNARY" 4
     print_message "Se va a actualizar el archivo $TD_WEB_DEV_CONFIG para que se encargue de enrutar td-web" "$COLOR_SECONDARY" 3
 
-    print_question "Se va a desactivar Kong"
-
-    if [[ $(get_print_question_response) == 1 ]]; then   
-            sed -i 's/USE_KONG=true/USE_KONG=false/' "$PATH_GLOBAL_CONFIG"
+    if print_question "Se va a desactivar Kong" = 0; then   
+        sed -i 's/USE_KONG=true/USE_KONG=false/' "$PATH_GLOBAL_CONFIG"
         source $PATH_GLOBAL_CONFIG
 
         rm -f $BACK_PATH/kong_routes
@@ -1093,541 +2084,260 @@ deactivate_kong() {
     fi
 }
 
-start_containers() {
+config_kong() {
     print_header
-    print_semiheader "Arrancando..."
+    print_semiheader "Kong"
+    print_message "¿Quién quieres que enrute, Kong(k) o td-web(w)? (k/w)" "$COLOR_PRIMARY" 1
+    read -r install_kong
 
-    cd $DEV_PATH
+    local router=$(normalize_text "$install_kong")
 
-    for container in "${CONTAINERS[@]}"; do
-        eval "docker-compose up -d '${container}' $REDIRECT"
-    done
-
-    if "$USE_KONG" = true ; then
-        eval "docker-compose up -d '${container}' $REDIRECT"            
-    fi
-}
-
-stop_docker() {
-    print_header
-    print_semiheader "Apagando..."
-    cd "$DEV_PATH"
-
-    for container in "${CONTAINERS[@]}"; do
-        eval "docker stop '${container}' $REDIRECT"                    
-    done
-}
-
-start_services() {
-    local SERVICES_TO_IGNORE=("$@")
-    local SERVICES_TO_START=()
-
-    for SERVICE in "${SERVICES[@]}"; do
-        SERVICE_NAME="${SERVICE#td-}"
-        if [[ ! " ${SERVICES_TO_IGNORE[*]} " =~ $SERVICE_NAME ]]; then
-            SERVICES_TO_START+=("$SERVICE")
+    if [ ! "$router" == "" ]; then
+        if [ "$router" == "k" ]; then
+            activate_kong
+        elif [ "$router" == "w" ]; then
+            deactivate_kong
         fi
-    done
-
-    for SERVICE in "${SERVICES_TO_START[@]}"; do
-        screen -h 10000 -mdS "$SERVICE" bash -c "cd $BACK_PATH/$SERVICE && iex --sname ${SERVICE#td-} -S mix phx.server"
-    done
-
-    print_message "Servicios arrancados:" "$COLOR_PRIMARY" 1
-    screen -ls | awk '/\.td-/ {print $1}' | sed 's/\.\(td-[[:alnum:]]*\)/ => \1/'
+    fi 
 }
 
-start_front() {
-    cd "$FRONT_PATH"/td-web
-    yarn start
-}
 
-add_terminal_to_tmux_session() {
-    local PANEL=$1
-    local COMMAND=$2
-    tmux select-pane -t truedat:0."$PANEL"
-    tmux send-keys -t truedat:0."$PANEL" "${COMMAND}" C-m
-}
+###### Logica inicial
+### Menus principales
+### Subprincipales 
 
-start_truedat() {
-    local TMUX_SERVICES=("$@")
-    local SCREEN_SERVICES=()
-    local WINDOW_TOTAL_HEIGHT
-    local WINDOW_TOTAL_WIDTH
-    local SMALL_COLUMN
-    local LARGE_COLUMN
-    local TERMINAL_SIZE
-
-    WINDOW_TOTAL_HEIGHT=$(tmux display-message -p '#{window_height}')
-    WINDOW_TOTAL_WIDTH=$(tmux display-message -p '#{window_width}')
-    SMALL_COLUMN=$((WINDOW_TOTAL_WIDTH / 4))
-    LARGE_COLUMN=$((WINDOW_TOTAL_WIDTH / 4 * 3))
-    PRINCIPAL_TERMINAL_HEIGHT=$((WINDOW_TOTAL_HEIGHT / 4 * 3))
-
-    kill_truedat
-
-    for SERVICE in "${SERVICES[@]}"; do
-        local founded_service="false"
-        SERVICE=${SERVICE/td-/}
-        for SPLIT in "${TMUX_SERVICES[@]}"; do
-            if [[ "${SERVICE/td-/}" = "$SPLIT" ]]; then
-                founded_service="true"
-                break
-            fi
-        done
-
-        if [[ "$founded_service" = "false" ]]; then
-            SCREEN_SERVICES+=("${SERVICE}")
-        fi
-    done
-
-    start_containers
-    start_services "${TMUX_SERVICES[@]}"
-
-    tmux source-file $TMUX_PATH_CONFIG
-    tmux new-session -d -s $TRUEDAT -n "Truedat"
-    tmux select-layout -t truedat:0 main-vertical
-    tmux split-window -h -t truedat:0 -p 6
-
-    if [ ${#TMUX_SERVICES[@]} -gt 0 ]; then
-        TERMINAL_SIZE=$((WINDOW_TOTAL_HEIGHT / ${#TMUX_SERVICES[@]}))
-
-        for i in "${!TMUX_SERVICES[@]}"; do
-            tmux split-window -v -t truedat:0
-
-            SERVICE="${TMUX_SERVICES[$i]}"
-            SERVICE_NAME="td-${SERVICE}"
-            COMMAND="cd $BACK_PATH/$SERVICE_NAME && iex --sname ${SERVICE} -S mix phx.server"
-
-            add_terminal_to_tmux_session "$i" "$COMMAND"
-        done
-    fi
-
-    add_terminal_to_tmux_session "$(tmux list-panes -t truedat | awk 'END {print $1 + 0}')" "trus -sf"
-    add_terminal_to_tmux_session "$(($(tmux list-panes -t truedat | awk 'END {print $1 + 0}') + 1))" "source tools 'Truedat Utils (TrUs)'; print_semiheader 'Truedat'; print_message 'Truedat está arrancado' '$COLOR_PRIMARY' 1; print_message 'Para acceder a la session, utiliza \"trus -at\"' '$COLOR_SECONDARY' 2;"
-    tmux select-pane -t truedat:0."$(($(tmux list-panes -t truedat | awk 'END {print $1 + 0}') - 1))"
-
-    go_to_session $TRUEDAT
-}
-
-get_token() {
-    response=$(do_api_call \
-        "" \
-        "localhost:8080/api/sessions/" \
-        "" \
-        "--data '{\"access_method\": \"alternative_login\",\"user\": {\"user_name\": \"admin\",\"password\": \"patata\"}}'")
-    token=$(echo "$response" | jq -r '.token')
-
-    echo "$token"
-}
-
-load_structures() {
-    local path=$1
-    local system="$2"
-    local token
-    token=$(get_token)
-    path=$(eval echo "$1")
-    cd "$path"
-    do_api_call \
-        "$token" \
-        "http://localhost:4005/api/systems/${system}/metadata" \
-        "POST" \
-        "-F \"data_structures=@structures.csv\" -F \"data_structure_relations=@relations.csv\""
-}
-
-load_linages() {
-    local path=$
-    local token
-
-    path=$(eval echo "$1")
-    token=$(get_token)
-
-    cd "$path"
-
-    do_api_call \
-        "$token" \
-        "http://localhost:4005/api/units/test" \
-        "PUT" \
-        "-F \"nodes=@nodes.csv\" -F \"rels=@rels.csv\""
-}
-
-help() {
-    local option=$(normalize_text "${1:-""}")
-
-    case "$option" in
-    "--start")
-        print_message "Arranca Truedat." "$COLOR_SECONDARY"
-        SELECTED_ANIMATION="BOMB"
-        
-        print_message_with_animation "Animación de ejemplo" "$COLOR_SECONDARY" 2
-        print_message "Arranca Truedat." "$COLOR_SECONDARY"
-
-        print_message "Levanta los contenedores de Docker, crea una sesion de Screen por servicio y arranca el frontal." "$COLOR_SECONDARY"
-        print_message "Todo en una sesion de Tmux" "$COLOR_SECONDARY"
-        ;;
-
-    "--start-containers")
-        print_message "Levanta los contenedores de Docker de Truedat" "$COLOR_SECONDARY"
-        ;;
-
-    "--start-services")
-        print_message "Levanta los servicios de Truedat" "$COLOR_SECONDARY"
-        ;;
-
-    "--stop-containers")
-        print_message "Para los servicios de Truedat" "$COLOR_SECONDARY"
-        ;;
-
-    "--start-front")
-        print_message "Levanta el frontal de Docker de Truedat" "$COLOR_SECONDARY"
-        ;;
-
-    "--start")
-        print_message "Levanta Truedat" "$COLOR_SECONDARY"
-        ;;
-
-    "--kill-truedat")
-        print_message "Finaliza forzosamente todos los procesos lanzados para Truedat (screen, tmux, mix y yarn)" "$COLOR_SECONDARY"
-        ;;
-
-    "--install")
-        print_message "Instala Truedat en el equipo. " "$COLOR_SECONDARY"
-        ;;
-
-    "--ddbb")
-        print_message "Operaciones de BDD:" "$COLOR_SECONDARY"
-        print_message "--download-test: Descarga SOLO el backup de la bdd de test" "$COLOR_TERNARY" 1
-        print_message "--download-update: Además de descargar el backup de test, lo aplica a las bdd locales" "$COLOR_TERNARY" 1
-        print_message "--local-update: Aplica a las bdd locales el backup de una carpeta indicada" "$COLOR_TERNARY" 1
-        print_message "--local-backup: Crea un backup de la bdd local" "$COLOR_TERNARY" 1
-        print_message "--clean_local_backup_menu: Para borrar backups de bdd" "$COLOR_TERNARY" 1
-        ;;
-
-    "--reindex")
-        print_message "Reindexa los indices de Elasticsearch." "$COLOR_SECONDARY"
-        ;;
-
-    "--update-repos")
-        print_message "Actualiza todos los repositorios de Truedat." "$COLOR_SECONDARY"
-        print_message "--back" "$COLOR_TERNARY" 1
-        print_message "--front" "$COLOR_TERNARY" 1
-        print_message "--libs" "$COLOR_TERNARY" 1
-        print_message "--all" "$COLOR_TERNARY" 1
-        ;;
-
-    "--create-ssh")
-        print_message "Hace backup de las claves ssh existentes en ~/.ssh, crea unas nuevas y las registra" "$COLOR_SECONDARY"
-        ;;
-
-    "--kong")
-        print_message "Sección para la gestion de Kong" "$COLOR_SECONDARY"
-        ;;
-
-    "--kong-routes")
-        print_message "Actualiza las rutas de Kong (solo disponible si kong está habilitado)" "$COLOR_SECONDARY"
-        ;;
-
-    "--config_kong")
-        print_message "Habilita/deshabilita Kong (usar con cuidaito)" "$COLOR_SECONDARY"
-        ;;
-
-    "--link-modules")
-        print_message "Linkea los modulos de td-web-modules con td-web" "$COLOR_SECONDARY"
-        ;;
-
-    "--yarn-test")
-        print_message "Lanza los test del frontal paquete a paquete (EN CONSTRUCCION)" "$COLOR_SECONDARY"
-        ;;
-
-    "--load-structures")
-        print_message "Carga estructuras a partir de csv. Los parámetros son:" "$COLOR_SECONDARY"
-        print_message "<path>: Ruta de la carpeta de los csv. Debe haber 2, uno llamado 'relations.csv' y otro llamado 'structures.csv'" "$COLOR_TERNARY" 1
-        print_message "<system>: El external id del sistema en Truedat" "$COLOR_TERNARY" 1 "after"
-        ;;
-
-    "--load-lineage")
-        print_message "Carga linages a partir de csv. Los parámetros son:" "$COLOR_SECONDARY"
-        print_message "<path>: Ruta de la carpeta de los csv. Debe haber 2, uno llamado 'nodes.csv' y otro llamado 'rels.csv'" "$COLOR_TERNARY" 1 "after"
-        ;;
-
-    "--attach")
-        print_message "Si se ha arrancado Truedat (con '-s' o '--start') entra en la session de tmux" "$COLOR_SECONDARY"
-        ;;
-
-    "--detach")
-        print_message "Si se ha arrancado Truedat (con '-s' o '--start'), para salir de la sesion de tmux sin cerrarla " "$COLOR_SECONDARY"
-        ;;
-
-    "--rest")
-        print_message "Hace una llamada REST a un api de Truedat que necesite token de login" "$COLOR_SECONDARY"
-        print_message "<url>: URL del API" "$COLOR_TERNARY" 1
-        print_message "<rest_method>: Verbo de la llamada del API" "$COLOR_TERNARY" 1
-        print_message "<params>: Parámetros de la llamada (opcional)" "$COLOR_TERNARY" 1 "after"
-        ;;
-
-    "--start-containers")
-        print_message "Levanta los contenedores de Truedat" "$COLOR_SECONDARY"
-        ;;
-
-    "--start-services")
-        print_message "Levanta los servicios de Truedat" "$COLOR_SECONDARY"
-        ;;
-
-    "--start-front")
-        print_message "Levanta el frontal de Truedat" "$COLOR_SECONDARY"
-        ;;
-
-    "--all")
-        print_message "Se lanzan todas las opciones." "$COLOR_SECONDARY"
-        print_message "Si se desea lanzar Truedat completo, pero se necesita visualizar terminales de servicios en concreto" "$COLOR_TERNARY"
-        print_message "Hay que lanzar 'trus -s <servicio1>, <servicio2> ...' (sin el prefijo 'td-')" "$COLOR_TERNARY"
-        ;;
-
-    "--download-test")
-        print_message "Descarga SOLO el backup de la bdd de test" "$COLOR_SECONDARY"
-        ;;
-
-    "--download-update")
-        print_message "Además de descargar el backup de test, lo aplica a las bdd locales" "$COLOR_SECONDARY"
-        ;;
-
-    "--local-update")
-        print_message "Aplica a las bdd locales el backup de una carpeta indicada" "$COLOR_SECONDARY"
-        ;;
-
-    "--clean_local_backup_menu")
-        print_message "--clean_local_backup_menu: Para borrar backups de bdd" "$COLOR_TERNARY" 1
-        ;;
-
-    "--local-backup")
-        print_message "Crea un backup de la bdd local" "$COLOR_SECONDARY"
-        ;;
-
-    "--back")
-        print_message "Actualiza los repositorios de back" "$COLOR_SECONDARY"
-        ;;
-
-    "--front")
-        print_message "Actualiza los repositorios de front" "$COLOR_SECONDARY"
-        ;;
-
-    "--libs")
-        print_message "Actualiza los repositorios de librerias" "$COLOR_SECONDARY"
-        ;;
-
-    "--help")
-        print_message "Muestra la ayuda completa" "$COLOR_SECONDARY"
-        ;;
-
-    "volver")
-        print_message "Vuelve al menú anterior" "$COLOR_SECONDARY"
-        ;;
-
-    "salir")
-        print_message "Salir de TrUs" "$COLOR_SECONDARY"
-        ;;
-
-    "*" | "")
-        print_header
-        print_semiheader "Acciones principales"
-
-        print_message "-s | --start: " "$COLOR_PRIMARY" 1 "no"
-        print_message "Arranca Truedat." "$COLOR_SECONDARY"
-        print_message "Levanta los contenedores de Docker, crea una sesion de Screen por servicio y arranca el frontal." "$COLOR_TERNARY" 2
-        print_message "Cada accion se realiza en una terminal creada con Tmux. Los parámetros disponibles son:" "$COLOR_TERNARY" 2
-        print_message "<servicios>: Lista de uno o mas servicios que arrancaran en consolas por separado en Tmux. El resto se lanzan en segundo plano con Screen" "$COLOR_QUATERNARY" 3 "after"
-
-        print_message "-sc | --start-containers: " "$COLOR_PRIMARY" 1 "no"
-        print_message "Levanta los contenedores de Docker de Truedat" "$COLOR_SECONDARY" 0 "after"
-
-        print_message "-ss | --start-services: " "$COLOR_PRIMARY" 1 "no"
-        print_message "Levanta los servicios de Truedat. Los parámetros disponibles son:" "$COLOR_SECONDARY"
-        print_message "<vacío> | <servicio> | <servicio1> <servicio2> <servicio3>...:" "$COLOR_TERNARY" 2
-        print_message "Sin nada, levanta todos los servicios. Con uno o varios servicios (sin el prefijo 'td-') levanta todos los servicios, IGNORANDO los servicios indicados (para poder arrancarlos manualmente)" "$COLOR_TERNARY" 2 "after"
-
-        print_message "-st | --stop-services": "$COLOR_PRIMARY" 1 "no"
-        print_message "Para los servicios de Truedat" "$COLOR_SECONDARY"
-        print_message "<vacío>: Para todos los servicios" "$COLOR_TERNARY" 2
-        print_message "<servicio> | <servicio1> <servicio2> <servicio3>...: Para uno o varios servicios indicados (sin el prefijo 'td-')" "$COLOR_TERNARY" 2 "after"
-
-        print_message "-sf | --start-front: " "$COLOR_PRIMARY" 1 "no"
-        print_message "Levanta el frontal de Truedat" "$COLOR_SECONDARY" 0 "after"
-
-        print_message "-k | --kill: " "$COLOR_PRIMARY" 1 "no"
-        print_message "Finaliza forzosamente todos los procesos lanzados para Truedat (screen, tmux, mix y yarn)" "$COLOR_SECONDARY" 0 "after"
-
-        print_semiheader "Instalación, actualización y mantenimiento"
-
-        print_message "-i | --install: " "$COLOR_PRIMARY" 1 "no"
-        print_message "Instala Truedat en el equipo. " "$COLOR_SECONDARY" 0 "no"
-        print_message "Requisitos previos a la instalación: " "$COLOR_SECONDARY"
-        print_message "- Configuración AWS: Un administrador de AWS te tiene que dar de alta y pasarte el 'Access Key' y el Secret Access Key'" "$COLOR_TERNARY" 2
-        print_message "- ~/.kube/config: Debido a que contiene info sensible, no se puede meter en el script para que se cree automaticamente." "$COLOR_TERNARY" 2
-        print_message "Alguien del equipo debe pasartelo" "$COLOR_WARNING" 3 "both"
-        print_message "- Claves SSH: Tienes que tener creada una clave SSH (el script chequea que la clave se llame 'truedat'). La puedes crear con 'trus -cr'" "$COLOR_TERNARY" 2
-        print_message "RECUERDA que tiene que estar registrada en el equipo y en Gitlab ANTES de la instalación." "$COLOR_ERROR" 3 "both"
-
-        print_message "-d | --ddbb: " "$COLOR_PRIMARY" 1 "no"
-        print_message "Descarga la base de datos de test al equipo. Los parámetros disponibles son:" "$COLOR_SECONDARY"
-        print_message "-d | --download-test: Descarga SOLO el backup de la bdd de test" "$COLOR_TERNARY" 2
-        print_message "-du | --download-update: Además de descargar el backup de test, lo aplica a las bdd locales" "$COLOR_TERNARY" 2
-        print_message "-lu | --local-update: Aplica a las bdd locales el backup de una carpeta indicada" "$COLOR_TERNARY" 2
-        print_message "-lb | --local-backup: Crea un backup de la bdd local" "$COLOR_TERNARY" 2 "after" "after"
-
-        print_message "-r | --reindex: " "$COLOR_PRIMARY" 1 "no"
-        print_message "Reindexa los indices de Elasticsearch. Los parámetros disponibles son:" "$COLOR_SECONDARY"
-        print_message " -r: Borra los indices existentes antes de reindexar" "$COLOR_TERNARY" 2 "after"
-
-        print_message "-ur | --update-repos: " "$COLOR_PRIMARY" 1 "no"
-        print_message "Actualiza todos los repositorios de Truedat." "$COLOR_SECONDARY"
-        print_message "-b | --back | -f | --front | -l | --libs | -a | --all: Actualiza los repos indicados (Elegir una opción)" "$COLOR_TERNARY" 2 "after"
-
-        print_semiheader "Importantes, pero no tanto"
-
-        print_message "-cs | --create-ssh: " "$COLOR_PRIMARY" 1 "no"
-        print_message "Hace backup de las claves ssh existentes en ~/.ssh, crea unas nuevas y las registra" "$COLOR_SECONDARY"
-        print_message "Siempre busca las claves llamadas 'truedat'. Si ya exis te una, hace un backup, borra y crea una nueva." "$COLOR_ERROR" 2 "after"
-
-        print_message "-kr | --kong-routes: " "$COLOR_PRIMARY" 1 "no"
-        print_message "Actualiza las rutas de Kong" "$COLOR_SECONDARY" 0 "after"
-
-        print_message "--config_kong: " "$COLOR_PRIMARY" 1 "no"
-        print_message "Habilita/deshabilita Kong (usar con cuidaito)" "$COLOR_SECONDARY" 0 "after"
-
-        print_message "-l | --link-modules: " "$COLOR_PRIMARY" 1 "no"
-        print_message "Linkea los modulos de td-web-modules con td-web" "$COLOR_SECONDARY" 0 "after"
-
-        print_message "-yt | --yarn-test: " "$COLOR_PRIMARY" 1 "no"
-        print_message "Lanza los test del frontal paquete a paquete, Los parámetros disponibles son:" "$COLOR_SECONDARY"
-        print_message "<paquetes>: Lista de uno o mas paquetes a los que lanzar los test. Si no se indica, se lanza en todos." "$COLOR_TERNARY" 2 "after"
-
-        print_message "-ls | --load-structures: " "$COLOR_PRIMARY" 1 "no"
-        print_message "Carga estructuras a partir de csv. Los parámetros son:" "$COLOR_SECONDARY"
-        print_message "<path>: Ruta de la carpeta de los csv. Debe haber 2, uno llamado 'relations.csv' y otro llamado 'structures.csv'" "$COLOR_TERNARY" 2
-        print_message "<system>: El external id del sistema en Truedat" "$COLOR_TERNARY" 2 "after"
-
-        print_message "-ll | --load-linage: " "$COLOR_PRIMARY" 1 "no"
-        print_message "Carga linages a partir de csv. Los parámetros son:" "$COLOR_SECONDARY"
-        print_message "<path>: Ruta de la carpeta de los csv. Debe haber 2, uno llamado 'nodes.csv' y otro llamado 'rels.csv'" "$COLOR_TERNARY" 2 "after"
-
-        print_message "--rest: " "$COLOR_PRIMARY" 1 "no"
-        print_message "Hace llamadas sencillas que necesitan token de login a APIs usando curl. Los parámetros son:" "$COLOR_SECONDARY"
-        print_message "<url>: URL del API" "$COLOR_TERNARY" 2
-        print_message "<rest_method>: Verbo de la llamada del API" "$COLOR_TERNARY" 2
-        print_message "<params>: Parámetros de la llamada (opcional)" "$COLOR_TERNARY" 2 "after"
-
-        print_message "-at | --attach: " "$COLOR_PRIMARY" 1 "no"
-        print_message "Si se ha arrancado Truedat (con '-s' o '--start') entra en la session de tmux" "$COLOR_SECONDARY" 0 "after"
-
-        print_message "-dt | --detach: " "$COLOR_PRIMARY" 1 "no"
-        print_message "Si se ha arrancado Truedat (con '-s' o '--start'), para salir de la sesion de tmux sin cerrarla " "$COLOR_SECONDARY" 0 "after"
-        ;;
-    esac
-
-}
-
-main_menu() {
+main_menu(){    
     local option=$(print_menu "${MAIN_MENU_OPTIONS[@]}")
 
+    option=$(extract_menu_option "$option")
+
     case "$option" in
-    "--start")
-        start_menu
-        ;;
+        1) 
+            configure_menu 
+            ;;
 
-    "--ddbb")
-        ddbb_menu
-        ;;
+        2) 
+            principal_actions_menu
+            ;;
 
-    "--update-repos")
-        repo_menu
-        ;;
+        3) 
+            secondary_actions_menu
+            ;;
 
-    "-h" | "--help")
-        trus "$option"
-        ;;
+        4) 
+            help
+            ;; 
 
-    "Más...")
-        secondary_menu
-        ;;
-
-    "Salir")
-        clear
-        tput reset
-        exit 0
-        ;;
+        0)
+            clear
+            tput reset
+            exit 0
+            ;;
     esac
 }
 
-secondary_menu() {
-    local option=$(print_menu "${SECONDARY_MENU_OPTIONS[@]}")
+configure_menu(){
+    
+    local option=$(print_menu "${CONFIGURE_MENU_OPTIONS[@]}")
+
+    option=$(extract_menu_option "$option")
 
     case "$option" in
-    "--reindex" | "--create-ssh" | "--link-modules" | "--yarn-test" | "--load-structures" | "--load-linage" | "--rest" | "--attach" | "--detach")
-        trus "$option"
-        ;;
+        1) 
+            package_installation
+            ;;
 
-    "--kong")
-        kong_menu
-        ;;
+        2) 
+            install_zsh
+            configure_omz
+            ;;
 
-    "Volver")
-        main_menu
-        ;;
+        3) 
+            configuration_menu
+            ;;
+
+        4) 
+            splash_loader
+            ;;
+
+        5) 
+            swap
+            ;;
+
+        6) 
+            animation_menu
+            ;;
+
+        7) 
+            echo "PENDIENTE"
+            ;;
+
+        8) 
+            install_trus
+            ;;
+
+        9) 
+            preinstallation
+            ;;
+
+         0)
+            main_menu
+            ;;
     esac
 }
 
-start_menu() {
-    local option=$(print_menu "${START_MENU_SUBOPTIONS[@]}")
+configuration_menu(){
+    
+    local option=$(print_menu "${CONFIGURATION_MENU_OPTIONS[@]}")
+
+    option=$(extract_menu_option "$option")
 
     case "$option" in
-    "--start-containers" | "--start-services" | "--start-front")
-        trus "$option"
-        ;;
+        1) 
+            zsh_config
+            ;;
 
-    "--all")
-        trus -s
-        ;;
+        2) 
+            tmux_config
+            ;;
 
-    "Volver")
-        main_menu
-        ;;
-    "*")
-        echo "option => $option"
-        ;;
+        3)  
+            tlp_config
+            ;;
+
+        4) 
+            zsh_config
+            tmux_config
+            tlp_config
+            ;;
+        
+        0)
+            configuration_menu
+            ;;
     esac
 }
 
-ddbb_menu() {
-    local option=$(print_menu "${DDBB_MENU_SUBOPTIONS[@]}")
+animation_menu(){
+    
+    local option=$(print_menu "${ANIMATION_MENU_OPTIONS[@]}")
+
+    option=$(extract_menu_option "$option")
 
     case "$option" in
-    "--download-test")
-        trus -d -d
-        ;;
+        0)
+            configuration_menu
+            ;;
+        
+        *)
+            sed -i "s/^SELECTED_ANIMATION=.*/SELECTED_ANIMATION=$option/" "$PATH_GLOBAL_CONFIG"            
+            ;;
+    esac
+}
 
-    "--download-update")
-        trus -d -du
-        ;;
+principal_actions_menu(){
+    
+    local option=$(print_menu "${PRINCIPAL_ACTIONS_MENU_OPTIONS[@]}")
 
-    "--local-update")
-        local_backup_menu
-        ;;
+    option=$(extract_menu_option "$option")
 
-    "--local-backup")
-        trus -d -lb
-        ;;
+    case "$option" in
+        1) 
+            start_menu
+            ;;
 
-    "--clean_local_backups")
-        clean_local_backup_menu
-        ;;
+        2) 
+            kill_truedat
+            ;;
 
-    "Volver")
-        main_menu
-        ;;
+        3) 
+            ddbb_menu
+            ;;
 
-    "*")
-        echo "option => $option"
-        ;;
+        4) repo_menu
+            ;; 
+
+        0)
+            main_menu
+            ;;
+    esac
+}
+
+start_menu(){
+    
+    local option=$(print_menu "${START_MENU_OPTIONS[@]}")
+
+    option=$(extract_menu_option "$option")
+
+    case "$option" in
+        1) 
+            trus -s
+            ;;
+
+        2) 
+            trus -sc
+            ;;
+
+        3) 
+            trus -ss
+            ;;
+
+        4) 
+            trus -sf
+            ;; 
+
+        0)
+            principal_actions_menu
+            ;;
+    esac
+}
+ 
+secondary_actions_menu(){
+    
+    local option=$(print_menu "${SECONDARY_ACTIONS_MENU_OPTIONS[@]}")
+
+    option=$(extract_menu_option "$option")
+
+    case "$option" in
+        1) 
+            trus --reindex
+            ;;
+
+        2) 
+            trus --create-ssh
+            ;;
+
+        3) 
+            kong_menu
+            ;;
+
+        4) 
+            trus --link-modules
+            ;;
+
+        5) 
+            trus --rest
+            ;;
+
+        6) 
+            trus --load-structures
+            ;;
+
+        7) 
+            trus --load-linage
+            ;;
+
+        8) 
+            trus --attach
+            ;;
+
+        9) 
+            trus --detach
+            ;;  
+
+        
+        0)
+            main_menu
+            ;;
     esac
 }
 
@@ -1637,7 +2347,7 @@ local_backup_menu(){
     local option=$(print_menu "${backups[@]}")
 
     case "$option" in
-        "Volver")
+        0)
             ddbb_menu
             ;;
 
@@ -1657,14 +2367,12 @@ clean_local_backup_menu(){
     local option=$(print_menu "${backups[@]}")
 
     case "$option" in
-        "Volver")
+        0)
             ddbb_menu
             ;;
 
         "Borrar todo")
-            print_question "Se van a borrar todos los backups de $DDBB_BASE_BACKUP_PATH"
-
-            if [[ $(get_print_question_response) == 1 ]]; then   
+            if print_question "Se van a borrar todos los backups de $DDBB_BASE_BACKUP_PATH" = 0; then   
                 local files=${DDBB_BASE_BACKUP_PATH}"/*"
                 
                 for FILENAME in $files; do
@@ -1679,265 +2387,399 @@ clean_local_backup_menu(){
             ;;
 
         "*")
-            print_question "Se van a borrar el backup $option"
-
-            if [[ $(get_print_question_response) == 1 ]]; then
+            if print_question "Se van a borrar el backup $option" = 0; then
                 rm -fr $option
             fi            
             ;; 
     esac
 }
 
-repo_menu() {
-    local option=$(print_menu "${REPO_MENU_SUBOPTIONS[@]}")
+ddbb_menu(){
+    
+    local option=$(print_menu "${DDBB_MENU_OPTIONS[@]}")
+
+    option=$(extract_menu_option "$option")
+
     case "$option" in
-    "--back")
-        trus -ur -b
+        1) 
+            trus -d -d
+            ;;
+
+        2) 
+            trus -d -du
+            ;;
+
+        3) 
+            local_backup_menu
+            ;;
+
+        4) 
+            trus -d -lu
+            ;;
+
+        5) 
+            clean_local_backup_menu
+            ;; 
+
+        0)
+    esac
+}
+
+repo_menu(){
+    
+    local option=$(print_menu "${REPO_MENU_OPTIONS[@]}")
+
+    option=$(extract_menu_option "$option")
+
+    case "$option" in
+       "--back")
+        trus --update-repos --back
         ;;
 
     "--front")
-        trus -ur -f
+        trus --update-repos --front
         ;;
 
     "--libs")
-        trus -ur -l
+        trus --update-repos --libs
         ;;
 
     "--all")
-        trus -ur -a
+        trus --update-repos --all
         ;;
 
-    "Volver")
-        main_menu
-        ;;
-    "*")
-        echo "option => $option"
-        ;;
+        0)
     esac
 }
 
-kong_menu() {
-    local option=$(print_menu "${KONG_MENU_SUBOPTIONS[@]}")
+kong_menu(){
+    
+    local option=$(print_menu "${KONG_MENU_OPTIONS[@]}")
+
+    option=$(extract_menu_option "$option")
+
     case "$option" in
-    "--kong-routes" | "--config_kong")
-        trus "$option"
-        ;;
-
-    "Volver")
-        main_menu
-        ;;
-    "*")
-        echo "option => $option"
-        ;;
-    esac
-}
-
-check_parameters() {
-    good_parameters="false"
-    local command="$1"
-    local parameter1=$(normalize_text "$2")
-    local parameter2=$(normalize_text "$3")
-    local parameter3=$(normalize_text "$4")
-
-    case "$command" in
-    "-i" | "--install" | \
-        "-s" | "--start" | \
-        "-k" | "--kill" | \
-        "-r" | "--reindex" | \
-        "-l" | "--link-modules" | \
-        "-kr" | "--kong-routes" | "--config_kong" | \
-        "-sc" | "--start-containers" | \
-        "-sf" | "--start-front" | \
-        "-dt" | "--dettach" | \
-        "-at" | "--attach" | \
-        "-cs" | "--create-ssh" | \
-        "-h" | "--help")
-        good_parameters="true"
-        ;;
-
-    "-d" | "--ddbb")
-        case "$parameter1" in
-        "-d" | "--download-test" | "-du" | "--download-update" | "-lu" | "--local-update" | "-lb" | "--local-backup")
-            good_parameters="true"
-            ;;
-        esac
-        ;;
-
-    "-ur" | "--update-repos")
-        case "$parameter1" in
-        "-b" | "--back" | "-f" | "--front" | "-l" | "--libs" | "-a" | "--all")
-            good_parameters="true"
-            ;;
-        esac
-        ;;
-
-    "-ss" | "--start-services")
-        if [ -n "$parameter1" ]; then
-            local valid_services=true
-            for service in $parameter1; do
-                local service_name=${service#"td-"}
-
-                if [[ "$service" != "$service_name" ]] && ! [[ "${SERVICES[*]}" =~ ${service_name} ]]; then
-                    valid_services=false
-                    break
-                fi
-            done
-
-            if [ "$valid_services" = true ]; then
-                good_parameters="true"
-            fi
-        else
-            good_parameters="true"
-        fi
-        ;;
-
-    "-ls" | "--load-structures")
-        if [ -n "$parameter1" ] && [ -e "$parameter1" ] && [ -n "$parameter2" ]; then
-            good_parameters="true"
-        fi
-        ;;
-
-    "-ll" | "--load-linages")
-        if [ -n "$parameter1" ] && [ -e "$parameter1" ]; then
-            good_parameters="true"
-        fi
-        ;;
-
-    "--rest")
-        if [ ! -z "$parameter1" ] && [ ! -z "$parameter2" ]; then
-            good_parameters="true"
-        fi
-        ;;
-
-    "-yt" | "--yarn-test")
-        local valid_packages=true
-        for package in $parameter1; do
-            local package_name=${package#"td-"}
-
-            if [[ "$package" != "$package_name" ]] && ! [[ "${packageS[*]}" =~ ${package_name} ]]; then
-                valid_packages=false
-                break
-            fi
-        done
-        if [ "$valid_packages" = true ]; then
-            good_parameters="true"
-        fi
-        ;;
-    esac
-}
-
-#########################################
-####         Lógica inicial
-#########################################
-
-source tools "Truedat Utils (TrUs)" "" "$0" "$HEADER_LOGO"
-
-set_vars
-set_terminal_config
-
-clear
-
-if ! [ -e "$TRUS_PATH" ]; then
-    print_message "Trus no está instalado" "$COLOR_ERROR" 4 "both"
-elif [ -z "$1" ]; then
-    print_truedat_logo
-    sleep 0,5
-    print_header
-    main_menu
-else
-    params=()
-
-    check_parameters "$1" "$2" "$3"
-
-    if [ "$good_parameters" = "true" ]; then
-        case "$1" in
-        "-i" | "--install")
-            install
-            ;;
-
-        "-s" | "--start")
-            shift
-            start_truedat "$@"
-            ;;
-
-        "-d" | "--ddbb")
-            ddbb "$2"
-            ;;
-
-        "-r" | "--reindex")
-            reindex_all $(normalize_text "$2")
-            ;;
-
-        "-k" | "--kill")
-            kill_truedat
-            ;;
-
-        "-cs" | "--create-ssh")
-            create_ssh
-            ;;
-
-        "-ur" | "--update-repos")
-            update_repositories "$2" "$3"
-            ;;
-
-        "-l" | "--link-modules")
-            link_web_modules
-            ;;
-
-        "-kr" | "--kong-routes")
+        1) 
             kong_routes
             ;;
 
-        "--config_kong")
+        2)
             config_kong
-            ;;
+            ;; 
 
-        "-h" | "--help")
-            help $2
+        0)
+            secondary_menu
             ;;
+    esac
+}
 
-        "-sc" | "--start-containers")
-            start_containers
-            ;;
 
-        "-ss" | "--start-services")
-            shift
-            header="$1"
-            shift
-            params_echo="${*}"
-            start_services "$header" "$params_echo"
-            ;;
+ 
+#########################################
+# Install
 
-        "-sf" | "--start-front")
-            start_front "$1"
-            ;;
+install_docker() {
+    aws ecr get-login-password --profile truedat --region eu-west-1 | docker login --username AWS --password-stdin 576759405678.dkr.ecr.eu-west-1.amazonaws.com
 
-        "-ls" | "--load-structures")
-            load_structures "$2" "$3"
-            ;;
+    cd "$DEV_PATH"
+    set -e
+    set -o pipefail
 
-        "-ll" | "--load-linages")
-            load_linages "$2"
-            ;;
+    ip=$(ip -4 addr show docker0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
+    echo SERVICES_HOST="$ip" > local_ip.env
+    sudo chmod 666 /var/run/docker.sock
 
-        "--rest")
-            do_api_call "$2" "$3" "$4"
-            ;;
+    start_containers
 
-        "-at" | "--attach")
-            go_to_session
-            ;;
+    print_message "Contenedores instalados y arrancados" "$COLOR_SECONDARY" 1 "before"
+}
 
-        "-dt" | "--dettach")
-            go_out_session
-            ;;
+set_elixir_versions() {
+    eval "cd $BACK_PATH/td-auth && asdf local elixir 1.14.5-otp-25 $REDIRECT"
+    eval "cd $BACK_PATH/td-audit && asdf local elixir 1.14.5-otp-25 $REDIRECT"
+    eval "cd $BACK_PATH/td-ai && asdf local elixir 1.15 $REDIRECT"
+    eval "cd $BACK_PATH/td-bg && asdf local elixir 1.14.5-otp-25 $REDIRECT"
+    eval "cd $BACK_PATH/td-cluster && asdf local elixir 1.14.5-otp-25 $REDIRECT"
+    eval "cd $BACK_PATH/td-core && asdf local elixir 1.14.5-otp-25 $REDIRECT"
+    eval "cd $BACK_PATH/td-dd && asdf local elixir 1.14.5-otp-25 $REDIRECT"
+    eval "cd $BACK_PATH/td-df && asdf local elixir 1.14.5-otp-25 $REDIRECT"
+    eval "cd $BACK_PATH/td-df-lib && asdf local elixir 1.14.5-otp-25 $REDIRECT"
+    eval "cd $BACK_PATH/td-ie && asdf local elixir 1.14.5-otp-25 $REDIRECT"
+    eval "cd $BACK_PATH/td-lm && asdf local elixir 1.14.5-otp-25 $REDIRECT"
+    eval "cd $BACK_PATH/td-qx && asdf local elixir 1.14.5-otp-25 $REDIRECT"
+    eval "cd $BACK_PATH/td-se && asdf local elixir 1.16 $REDIRECT"
+    print_message "Versiones específicas de Elixir configuradas" "$COLOR_SUCCESS" 2 "both"
+}
 
-        "-yt" | "--yarn-test")
-            shift
-            print_centered_message "EN CONSTRUCCION" "$COLOR_ERROR" "both"
-            # yarn_test "$@"
-            ;;
+#########################################
+# Acciones Principales
 
-        esac
+install() {
+    print_header 
+    print_message "Guia de instalación: https://confluence.bluetab.net/pages/viewpage.action?pageId=136022683" "$COLOR_QUATERNARY" 5 "both"
+
+    if [ ! -e "/tmp/truedat_installation" ]; then
+        print_header
+
+        if [ -f "$SSH_PUBLIC_FILE" ]; then
+            if [ ! -e "$AWSCONFIG" ]; then
+                print_message "ATENCIÓN, SE VA A SOLICITAR LA CONFIGURACIÓN DE AWS 2 VECES" "$COLOR_WARNING" 2 "before"
+                print_message "Una para el perfil predeterminado y otra para el de truedat" "$COLOR_WARNING" 2 "both"
+                print_message "Estos datos te los debe dar tu responsable" "$COLOR_SECONDARY" 2 "both"
+                
+                aws configure
+                aws configure --profile truedat    
+            fi
+
+            aws ecr get-login-password --profile truedat --region eu-west-1 | docker login --username AWS --password-stdin 576759405678.dkr.ecr.eu-west-1.amazonaws.com
+            print_message "Configuración de aws (HECHO)" "$COLOR_SUCCESS" 3 "before"
+
+            asdf plugin add erlang https://github.com/asdf-vm/asdf-erlang.git
+            asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git
+            asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
+            asdf plugin-add yarn
+            KERL_BUILD_DOCS=yes asdf install erlang 25.3
+            asdf install elixir 1.13.4
+            asdf install elixir 1.14.5-otp-25
+            asdf install elixir 1.15
+            asdf install elixir 1.16
+            asdf install nodejs 18.20.3
+            asdf install yarn latest
+            print_message "Instalando plugins y librerias de ASDF (HECHO)" "$COLOR_SUCCESS" 3 "before"
+
+            asdf global erlang 25.3
+            asdf global elixir 1.13.4
+            asdf global nodejs 18.20.3
+            asdf global yarn latest
+            print_message "Configurando ASDF (HECHO)" "$COLOR_SUCCESS" 3 "before"
+
+            #Este eval está porque si se instala el entorno en el WSL de windows, el agente no se mantiene levantado
+            #En linux no es necesario pero no molesta
+            eval "$(ssh-agent -s)"
+            ssh-add $SSH_PRIVATE_FILE
+
+            clone_truedat_project
+
+            cd $DEV_PATH
+            sudo sysctl -w vm.max_map_count=262144
+            sudo cp elastic-search/999-map-count.conf /etc/sysctl.d/
+            print_message "Truedat descargado" "$COLOR_SUCCESS" 3 "before"
+
+            update_repositories "-a" "yes"
+            link_web_modules
+            ddbb "-du"
+            install_docker
+            config_kong
+
+            sudo sh -c '{
+                        echo "##################"
+                        echo "# Añadido por trus"
+                        echo "##################"
+                        echo "127.0.0.1 localhost"
+                        echo "127.0.0.1 $(uname -n).bluetab.net $(uname -n)"
+                        echo "127.0.0.1 redis"
+                        echo "127.0.0.1 postgres"
+                        echo "127.0.0.1 elastic"
+                        echo "127.0.0.1 kong"
+                        echo "127.0.0.1 neo"
+                        echo "127.0.0.1 vault"
+                        echo "0.0.0.0 localhost"
+                        echo "##################"
+                        echo "# Añadido por trus"
+                        echo "##################"
+                    } > /etc/hosts'
+
+
+            touch "/tmp/truedat_installation"
+            print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3 "both"
+            
+            
+
+            if print_question "Si deseas reinstalarlo, puedes hacerlo borrando el archivo '/temp/truedat_installation'" = 0; then
+                rm "/tmp/truedat_installation"
+            fi            
+        else
+            print_message "- Claves SSH (NO CREADAS): Tienes que tener creada una clave SSH (el script chequea que la clave se llame 'truedat') en la carpeta ~/.ssh" "$COLOR_ERROR" 3 "before"
+            print_message "RECUERDA que tiene que estar registrada en el equipo y en Gitlab. Si no, debes crearla con 'trus -cr' y registarla en la web'" "$COLOR_WARNING" 3 "after"
+        fi
+    else
+        print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3 "both"
+        
+        if print_question "Si deseas reinstalarlo, puedes hacerlo borrando el archivo '/temp/truedat_installation'" = 0; then
+            rm "/tmp/truedat_installation"
+            print_message "Archivo '/tmp/truedat_installation' eliminado correctamente" "$COLOR_PRIMARY" 3 "both"
+        fi            
     fi
-fi
+}
+
+clone_truedat_project(){
+    mkdir -p $WORKSPACE_PATH
+    mkdir -p $TRUEDAT_ROOT_PATH
+    mkdir -p $BACK_PATH
+    mkdir -p $BACK_PATH/logs
+    mkdir -p $FRONT_PATH
+    mkdir -p $DEV_PATH
+    
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-ai.git $BACK_PATH/td-ai
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-audit.git $BACK_PATH/td-audit
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-auth.git $BACK_PATH/td-auth
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-bg.git $BACK_PATH/td-bg
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-dd.git $BACK_PATH/td-dd
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-df.git $BACK_PATH/td-df
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-ie.git $BACK_PATH/td-ie
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-qx.git $BACK_PATH/td-qx
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-i18n.git $BACK_PATH/td-i18n
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-lm.git $BACK_PATH/td-lm
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-se.git $BACK_PATH/td-se
+    
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/td-helm.git $BACK_PATH/td-helm
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/clients/demo/k8s.git $BACK_PATH/k8s
+
+    clone_if_not_exists git@github.com:Bluetab/td-df-lib.git $BACK_PATH/td-df-lib
+    clone_if_not_exists git@github.com:Bluetab/td-cache.git $BACK_PATH/td-cache
+    clone_if_not_exists git@github.com:Bluetab/td-core.git $BACK_PATH/td-core
+    clone_if_not_exists git@github.com:Bluetab/td-cluster.git $BACK_PATH/td-cluster
+    
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/front-end/td-web-modules.git $FRONT_PATH/td-web-modules
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/front-end/td-web $FRONT_PATH/td-web
+
+    clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/true-dev.git $DEV_PATH
+    
+}
+
+
+
+#
+#
+#
+# TODO
+# LO QUE HAY A PARTIR DE AQUI
+# HAY QUE TERMINARLO
+#
+#
+#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+###################################################################################################
+###### Lógica inicial
+###################################################################################################
+
+
+clear
+set_terminal_config
+
+
+# if ! [ -e "$TRUS_PATH" ]; then
+#     print_header
+    
+#     if print_question "TrUs no está instalado, pero puedes instalarlo ¿?" = 0; then
+#         install_trus
+#     else    
+#         install_trus
+#     fi
+# elif [ -z "$1" ]; then
+    print_logo
+    sleep 0.5
+    print_header
+    main_menu
+# else
+#     params=()
+#     case "$1" in
+#     "-i" | "--install")
+#         install
+#         ;;
+
+#     "-s" | "--start")
+#         shift
+#         start_truedat "$@"
+#         ;;
+
+#     "-d" | "--ddbb")
+#         ddbb "$2"
+#         ;;
+
+#     "-r" | "--reindex")
+#         reindex_all $(normalize_text "$2")
+#         ;;
+
+#     "-k" | "--kill")
+#         kill_truedat
+#         ;;
+
+#     "-cs" | "--create-ssh")
+#         create_ssh
+#         ;;
+
+#     "-ur" | "--update-repos")
+#         update_repositories "$2" "$3"
+#         ;;
+
+#     "-l" | "--link-modules")
+#         link_web_modules
+#         ;;
+
+#     "-kr" | "--kong-routes")
+#         kong_routes
+#         ;;
+
+#     "-cl" | "--config_kong")
+#         config_kong
+#         ;;
+
+#     "-h" | "--help")
+#         help $2
+#         ;;
+
+#     "-sc" | "--start-containers")
+#         start_containers
+#         ;;
+
+#     "-ss" | "--start-services")
+#         shift
+#         header="$1"
+#         shift
+#         params_echo="${*}"
+#         start_services "$header" "$params_echo"
+#         ;;
+
+#     "-sf" | "--start-front")
+#         start_front "$1"
+#         ;;
+
+#     "-ls" | "--load-structures")
+#         load_structures "$2" "$3"
+#         ;;
+
+#     "-ll" | "--load-linages")
+#         load_linages "$2"
+#         ;;
+
+#     "--rest")
+#         do_api_call "$2" "$3" "$4"
+#         ;;
+
+#     "-at" | "--attach")
+#         go_to_session
+#         ;;
+
+#     "-dt" | "--dettach")
+#         go_out_session
+#         ;;
+
+#     "*")
+#         help
+#         ;;
+#     esac
+# fi
