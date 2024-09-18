@@ -1728,15 +1728,15 @@ kill_truedat() {
     print_semiheader "Matando procesos 'mix' (elixir)"
     eval "pkill -9 mix $REDIRECT"
 
-    print_semiheader "Matando sesiones TMUX"
-    eval "tmux kill-server $REDIRECT"
-
     print_semiheader "Matando sesiones Screen"
     eval "screen -ls | grep -oP \"^\s*\K\d+\.(?=[^\t])\" | xargs -I {} screen -X -S {} quit $REDIRECT"
     eval "screen -wipe $REDIRECT"
 
     print_semiheader "Matando front"
     eval "pkill -9 $(pgrep -f \"yarn\") $REDIRECT"
+
+    print_semiheader "Matando sesiones TMUX"
+    eval "tmux kill-server $REDIRECT"
 
 }
 
