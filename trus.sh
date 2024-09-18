@@ -2716,101 +2716,101 @@ clone_truedat_project(){
 clear
 set_terminal_config
 
-# if ! [ -e "$TRUS_PATH" ]; then
-#     install_trus
-# elif [ -z "$1" ]; then       
-#     print_logo
-#     sleep 0.5
-#     print_header   
-#     main_menu
-# else
-#     params=()
-#     case "$1" in
-#     "-i" | "--install")
-#         install
-#         ;;
+if ! [ -e "$TRUS_PATH" ]; then
+    install_trus
+elif [ -z "$1" ]; then       
+    print_logo
+    sleep 0.5
+    print_header   
+    main_menu
+else
+    params=()
+    case "$1" in
+    "-i" | "--install")
+        install
+        ;;
 
-#     "-s" | "--start")
-#         shift
-#         start_truedat "$@"
-#         ;;
+    "-s" | "--start")
+        shift
+        start_truedat "$@"
+        ;;
 
-#     "-d" | "--ddbb")
-#         ddbb "$2"
-#         ;;
+    "-d" | "--ddbb")
+        ddbb "$2"
+        ;;
 
-#     "-r" | "--reindex")
-#         reindex_all $(normalize_text "$2")
-#         ;;
+    "-r" | "--reindex")
+        reindex_all $(normalize_text "$2")
+        ;;
 
-#     "-k" | "--kill")
-#         kill_truedat
-#         ;;
+    "-k" | "--kill")
+        kill_truedat
+        ;;
 
-#     "-cs" | "--create-ssh")
-#         create_ssh
-#         ;;
+    "-cs" | "--create-ssh")
+        create_ssh
+        ;;
 
-#     "-ur" | "--update-repos")
-#         update_repositories "$2" "$3"
-#         ;;
+    "-ur" | "--update-repos")
+        update_repositories "$2" "$3"
+        ;;
 
-#     "-l" | "--link-modules")
-#         link_web_modules
-#         ;;
+    "-l" | "--link-modules")
+        link_web_modules
+        ;;
 
-#     "-kr" | "--kong-routes")
-#         kong_routes
-#         ;;
+    "-kr" | "--kong-routes")
+        kong_routes
+        ;;
 
-#     "-cl" | "--config_kong")
-#         config_kong
-#         ;;
+    "-cl" | "--config_kong")
+        config_kong
+        ;;
 
-#     "-h" | "--help")
-#         help $2
-#         ;;
+    "-h" | "--help")
+        help $2
+        ;;
 
-#     "-sc" | "--start-containers")
-#         start_containers
-#         ;;
+    "-sc" | "--start-containers")
+        start_containers
+        ;;
 
-#     "-ss" | "--start-services")
-#         shift
-#         header="$1"
-#         shift
-#         params_echo="${*}"
-#         start_services "$header" "$params_echo"
-#         ;;
+    "-ss" | "--start-services")
+        shift
+        header="$1"
+        shift
+        params_echo="${*}"
+        start_services "$header" "$params_echo"
+        ;;
 
-#     "-sf" | "--start-front")
-#         start_front "$1"
-#         ;;
+    "-sf" | "--start-front")
+        start_front "$1"
+        ;;
 
-#     "-ls" | "--load-structures")
-#         load_structures "$2" "$3"
-#         ;;
+    "-ls" | "--load-structures")
+        load_structures "$2" "$3"
+        ;;
 
-#     "-ll" | "--load-linages")
-#         load_linages "$2"
-#         ;;
+    "-ll" | "--load-linages")
+        load_linages "$2"
+        ;;
 
-#     "--rest")
-#         do_api_call "$2" "$3" "$4"
-#         ;;
+    "--rest")
+        do_api_call "$2" "$3" "$4"
+        ;;
 
-#     "-at" | "--attach")
-#         go_to_session
-#         ;;
+    "-at" | "--attach")
+        go_to_session
+        ;;
 
-#     "-dt" | "--dettach")
-#         go_out_session
-#         ;;
+    "-dt" | "--dettach")
+        go_out_session
+        ;;
 
-#     "*")
-#         help
-#         ;;
-#     esac
-# fi
+    "*")
+        help
+        ;;
+    esac
+fi
 
  
