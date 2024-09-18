@@ -18,19 +18,20 @@ HEADER_MESSAGE="Truedat Utils (TrUs)"
 DESCRIPTION_MESSAGE=""
 SWAP_SIZE_MB=$(free --mega | awk '/^Mem:/ {print int($2 + ($2))}')
 USER_HOME=$(eval echo ~"$SUDO_USER")
-TRUS_DIRECTORY=$USER_HOME/.trus/
+TRUS_DIRECTORY=$USER_HOME/.trus
 TRUS_ACTUAL_PATH=./trus.sh
 TRUS_PATH=$TRUS_DIRECTORY/trus.sh
 TRUS_LINK_PATH=/usr/local/bin/trus
 AWS_TEST_CONTEXT="test-truedat-eks"
 TMUX_SESION="truedat"
 INSTALLATION_PACKAGES=("redis-tools" "screen" "tmux" "unzip" "curl" "vim" "build-essential" "git" "libssl-dev" "automake" "autoconf" "libncurses5" "libncurses5-dev" "docker.io" "postgresql-client-14" "jq" "gedit" "xclip" "xdotool" "x11-utils" "winehq-stable" "gdebi-core" "libvulkan1" "libvulkan1:i386" "fonts-powerline" "stress" "bluez" "bluez-tools" "tlp" "lm-sensors" "psensor" "xsltproc" "fop" "xmllint" "bc" "wmctrl" "fzf")
-TRUS_CONFIG="~/trus.config"
+TRUS_CONFIG="$USER_HOME/trus.config"
 
 ### Menus
 MAIN_MENU_OPTIONS=("0 - Salir" "1 - Configurar" "2 - Acciones principales" "3 - Actiones secundarias" "4 - Ayuda")
+
 CONFIGURE_MENU_OPTIONS=("0 - Volver" "1 - Instalación de paquetes y dependencias" "2 - Instalar ZSH y Oh My ZSH" "3 - Archivos de configuración" "4 - Actualizar splash loader" "6 - Actualizar la memoria SWAP (a $(($SWAP_SIZE_MB/1024)) GB)" "7 - Configurar animación de los mensajes" "8 - Configurar colores" "9 - Instala TrUs (Truedat Utils)" "10 - Todo")
-CONFIGURATION_MENU_OPTIONS=("0 - Volver" "1 - ZSH" "2 - TMUX" "3 - TLP" "4 - Todos")
+CONFIGURATION_MENU_OPTIONS=("0 - Volver" "1 - ZSH" "2 - BASH" "3 - TMUX" "4 - TLP" "5 - Todos")
 ANIMATION_MENU_OPTIONS=("0 - Volver" "ARROW" "BOUNCE" "BOUNCING_BALL" "BOX" "BRAILLE" "BREATHE" "BUBBLE" "OTHER_BUBBLE" "CLASSIC_UTF8" "CLASSIC" "DOT" "FILLING_BAR" "FIREWORK" "GROWING_DOTS" "HORIZONTAL_BLOCK" "KITT" "METRO" "PASSING_DOTS" "PONG" "QUARTER" "ROTATING_EYES" "SEMI_CIRCLE" "SIMPLE_BRAILLE" "SNAKE" "TRIANGLE" "TRIGRAM" "VERTICAL_BLOCK")
 PRINCIPAL_ACTIONS_MENU_OPTIONS=("0 - Volver" "1 - Arrancar Truedat" "2 - Matar Truedat" "3 - Operaciones de bdd" "4 - Operaciones de repositorios")
 START_MENU_OPTIONS=("0 - Volver" "1 - Todo" "2 - Solo contenedores" "3 - Solo servicios" "4 - Solo el frontal")
@@ -163,48 +164,55 @@ get_tabs() {
     printf "%*s" $tabs
 }
 
-padding() {
-    local input=$1     
-    local length=$2    
-    local pad_char=${3:-" "}  
-    local direction=${4:-"right"}  
-    local input_length=${#input}  
+generate_separator() {
+    local length=$1
+    local separator=$2
+    
+    printf "%${length}s" | tr ' ' "${separator}"
+}
+ 
+pad_message() {
+    local message=$1
+    local position=${2:-"center"}
+    local separator=${3:-" "}
+    local max_size=${4:-"-1"}
 
-    local final_length=$((length - input_length))
+    local message_length=${#message}
 
-    if [ "$final_length" -le 0 ]; then
-        echo "$input"
+    if [ $max_size -eq -1 ]; then
+        IFS=' ' read -r total_length filled_space <<< "$(message_size "$message")"
     else
-        local padding=""
-        
-        for ((i = 0; i < final_length; i++)); do
-            padding="$padding$pad_char"
-        done
-
-        
-        if [ "$direction" = "right" ]; then
-            echo "$input$padding"
-        elif [ "$direction" = "left" ]; then
-            echo "$padding$input"
-        else 
-            echo "$input"
-        fi            
+        filled_space=$max_size
     fi
+
+    case "$position" in
+        "left")
+            local padding_left=$(generate_separator $filled_space "$separator")
+            echo "${padding_left}${message}"
+            ;;
+        "right")
+            local padding_right=$(generate_separator $filled_space "$separator")
+            echo "${message}${padding_right}"
+            ;;
+        "center")
+            filled_space=$((filled_space / 2))
+            local padding=$(generate_separator $filled_space "$separator")
+            
+            echo "${padding}${message}${padding}"
+            ;;
+        *)
+            echo "Posición no reconocida. Usa 'left', 'right' o 'center'."
+            ;;
+    esac
 }
 
 message_size() {
     local message=$1
-    local ancho_terminal
-    local espacios_izquierda
-    local espacios_derecha
-    local longitud_total
-
-    ancho_terminal=$(tput cols)
-    espacios_izquierda=$(((ancho_terminal - ${#message}) / 2))
-    espacios_derecha=$((ancho_terminal - ${#message} - espacios_izquierda))
-    longitud_total=$((espacios_izquierda + ${#message} + espacios_derecha))
-
-    echo "$espacios_izquierda $espacios_derecha $longitud_total"
+    
+    local total_length=$(tput cols)
+    local filled_space=$(((longitud_total - ${#message})))
+    
+    echo "$total_length $filled_space"
 }
 
 
@@ -272,6 +280,10 @@ calculate_closest_color() {
 }
 
 set_terminal_config() {
+    if [ ! -e "$TRUS_CONFIG" ]; then
+        trus_config
+    fi
+
     source $TRUS_CONFIG
 
     if [ "$SIMPLE_ECHO" = "" ]; then
@@ -371,86 +383,91 @@ print_menu() {
 
 
 ### Especiales
-
 print_centered_message() {
     local message=$1
     local color=$2
     local new_line_before_or_after=${3:-""}
 
-    IFS=' ' read -r espacios_izquierda espacios_derecha longitud_total <<<"$(message_size "$message")"
-
     if [ -z "$SIMPLE_ECHO" ]; then
-        print_message "$(padding "$message" "$espacios_izquierda" "left")" "$color" 0 "$new_line_before_or_after"
+        print_message "$(pad_message "$message")" "$color" 0 "$new_line_before_or_after"
     fi
 }
 
 print_message_with_gradient(){
     local message=$1
-    local length=$2
-    local centered=${3:-""}
     local message_length=${#message}
-    local padding=$((length - message_length))
-
-    if [ ! -z $centered ]; then
-        padding=$((padding / 2))
-        local white_spaces=$(printf "%${padding}s")
-        message=${white_spaces}${message}${white_spaces}
-    else
-        local white_spaces=$(printf "%${padding}s")
-        message=${message}${white_spaces}
-    fi
-
-    print_message "${message}" | gterm $GRADIENT_1 $GRADIENT_2 $GRADIENT_3 $GRADIENT_4 $GRADIENT_5 $GRADIENT_6   
+    
+    echo "$message" | gterm $GRADIENT_1 $GRADIENT_2 $GRADIENT_3 $GRADIENT_4 $GRADIENT_5 $GRADIENT_6   
 }
 
 print_separator() {
-    local separator=${1:-"-"}
-    local width=${2:-40}   
-    local message=$(padding "" "$width" "$separator")
-    echo "$message"
+    local message=${1:-""}
+    local separator=${2:-"-"}
+    local full_line=$2
+    IFS=' ' read -r total_length filled_space <<< "$(message_size "$message")"
+    
+    if [ -z "$full_line" ]; then
+        echo $(pad_message "" "left" "-" $((filled_space / 4)))
+    
+    else    
+        echo $(pad_message "" "left" "-" $filled_space)
+    fi
+
+    
 }
 
 print_header() {
     clear
     wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz
     sleep 0.11
-    IFS=' ' read -r espacios_izquierda espacios_derecha longitud_total <<<"$(message_size "")"
-
-    local separador=$(print_separator "-" "$(($longitud_total - 37))")
 
     local USER_DATA="Usuario: $(echo "$(getent passwd $USER)" | cut -d ':' -f 5 | cut -d ',' -f 1) ($USER)"
-    local EQUIPO="Equipo: $HOSTNAME"
+    local EQUIPO="Equipo: $(hostname)"
+    local empty_line="                                     "
+
+
+    local logo=($empty_line
+                "  &           &&&&&&&&&           &  $(print_separator "$empty_line" "y")"
+                "   &&&  &&&&&           &&&&&  &&&   "
+                "     &&&&&&&&&&       &&&&&&&&&&     "
+                "     &&&*****&&&&& &&&&&*****&&&      _________   ______     __  __    ______       "
+                "     &&  *******&&&&&*******  &&     /________/\ /_____/\   /_/\/_/\  /_____/\      $HEADER_MESSAGE"
+                "    &&&     **    &   ***     &&&    \__.::.__\/ \:::_ \ \  \:\ \:\ \ \::::_\/_     "
+                "   &&&&                      &&&&&       \::\ \   \:(_) ) )  \:\ \:\ \ \:\/___/\    $USER_DATA"
+                "   &&&                     &&& &&&        \::\ \   \: __ ´\ \ \:\ \:\ \ \_::._\:\   $EQUIPO"
+                "  &&&&                  &&&&&  &&&&        \::\ \   \ \ ´\ \ \ \:\_\:\ \  /____\:\  "
+                "  &&&&         &&&&&&&&&&&     &&&&         \__\/    \_\/ \_\/  \_____\/  \_____\/  $DESCRIPTION_MESSAGE"
+                "   &&&&&  &&&&&&&&&&         &&&&&   "
+                "    &&&&&&&&&&&            &&&&&&    "
+                "      &&&&&&&           &&&&&&       $(print_separator "$empty_line" "y")"
+                "         &&&&&&&&   &&&&&&&&         "
+                "             &&&&&&&&&&&             "
+                "                 &&                  ")
+
+    local centered_logo=()
+    local min_length=${#logo[0]}
+
+    for line in "${logo[@]}"; do
+        local line_length=${#line}
+        if [ "$line_length" -lt "$min_length" ]; then
+            min_length=$line_length
+        fi
+    done
+
     
-    print_message_with_gradient "  &           &&&&&&&&&           &  " $longitud_total
-    print_message_with_gradient "   &&&  &&&&&           &&&&&  &&&   " $longitud_total
-    print_message_with_gradient "     &&&&&&&&&&       &&&&&&&&&&     $separador" $longitud_total
-    print_message_with_gradient "     &&&*****&&&&& &&&&&*****&&&       _________   ______     __  __    ______       " $longitud_total
-    print_message_with_gradient "     &&  *******&&&&&*******  &&      /________/\ /_____/\   /_/\/_/\  /_____/\      $HEADER_MESSAGE" $longitud_total
-    print_message_with_gradient "    &&&     **    &   ***     &&&     \__.::.__\/ \:::_ \ \  \:\ \:\ \ \::::_\/_     " $longitud_total
-    print_message_with_gradient "   &&&&                      &&&&&        \::\ \   \:(_) ) )  \:\ \:\ \ \:\/___/\    $USER_DATA" $longitud_total
-    print_message_with_gradient "   &&&                     &&& &&&         \::\ \   \: __ ´\ \ \:\ \:\ \ \_::._\:\   $EQUIPO" $longitud_total
-    print_message_with_gradient "  &&&&                  &&&&&  &&&&         \::\ \   \ \ ´\ \ \ \:\_\:\ \  /____\:\  $DESCRIPTION_MESSAGE" $longitud_total
-    print_message_with_gradient "  &&&&         &&&&&&&&&&&     &&&&          \__\/    \_\/ \_\/  \_____\/  \_____\/  " $longitud_total
-    print_message_with_gradient "   &&&&&  &&&&&&&&&&         &&&&&   " $longitud_total
-    print_message_with_gradient "    &&&&&&&&&&&            &&&&&&    $separador" $longitud_total
-    print_message_with_gradient "      &&&&&&&           &&&&&&       " $longitud_total
-    print_message_with_gradient "         &&&&&&&&   &&&&&&&&         " $longitud_total
-    print_message_with_gradient "             &&&&&&&&&&&             " $longitud_total
-    print_message_with_gradient "                 &&                  " $longitud_total
+
+    for line in "${logo[@]}"; do
+        centered_logo+=("$(pad_message "$line" "right" " " "$min_length")")
+    done
+
+    print_message_with_gradient "$(printf "%s\n" "${centered_logo[@]}")"
 }
 
 print_semiheader() {
     local message=$1
-    local separator="--"
-    local longitud_separador
 
     if [ -z "$SIMPLE_ECHO" ]; then
-        IFS=' ' read -r espacios_izquierda espacios_derecha longitud_total <<<"$(message_size "$message")"
-        espacios_izquierda=$((espacios_izquierda / 4))
-        message=$(printf "%-${espacios_izquierda}s" | tr ' ' $separator)" "$message
-        longitud_separador=$((${#message} + espacios_izquierda))
-
-        print_separator "$separator" $longitud_separador "before"
+        print_separator    
     fi
 
     print_message "$message\n" "" 0 "" "after"
@@ -459,40 +476,51 @@ print_semiheader() {
 print_logo() {
     clear
     wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz
-    IFS=' ' read -r espacios_izquierda espacios_derecha longitud_total <<<"$(message_size "")"
     
-    print_message_with_gradient "              &&             &&&&&&&&&&&&&&&&&&&&              &&               " $longitud_total "yes"
-    print_message_with_gradient "                &&&&&   &&&&&&&                 &&&&&&&   &&&&&                 " $longitud_total "yes"
-    print_message_with_gradient "                  &&&&&&&&&&&&&                 &&&&&&&&&&&&&                   " $longitud_total "yes"
-    print_message_with_gradient "                     &&&&&&&&&&&&&&&       &&&&&&&&&&&&&&&                      " $longitud_total "yes"
-    print_message_with_gradient "                    &&& ********&&&&&&& &&&&&&&******** &&&                     " $longitud_total "yes"
-    print_message_with_gradient "                   &&&& ***********&&&&&&&&&*********** &&&&                    " $longitud_total "yes"
-    print_message_with_gradient "                  &&&&&  ************&&&&&************  &&&&&                   " $longitud_total "yes"
-    print_message_with_gradient "                  &&&&       *****     &     *****      &&&&&                   " $longitud_total "yes"
-    print_message_with_gradient "                 &&&&&                                  &&&&&&                  " $longitud_total "yes"
-    print_message_with_gradient "                &&&&&                                  &&&&&&&                  " $longitud_total "yes"
-    print_message_with_gradient "                &&&&&                                &&&& &&&&&                 " $longitud_total "yes"
-    print_message_with_gradient "               &&&&&&                             &&&&&&  &&&&&                 " $longitud_total "yes"
-    print_message_with_gradient "               &&&&&                         &&&&&&&&&    &&&&&&                " $longitud_total "yes"
-    print_message_with_gradient "               &&&&&&               &&&&&&&&&&&&&&&       &&&&&&                " $longitud_total "yes"
-    print_message_with_gradient "               &&&&&&&       &&&&&&&&&&&&&&&&&           &&&&&&                 " $longitud_total "yes"
-    print_message_with_gradient "                &&&&&&&& &&&&&&&&&&&&&&                &&&&&&&                  " $longitud_total "yes"
-    print_message_with_gradient "                  &&&&&&&&&&&&&&&&&                  &&&&&&&&                   " $longitud_total "yes"
-    print_message_with_gradient "                    &&&&&&&&&&&&&                 &&&&&&&&&                     " $longitud_total "yes"
-    print_message_with_gradient "                      &&&&&&&&&&               &&&&&&&&&&                       " $longitud_total "yes"
-    print_message_with_gradient "                         &&&&&&&&&&&       &&&&&&&&&&&                          " $longitud_total "yes"
-    print_message_with_gradient "                            &&&&&&&&&&&&&&&&&&&&&&                              " $longitud_total "yes"
-    print_message_with_gradient "                                &&&&&&&&&&&&&&&                                 " $longitud_total "yes"
-    print_message_with_gradient "                                    &&&&&&&                                     " $longitud_total "yes"
-    print_message_with_gradient "                                                                                " $longitud_total "yes"
-    print_message_with_gradient "                                                            **                  " $longitud_total "yes"
-    print_message_with_gradient "    &&&    &&&                                             ***             ***  " $longitud_total "yes"
-    print_message_with_gradient "   &&&     &&&&&  &&&&&& &&&     &&&   &&&&&&&&      *********   ********  *****" $longitud_total "yes"
-    print_message_with_gradient "  &&&&     &&&   &&&     &&&     &&&  &&&    &&&&  ***    **** ****   (*** ***  " $longitud_total "yes"
-    print_message_with_gradient " &&&&      &&&   &&&     &&&     &&& &&&&&&&&&&&& ***      ***   ********* ***  " $longitud_total "yes"
-    print_message_with_gradient "&&&&       &&&   &&&     &&&    &&&& &&&          ****     *** ***    **** ***  " $longitud_total "yes"
-    print_message_with_gradient "&&&        &&&&& &&&      &&&&&&&&&   &&&&&&&&&&    **********  *********  *****" $longitud_total "yes"
-    
+
+    local logo=("" "" "" 
+        "              &&             &&&&&&&&&&&&&&&&&&&&              &&               " 
+        "                &&&&&   &&&&&&&                 &&&&&&&   &&&&&                 " 
+        "                  &&&&&&&&&&&&&                 &&&&&&&&&&&&&                   " 
+        "                     &&&&&&&&&&&&&&&       &&&&&&&&&&&&&&&                      " 
+        "                    &&& ********&&&&&&& &&&&&&&******** &&&                     " 
+        "                   &&&& ***********&&&&&&&&&*********** &&&&                    " 
+        "                  &&&&&  ************&&&&&************  &&&&&                   " 
+        "                  &&&&       *****     &     *****      &&&&&                   " 
+        "                 &&&&&                                  &&&&&&                  " 
+        "                &&&&&                                  &&&&&&&                  " 
+        "                &&&&&                                &&&& &&&&&                 " 
+        "               &&&&&&                             &&&&&&  &&&&&                 " 
+        "               &&&&&                         &&&&&&&&&    &&&&&&                " 
+        "               &&&&&&               &&&&&&&&&&&&&&&       &&&&&&                " 
+        "               &&&&&&&       &&&&&&&&&&&&&&&&&           &&&&&&                 " 
+        "                &&&&&&&& &&&&&&&&&&&&&&                &&&&&&&                  " 
+        "                  &&&&&&&&&&&&&&&&&                  &&&&&&&&                   " 
+        "                    &&&&&&&&&&&&&                 &&&&&&&&&                     " 
+        "                      &&&&&&&&&&               &&&&&&&&&&                       " 
+        "                         &&&&&&&&&&&       &&&&&&&&&&&                          " 
+        "                            &&&&&&&&&&&&&&&&&&&&&&                              " 
+        "                                &&&&&&&&&&&&&&&                                 " 
+        "                                    &&&&&&&                                     " 
+        "                                                                                " 
+        "                                                            **                  " 
+        "    &&&    &&&                                             ***             ***  " 
+        "   &&&     &&&&&  &&&&&& &&&     &&&   &&&&&&&&      *********   ********  *****" 
+        "  &&&&     &&&   &&&     &&&     &&&  &&&    &&&&  ***    **** ****   (*** ***  " 
+        " &&&&      &&&   &&&     &&&     &&& &&&&&&&&&&&& ***      ***   ********* ***  " 
+        "&&&&       &&&   &&&     &&&    &&&& &&&          ****     *** ***    **** ***  " 
+        "&&&        &&&&& &&&      &&&&&&&&&   &&&&&&&&&&    **********  *********  *****"
+    )
+
+    local centered_logo=()
+    local max_length=$(printf "%s" "${logo_lines[@]}" | awk '{print length($0)}' | sort -nr | head -n1)
+
+    for line in "${logo[@]}"; do
+        centered_logo+=("$(pad_message "$line" "center" " " "$max_length")")
+    done
+
+    print_message_with_gradient "$(printf "%s\n" "${centered_logo[@]}")"
+
     sleep 1
 }
 
@@ -504,7 +532,7 @@ set_active_animation(){
 
     list_name="TERMINAL_ANIMATION_$selected"    
     eval "active_animation=(\"\${$list_name[@]}\")"
-    sed -i "s/^SELECTED_ANIMATION=.*/SELECTED_ANIMATION='$selected'/" "$PATH_GLOBAL_CONFIG"
+    sed -i "s/^SELECTED_ANIMATION=.*/SELECTED_ANIMATION='$selected'/" "$TRUS_CONFIG"
 }
 
 play_animation() {
@@ -660,7 +688,7 @@ update_repositories() {
     local updated_option=${1:-"-a"}
     local create_dbb=${2:-""}
 
-    print_header
+    
 
     case "$updated_option" in
     "-b" | "--back")
@@ -750,7 +778,7 @@ ddbb() {
 }
 
 download_test_backup() {
-    print_header
+    
     print_semiheader "Creación y descarga de backup de test "
 
     local PSQL
@@ -823,7 +851,7 @@ update_ddbb_from_backup() {
     local path_backup=$1
     local files=${path_backup}"/*"
 
-    print_header
+    
     print_semiheader "Actualizando bdd desde el backup -> $path_backup"
 
     for FILENAME in $files; do
@@ -843,7 +871,7 @@ update_ddbb_from_backup() {
 }
 
 get_local_backup_path() {
-    print_header
+    
     print_semiheader "Aplicando un backup de bdd desde una ruta de local"
 
     print_message "Por favor, indica la carpeta donde está el backup que deseas aplicar (debe estar dentro de '$DDBB_BASE_BACKUP_PATH')" "$COLOR_SECONDARY" 1 "both"
@@ -858,7 +886,7 @@ get_local_backup_path() {
 
 create_backup_local_ddbb() {
     start_containers
-    print_header
+    
     print_semiheader "Creando backup de la bdd"
 
     mkdir -p "$DDBB_LOCAL_BACKUP_PATH/LB_$(date +%Y%m%d_%H%M%S)"
@@ -914,7 +942,7 @@ go_out_session() {
 
 reindex_all() {
     local remove_all_indexes=${1:-""}
-    print_header
+    
     print_semiheader "Reindexado de Elasticsearch"
 
     remove_all_index "$remove_all_indexes"
@@ -992,7 +1020,7 @@ reindex_one() {
 
 create_ssh() {
     local continue_ssh_normalized
-    print_header
+    
     
     # if print_question "SE VA A PROCEDER HACER BACKUP DE LAS CLAVES '$TRUEDAT' ACTUALES, BORRAR LA CLAVE EXISTENTE Y CREAR UNA NUEVA HOMÓNIMA" "$COLOR_ERROR" = 0; then
         cd $SSH_PATH
@@ -1034,7 +1062,7 @@ create_ssh() {
 ### Link webmodules
 
 link_web_modules() {
-    print_header
+    
     print_semiheader "Linkado de modulos"
 
     if print_question "Se borrarán los links y se volveran a crear" = 0; then   
@@ -1076,9 +1104,6 @@ bash_config() {
 
     if ! grep -q "LD_PRELOAD=/lib/x86_64-linux-gnu/libnss_sss.so.2" "$BASH_PATH_CONFIG"; then
         echo 'export LD_PRELOAD=/lib/x86_64-linux-gnu/libnss_sss.so.2' >> "$BASH_PATH_CONFIG"
-        print_message "LD_PRELOAD AÑADIDO A .bashrc"  "$COLOR_PRIMARY" 2
-    else
-        print_message "LD_PRELOAD YA ESTÁ PRESENTE EN .bashrc" "$COLOR_PRIMARY" 2
     fi
 
     {
@@ -1213,6 +1238,8 @@ tlp_config() {
 }
 
 trus_config(){    
+    touch $TRUS_CONFIG
+    
     {
         echo 'HIDE_OUTPUT=true'
         echo 'USE_KONG=false'
@@ -1220,7 +1247,7 @@ trus_config(){
         echo 'SIMPLE_ECHO='''
     } > $TRUS_CONFIG
 
-    source TRUS_CONFIG
+    source $TRUS_CONFIG
 }
 
 configure_asdf(){
@@ -1248,11 +1275,15 @@ configure_asdf(){
 ### Instalación de dependencias
  
 install_trus() {
-    cp "$TRUS_ACTUAL_PATH" "$TRUS_PATH"
+    print_message_with_animation "Instalando Truedat Utils (TrUs) y sus dependencias"
+    mkdir -p $TRUS_DIRECTORY
+    cp $TRUS_ACTUAL_PATH $TRUS_PATH
 
-    sudo rm -f "$TRUS_LINK_PATH"
-    sudo ln -s "$TRUS_PATH" "$TRUS_LINK_PATH"
+    sudo rm -f $TRUS_LINK_PATH
+    sudo ln -s $TRUS_PATH $TRUS_LINK_PATH
     
+    preinstallation
+
     print_message "Truedat Utils (TrUs) instalado con éxito" "$COLOR_SUCCESS" 3 "both"
 }
 
@@ -1572,7 +1603,7 @@ load_linages() {
 ### Arranque de Truedat (TMUX y Screen)
 
 start_containers() {
-    print_header
+    
     print_semiheader "Arrancando contenedores..."
 
     cd $DEV_PATH
@@ -1587,7 +1618,7 @@ start_containers() {
 }
 
 stop_docker() {
-    print_header
+    
     print_semiheader "Apagando contenedores..."
     cd "$DEV_PATH"
 
@@ -1693,7 +1724,7 @@ start_truedat() {
 }
 
 kill_truedat() {
-    print_header
+    
     print_semiheader "Matando procesos 'mix' (elixir)"
     eval "pkill -9 mix $REDIRECT"
 
@@ -1782,7 +1813,7 @@ get_service_port() {
 }
 
 kong_routes() {
-    print_header
+    
     print_semiheader "Generación de rutas en Kong"
 
     if [[ "$USE_KONG" = false ]]; then
@@ -1823,7 +1854,7 @@ kong_routes() {
 }
 
 activate_kong() {
-    print_header
+    
     print_semiheader "Habilitación de Kong"
     print_message "A continuación, se van a explicar los pasos que se van a seguir si sigues con este proceso" "$COLOR_PRIMARY" 2 "before"
     print_message "Se va a actualizar el archivo de configuracion para reflejar que se debe utilizar Kong a partir de ahora" "$COLOR_SECONDARY" 3
@@ -1884,7 +1915,7 @@ activate_kong() {
 }
 
 deactivate_kong() {
-    print_header
+    
     print_semiheader "Deshabilitación de Kong"
     print_message "A continuación, se van a explicar los pasos que se van a seguir si sigues con este proceso" "$COLOR_PRIMARY" 2 "before"
     print_message "Se va a actualizar el archivo de configuracion para reflejar que se debe utilizar Kong a partir de ahora" "$COLOR_SECONDARY" 3
@@ -2085,7 +2116,7 @@ deactivate_kong() {
 }
 
 config_kong() {
-    print_header
+    
     print_semiheader "Kong"
     print_message "¿Quién quieres que enrute, Kong(k) o td-web(w)? (k/w)" "$COLOR_PRIMARY" 1
     read -r install_kong
@@ -2198,6 +2229,10 @@ configuration_menu(){
             ;;
 
         2) 
+            bash_config
+            ;;
+
+        3)  
             tmux_config
             ;;
 
@@ -2207,6 +2242,7 @@ configuration_menu(){
 
         4) 
             zsh_config
+            bash_config
             tmux_config
             tlp_config
             ;;
@@ -2515,11 +2551,11 @@ set_elixir_versions() {
 # Acciones Principales
 
 install() {
-    print_header 
+     
     print_message "Guia de instalación: https://confluence.bluetab.net/pages/viewpage.action?pageId=136022683" "$COLOR_QUATERNARY" 5 "both"
 
     if [ ! -e "/tmp/truedat_installation" ]; then
-        print_header
+        
 
         if [ -f "$SSH_PUBLIC_FILE" ]; then
             if [ ! -e "$AWSCONFIG" ]; then
@@ -2680,20 +2716,13 @@ clone_truedat_project(){
 clear
 set_terminal_config
 
-
 # if ! [ -e "$TRUS_PATH" ]; then
-#     print_header
-    
-#     if print_question "TrUs no está instalado, pero puedes instalarlo ¿?" = 0; then
-#         install_trus
-#     else    
-#         install_trus
-#     fi
-# elif [ -z "$1" ]; then
-    print_logo
-    sleep 0.5
-    print_header
-    main_menu
+#     install_trus
+# elif [ -z "$1" ]; then       
+#     print_logo
+#     sleep 0.5
+#     print_header   
+#     main_menu
 # else
 #     params=()
 #     case "$1" in
@@ -2783,3 +2812,5 @@ set_terminal_config
 #         ;;
 #     esac
 # fi
+
+ 
