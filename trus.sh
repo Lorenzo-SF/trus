@@ -115,18 +115,19 @@ DDBB_BASE_BACKUP_PATH=$TRUEDAT_ROOT_PATH"/ddbb_truedat"
 DDBB_BACKUP_PATH=$DDBB_BASE_BACKUP_PATH/$DATE_NOW
 DDBB_LOCAL_BACKUP_PATH=$DDBB_BASE_BACKUP_PATH"/local_backups"
 
-SSH_PATH=~/.ssh
+SSH_PATH=$USER_HOME/.ssh
 SSH_PUBLIC_FILE=$SSH_PATH/truedat.pub
 SSH_PRIVATE_FILE=$SSH_PATH/truedat
 
-KUBE_PATH=~/.kube
+ASDF_PATH=$USER_HOME/.asdf
+AWS_PATH=$USER_HOME/.aws
+AWSCONFIG_PATH=$AWS_PATH/config
+KUBE_PATH=$USER_HOME/.kube
 KUBECONFIG_PATH=$KUBE_PATH/config
-AWS_PATH=~/.aws/config
-AWSCONFIG_PATH=~/.aws/config
 
-BASH_PATH_CONFIG=~/.bashrc
-ZSH_PATH_CONFIG=~/.zshrc
-TMUX_PATH_CONFIG=~/.tmux.conf
+BASH_PATH_CONFIG=$USER_HOME/.bashrc
+ZSH_PATH_CONFIG=$USER_HOME/.zshrc
+TMUX_PATH_CONFIG=$USER_HOME/.tmux.conf
 TLP_PATH_CONFIG=/etc/tlp.conf
 
 
@@ -403,7 +404,7 @@ print_message_with_gradient(){
 print_separator() {
     local message=${1:-""}
     local separator=${2:-"-"}
-    local full_line=$2
+    local full_line=$3
     IFS=' ' read -r total_length filled_space <<< "$(message_size "$message")"
     
     if [ -z "$full_line" ]; then
@@ -411,9 +412,7 @@ print_separator() {
     
     else    
         echo $(pad_message "" "left" "-" $filled_space)
-    fi
-
-    
+    fi    
 }
 
 print_header() {
@@ -1117,8 +1116,6 @@ bash_config() {
         echo 'PS1="${debian_chroot:+($debian_chroot)}\[\033[1;38;5;231;48;5;208m\]\w\[\033[00m\]\[\033[1;38;5;039m\] $(parse_git_branch)\[\033[00m\]-> "'
     } >> $BASH_PATH_CONFIG
     
-    source $BASH_PATH_CONFIG
-
     print_message "Prompt de Bash actualizado" "$COLOR_SUCCESS" 3 "both"
 }
 
@@ -1146,22 +1143,22 @@ zsh_config() {
         echo 'export ARCHFLAGS="-arch $(uname -m)"'
         echo 'plugins=(git elixir asdf git-prompt zsh-autosuggestions zsh-syntax-highlighting zsh-completions)'
         echo ''
-        echo 'alias ai="cd ~/workspace/truedat/back/td-ai"'
-        echo 'alias audit="cd ~/workspace/truedat/back/td-audit"'
-        echo 'alias auth="cd ~/workspace/truedat/back/td-auth"'
-        echo 'alias bg="cd ~/workspace/truedat/back/td-bg"'
-        echo 'alias dd="cd ~/workspace/truedat/back/td-dd"'
-        echo 'alias df="cd ~/workspace/truedat/back/td-df"'
-        echo 'alias i18n="cd ~/workspace/truedat/back/td-i18n"'
-        echo 'alias ie="cd ~/workspace/truedat/back/td-ie"'
-        echo 'alias lm="cd ~/workspace/truedat/back/td-lm"'
-        echo 'alias qx="cd ~/workspace/truedat/back/td-qx"'
-        echo 'alias se="cd ~/workspace/truedat/back/td-se"'
-        echo 'alias helm="cd ~/workspace/truedat/back/td-helm"'
-        echo 'alias k8s="cd ~/workspace/truedat/back/k8s"'
-        echo 'alias web="cd ~/workspace/truedat/front/td-web"'
-        echo 'alias webmodules="cd ~/workspace/truedat/front/td-web-modules"'
-        echo 'alias trudev="cd ~/workspace/truedat/true-dev"'
+        echo "alias ai='cd $BACK_PATH/td-ai'"
+        echo "alias audit='cd $BACK_PATH/td-audit'"
+        echo "alias auth='cd $BACK_PATH/td-auth'"
+        echo "alias bg='cd $BACK_PATH/td-bg'"
+        echo "alias dd='cd $BACK_PATH/td-dd'"
+        echo "alias df='cd $BACK_PATH/td-df'"
+        echo "alias i18n='cd $BACK_PATH/td-i18n'"
+        echo "alias ie='cd $BACK_PATH/td-ie'"
+        echo "alias lm='cd $BACK_PATH/td-lm'"
+        echo "alias qx='cd $BACK_PATH/td-qx'"
+        echo "alias se='cd $BACK_PATH/td-se'"
+        echo "alias helm='cd $BACK_PATH//td-helm'"
+        echo "alias k8s='cd $BACK_PATH//k8s'"
+        echo "alias web='cd $FRONT_PATH/td-web'"
+        echo "alias webmodules='cd $FRONT_PATH/td-web-modules'"
+        echo "alias trudev='cd $DEV_PATH'"
         echo 'alias format="mix format && mix credo --strict"'
         echo ''
         echo 'local -A schars'
@@ -1176,8 +1173,6 @@ zsh_config() {
         echo '# PROMPT="%B%F{208}$schars[333]$schars[262]$schars[261]$schars[260]%B%~/$schars[260]$schars[261]$schars[262]$schars[333]%b%F{208}%b%f%k "'
         echo ''
     } > $ZSH_PATH_CONFIG
-
-    source $ZSH_PATH_CONFIG
 
     print_message "Archivo de configuración creado con éxito" "$COLOR_SUCCESS" 3
 }
@@ -1244,7 +1239,7 @@ trus_config(){
         echo 'HIDE_OUTPUT=true'
         echo 'USE_KONG=false'
         echo 'SELECTED_ANIMATION="BUBBLE"'
-        echo 'SIMPLE_ECHO='''
+        echo 'SIMPLE_ECHO=""'
     } > $TRUS_CONFIG
 
     source $TRUS_CONFIG
@@ -1275,16 +1270,17 @@ configure_asdf(){
 ### Instalación de dependencias
  
 install_trus() {
-    print_message_with_animation "Instalando Truedat Utils (TrUs) y sus dependencias"
+    print_separator "" "-"
+    print_centered_message "Instalando Truedat Utils (TrUs) y sus dependencias"
+    print_separator "" "-"
+
     mkdir -p $TRUS_DIRECTORY
     cp $TRUS_ACTUAL_PATH $TRUS_PATH
 
     sudo rm -f $TRUS_LINK_PATH
     sudo ln -s $TRUS_PATH $TRUS_LINK_PATH
     
-    preinstallation
-
-    print_message "Truedat Utils (TrUs) instalado con éxito" "$COLOR_SUCCESS" 3 "both"
+    print_centered_message "Truedat Utils (TrUs) instalado con éxito" "$COLOR_SUCCESS" 3 "both"
 }
 
 add_origins(){
@@ -1328,8 +1324,8 @@ package_installation() {
     print_semiheader "Instalación de paquetes"
 
     print_message_with_animation "Instalando Docker Compose" "$COLOR_TERNARY" 2
-    sudo curl -s -L "https://github.com/docker/compose/releases/download/v2.16.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/compose
-    
+    # sudo curl -s -L "https://github.com/docker/compose/releases/download/v2.16.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/compose
+    do_api_call "" "https://github.com/docker/compose/releases/download/v2.16.0/docker-compose-$(uname -s)-$(uname -m)" "" "-o /usr/local/bin/compose"
     eval "sudo chmod +x /usr/local/bin/docker-compose $REDIRECT"
     eval "sudo groupadd docker $REDIRECT"
     eval "sudo usermod -aG docker '$USER' $REDIRECT"
@@ -1344,28 +1340,29 @@ package_installation() {
     install_asdf
     instal_awscli
     install_kubectl     
+    configure_asdf
     install_gradient_terminal
     
     print_centered_message "Paquetes instalados" "$COLOR_SUCCESS"
 }
 
 install_asdf() {
-    if [ -e "~/.asdf" ]; then   
-        rm "~/.asdf"
+    if [ -e "$ASDF_PATH" ]; then   
+        rm "$ASDF_PATH"
     fi
 
     print_message_with_animation "Instalando ASDF" "$COLOR_TERNARY" 2
-    eval "git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.14.0 $REDIRECT"
+    eval "git clone https://github.com/asdf-vm/asdf.git $ASDF_PATH --branch v0.14.0 $REDIRECT"
     print_message "ASDF instalado" "$COLOR_SUCCESS" 3
-       
-    source $BASHRC_PATH
-    source $ZSH_PATH_CONFIG
 }
 
 instal_awscli(){
-    mkdir ~/.aws
-    cd ~/.aws
-    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    mkdir $AWS_PATH
+    cd $AWS_PATH
+    
+    # curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    do_api_call "" "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" "" "-o 'awscliv2.zip'"
+
     unzip awscliv2.zip
     cd aws
     sudo ./install
@@ -1379,9 +1376,10 @@ install_kubectl() {
 
         cd $KUBE_PATH
 
-        eval "curl -LO https://dl.k8s.io/release/v1.23.6/bin/linux/amd64/kubectl && sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl $REDIRECT"
+        # eval "curl -LO https://dl.k8s.io/release/v1.23.6/bin/linux/amd64/kubectl && sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl $REDIRECT"
+        eval "do_api_call "" "https://dl.k8s.io/release/v1.23.6/bin/linux/amd64/kubectl" "" ""-o '$KUBE_PATH/kubectl'"" && sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl $REDIRECT"
         
-        touch "$KUBECONFIG"
+        touch "$KUBECONFIG_PATH"
 
         {
             echo 'apiVersion: v1'
@@ -1438,7 +1436,7 @@ install_kubectl() {
             echo '      - json'
             echo '      command: aws'
 
-        } >$KUBECONFIG
+        } >$KUBECONFIG_PATH
         
         print_message "Kubectl instalado y configurado" "$COLOR_SUCCESS" 3
     fi
@@ -1472,7 +1470,8 @@ configure_omz(){
         rm -r -f ~/.oh-my-zsh
     fi
 
-    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+    # sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+    eval "do_api_call '' 'https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh' $REDIRECT"
 
     clone_if_not_exists https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
     clone_if_not_exists https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
@@ -1825,29 +1824,38 @@ kong_routes() {
 
         for SERVICE in ${KONG_SERVICES[@]}; do
             local PORT=$(get_service_port "$SERVICE")
-            local SERVICE_ID=$(curl --silent -X GET "${KONG_ADMIN_URL}/services/${SERVICE}" | jq -r '.id // empty')
+            # local SERVICE_ID=$(curl --silent -X GET "${KONG_ADMIN_URL}/services/${SERVICE}" | jq -r '.id // empty')
+            local SERVICE_ID=$(do_api_call "${KONG_ADMIN_URL}/services/${SERVICE}" | jq -r '.id // empty')
             local DATA='{ "name": "'${SERVICE}'", "host": "'${DOCKER_LOCALHOST}'", "port": '$PORT' }'
 
             print_message_with_animation "Creando rutas para el servicio: $SERVICE (puerto: $PORT)" "$COLOR_SECONDARY" 2
-
+            
             if [ -n "${SERVICE_ID}" ]; then
-                ROUTE_IDS=$(curl --silent -X GET "${KONG_ADMIN_URL}/services/${SERVICE}/routes" | jq -r '.data[].id')
+                # ROUTE_IDS=$(curl --silent -X GET "${KONG_ADMIN_URL}/services/${SERVICE}/routes" | jq -r '.data[].id')
+                ROUTE_IDS=$(do_api_call ""  "${KONG_ADMIN_URL}/services/${SERVICE}/routes" | jq -r '.data[].id')
+
                 if [ -n "${ROUTE_IDS}" ]; then
                     for ROUTE_ID in ${ROUTE_IDS}; do
-                        curl --fail --silent -X DELETE "${KONG_ADMIN_URL}/routes/${ROUTE_ID}"
+                        # curl --fail --silent -X DELETE "${KONG_ADMIN_URL}/routes/${ROUTE_ID}"
+                        do_api_call ""  "${KONG_ADMIN_URL}/routes/${ROUTE_ID}" "DELETE"
                     done
                 fi
-                curl --fail --silent -X DELETE "${KONG_ADMIN_URL}/services/${SERVICE_ID}"
+                # curl --fail --silent -X DELETE "${KONG_ADMIN_URL}/services/${SERVICE_ID}"
+                do_api_call ""  "${KONG_ADMIN_URL}/services/${SERVICE_ID}" "DELETE"
+
             fi
 
-            local API_ID=$(curl --fail --silent -H 'Content-Type: application/json' -X POST "${KONG_ADMIN_URL}/services" -d "$DATA" | jq -r '.id')
+            # local API_ID=$(curl --fail --silent -H 'Content-Type: application/json' -X POST "${KONG_ADMIN_URL}/services" -d "$DATA" | jq -r '.id')
+            local API_ID=$(do_api_call "" "${KONG_ADMIN_URL}/services" "POST" "-d '$DATA'") | jq -r '.id'
 
             eval "sed -e \"s/%API_ID%/${API_ID}/\" ${SERVICE}.json | curl --silent -H \"Content-Type: application/json\" -X POST \"${KONG_ADMIN_URL}/routes\" -d @- | jq -r '.id' $REDIRECT"
 
             print_message "Rutas servicio: $SERVICE (puerto: $PORT) creadas con éxito" "$COLOR_SUCCESS" 2
         done
 
-        eval "curl --silent -X POST \"${KONG_ADMIN_URL}/services/health/plugins\" --data \"name=request-termination\" --data \"config.status_code=200\" --data \"config.message=Kong is alive\"  | jq -r '.id' $REDIRECT"
+        # eval "curl --silent -X POST \"${KONG_ADMIN_URL}/services/health/plugins\" --data \"name=request-termination\" --data \"config.status_code=200\" --data \"config.message=Kong is alive\"  | jq -r '.id' $REDIRECT"
+        eval "do_api_call '${KONG_ADMIN_URL}/services/health/plugins' "POST" "--data 'name=request-termination' --data 'config.status_code=200' --data 'config.message=Kong is alive'"  | jq -r '.id' $REDIRECT"
+
         print_message "Creacion de rutas finalizada" "$COLOR_SUCCESS" 2 "both"
 
     fi
@@ -2248,7 +2256,7 @@ configuration_menu(){
             ;;
         
         0)
-            configuration_menu
+            configure_menu
             ;;
     esac
 }
@@ -2718,6 +2726,7 @@ set_terminal_config
 
 if ! [ -e "$TRUS_PATH" ]; then
     install_trus
+    preinstallation
 elif [ -z "$1" ]; then       
     print_logo
     sleep 0.5
