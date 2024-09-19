@@ -24,8 +24,7 @@ TRUS_PATH=$TRUS_DIRECTORY/trus.sh
 TRUS_LINK_PATH=/usr/local/bin/trus
 AWS_TEST_CONTEXT="test-truedat-eks"
 TMUX_SESION="truedat"
-PREINSTALLATION_PACKAGES=("unzip" "curl" "vim" "git" "gedit" "wmctrl")
-INSTALLATION_PACKAGES=("redis-tools" "screen" "tmux" "build-essential" "libssl-dev" "automake" "autoconf" "libncurses5" "libncurses5-dev" "docker.io" "postgresql-client-14" "jq" "gedit" "xclip" "xdotool" "x11-utils" "winehq-stable" "gdebi-core" "libvulkan1" "libvulkan1:i386" "fonts-powerline" "stress" "bluez" "bluez-tools" "tlp" "lm-sensors" "psensor" "xsltproc" "fop" "xmllint" "bc")
+INSTALLATION_PACKAGES=("redis-tools" "screen" "tmux" "unzip" "curl" "vim" "build-essential" "git" "libssl-dev" "automake" "autoconf" "libncurses5" "libncurses5-dev" "docker.io" "postgresql-client-14" "jq" "gedit" "xclip" "xdotool" "x11-utils" "winehq-stable" "gdebi-core" "libvulkan1" "libvulkan1:i386" "fonts-powerline" "stress" "bluez" "bluez-tools" "tlp" "lm-sensors" "psensor" "xsltproc" "fop" "xmllint" "bc" "wmctrl" "fzf")
 TRUS_CONFIG="$USER_HOME/trus.config"
 
 ### Menus
@@ -1100,24 +1099,26 @@ create_configurations() {
     tlp_config
 }
 
-bash_config() {
-    print_semiheader "Prompt de Bash (Incluye fix de login de Google)"
-
+fix_google_login(){
     if ! grep -q "LD_PRELOAD=/lib/x86_64-linux-gnu/libnss_sss.so.2" "$BASH_PATH_CONFIG"; then
         echo 'export LD_PRELOAD=/lib/x86_64-linux-gnu/libnss_sss.so.2' >> "$BASH_PATH_CONFIG"
     fi
+}
+
+bash_config() {
+    print_semiheader "Prompt de Bash"
 
     {
         echo 'export COLORTERM=truecolor'
         echo '. "$HOME/.asdf/asdf.sh"'
         echo '. "$HOME/.asdf/completions/asdf.bash"'
+        echo '[ -f ~/.fzf.bash ] && source ~/.fzf.bash'
+        echo
         echo 'parse_git_branch() {'
         echo ' git branch 2> /dev/null | sed -e "/^[^*]/d" -e "s/* \(.*\)/(\1)/"'
         echo '}'
         echo
         echo 'PS1="${debian_chroot:+($debian_chroot)}\[\033[1;38;5;231;48;5;208m\]\w\[\033[00m\]\[\033[1;38;5;039m\] $(parse_git_branch)\[\033[00m\]-> "'
-        echo
-        echo '[ -f ~/.fzf.bash ] && source ~/.fzf.bash'
         echo
     } >> $BASH_PATH_CONFIG
     
@@ -1132,6 +1133,7 @@ zsh_config() {
         echo '# export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH'
         echo 'ZSH_THEME="agnoster"'
         echo ''
+        echo '. "$HOME/.asdf/asdf.sh"'
         echo 'export ZSH="$HOME/.oh-my-zsh"'
         echo 'export COLORTERM=truecolor'
         echo 'source $ZSH/oh-my-zsh.sh'
@@ -1146,7 +1148,7 @@ zsh_config() {
         echo 'export LANG=en_US.UTF-8'
         echo 'EDITOR='code''
         echo 'export ARCHFLAGS="-arch $(uname -m)"'
-        echo 'plugins=(git elixir asdf git-prompt zsh-autosuggestions zsh-syntax-highlighting zsh-completions)'
+        echo 'plugins=(git elixir asdf fzf git-prompt zsh-autosuggestions zsh-syntax-highlighting zsh-completions)'
         echo ''
         echo "alias ai='cd $BACK_PATH/td-ai'"
         echo "alias audit='cd $BACK_PATH/td-audit'"
@@ -1313,49 +1315,41 @@ add_origins(){
 }
 
 preinstallation(){
-    print_message_with_animation "Actualizando sistema" "$COLOR_TERNARY" 2
-    eval "sudo apt -qq update $REDIRECT"
-    eval "sudo apt -qq upgrade -y $REDIRECT"
-    print_message "Sistema actualizado" "$COLOR_SUCCESS" 3
+    if [ -e $TRUS_PATH]; then
+        add_origins
+        
+        print_message_with_animation "Actualizando sistema" "$COLOR_TERNARY" 2
+        eval "sudo apt -qq update $REDIRECT"
+        eval "sudo apt -qq upgrade -y $REDIRECT"
+        print_message "Sistema actualizado" "$COLOR_SUCCESS" 3
+        
+        
+        print_message_with_animation "Instalando Docker Compose" "$COLOR_TERNARY" 2
+        sudo curl -s -L "https://github.com/docker/compose/releases/download/v2.16.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/compose
+          
+        eval "sudo chmod +x /usr/local/bin/docker-compose $REDIRECT"
+        eval "sudo groupadd docker $REDIRECT"
+        eval "sudo usermod -aG docker '$USER' $REDIRECT"
+        print_message "Docker Compose instalado" "$COLOR_SUCCESS" 3
+        
+        for package in "${INSTALLATION_PACKAGES[@]}"; do
+            print_message_with_animation "Instalando $package" "$COLOR_TERNARY" 2
+            eval "sudo apt install -y --install-recommends $package $REDIRECT"
+            print_message "$package instalado" "$COLOR_SUCCESS" 3
+        done
 
-    eval "sudo apt install -y --install-recommends "${PREINSTALLATION_PACKAGES[@]}" $REDIRECT"
+        git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
+        ~/.fzf/install
 
-    git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
-    ~/.fzf/install
-
-    install_asdf
-    install_zsh
-    configure_omz
+        
+        install_asdf
+        instal_awscli
+        install_kubectl         
+        configure_asdf
+        install_gradient_terminal  
+    fi
 }
-
-package_installation() {
-    add_origins
-
-    print_message_with_animation "Actualizando sistema" "$COLOR_TERNARY" 2
-    eval "sudo apt -qq update $REDIRECT"
-    eval "sudo apt -qq upgrade -y $REDIRECT"
-    print_message "Sistema actualizado" "$COLOR_SUCCESS" 3
-
-    print_semiheader "Instalación de paquetes"
-
-    print_message_with_animation "Instalando Docker Compose" "$COLOR_TERNARY" 2
-    sudo curl -s -L "https://github.com/docker/compose/releases/download/v2.16.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/compose
-    
-    eval "sudo chmod +x /usr/local/bin/docker-compose $REDIRECT"
-    eval "sudo groupadd docker $REDIRECT"
-    eval "sudo usermod -aG docker '$USER' $REDIRECT"
-    print_message "Docker Compose instalado" "$COLOR_SUCCESS" 3
-    
-    eval "sudo apt install -y --install-recommends "${INSTALLATION_PACKAGES[@]}" $REDIRECT"
-    print_message "$package instalado" "$COLOR_SUCCESS" 3   
-    
-    instal_awscli
-    install_kubectl         
-    configure_asdf
-    install_gradient_terminal    
-
-    print_centered_message "Paquetes instalados" "$COLOR_SUCCESS"
-}
+ 
 
 install_asdf() {
     if [ -e "$ASDF_PATH" ]; then   
@@ -1370,10 +1364,7 @@ install_asdf() {
 instal_awscli(){
     mkdir $AWS_PATH
     cd $AWS_PATH
-    
-    # curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-    do_api_call "" "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" "" "-o 'awscliv2.zip'"
-
+    curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
     unzip awscliv2.zip
     cd aws
     sudo ./install
@@ -1387,8 +1378,7 @@ install_kubectl() {
 
         cd $KUBE_PATH
 
-        # eval "curl -LO https://dl.k8s.io/release/v1.23.6/bin/linux/amd64/kubectl && sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl $REDIRECT"
-        eval "do_api_call "" "https://dl.k8s.io/release/v1.23.6/bin/linux/amd64/kubectl" "" ""-o '$KUBE_PATH/kubectl'"" && sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl $REDIRECT"
+        eval "curl -LO https://dl.k8s.io/release/v1.23.6/bin/linux/amd64/kubectl && sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl $REDIRECT"
         
         touch "$KUBECONFIG_PATH"
 
@@ -1534,14 +1524,7 @@ swap() {
     print_message "Memoria SWAP ampliada a $((SWAP_SIZE_MB / 1024))GB" "$COLOR_SUCCESS" 3 "both"
 }
 
-
-
-
-
-
-
-
-
+ 
 ###### Operaciones secundarias
 ### Llamadas a apis
 
@@ -2198,7 +2181,7 @@ configure_menu(){
 
     case "$option" in
         1) 
-            package_installation
+            preinstallation
             ;;
 
         2) 
@@ -2738,6 +2721,7 @@ clone_truedat_project(){
 
 clear
 set_terminal_config
+
 
 if ! [ -e "$TRUS_PATH" ]; then
     install_trus
