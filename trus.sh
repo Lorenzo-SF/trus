@@ -19,7 +19,6 @@ DESCRIPTION_MESSAGE=""
 SWAP_SIZE_MB=$(free --mega | awk '/^Mem:/ {print int($2 + ($2))}')
 USER_HOME=$(eval echo ~"$SUDO_USER")
 TRUS_DIRECTORY=$USER_HOME/.trus
-TRUS_ACTUAL_PATH=./trus.sh
 TRUS_PATH=$TRUS_DIRECTORY/trus.sh
 TRUS_LINK_PATH=/usr/local/bin/trus
 AWS_TEST_CONTEXT="test-truedat-eks"
@@ -1179,7 +1178,7 @@ zsh_config() {
         echo ''
         echo '# PROMPT="%B%F{208}$schars[333]$schars[262]$schars[261]$schars[260]%B%~/$schars[260]$schars[261]$schars[262]$schars[333]%b%F{208}%b%f%k "'
         echo ''
-        echo '[ -f ~/.fzf.bash ] && source ~/.fzf.bash'
+        echo '[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh'
         echo ''
     } > $ZSH_PATH_CONFIG
 
@@ -1280,16 +1279,16 @@ configure_asdf(){
  
 install_trus() {
     print_separator "" "-"
-    print_centered_message "Instalando Truedat Utils (TrUs) y sus dependencias"
+    print_centered_message "Instalando Truedat Utils (TrUs)"
     print_separator "" "-"
 
-    mkdir -p $TRUS_DIRECTORY
-    cp $TRUS_ACTUAL_PATH $TRUS_PATH
+    mkdir -p "$TRUS_DIRECTORY"
+    cp "$TRUS_ACTUAL_PATH" "$TRUS_PATH"
 
-    sudo rm -f $TRUS_LINK_PATH
-    sudo ln -s $TRUS_PATH $TRUS_LINK_PATH
+    sudo rm -f "$TRUS_LINK_PATH"
+    sudo ln -s "$TRUS_PATH $TRUS_LINK_PATH"
     
-    print_centered_message "Truedat Utils (TrUs) instalado con éxito" "$COLOR_SUCCESS" 3 "both"
+    print_centered_message "Truedat Utils (TrUs) instalado con éxito" "$COLOR_SUCCESS"
 }
 
 add_origins(){
@@ -1315,7 +1314,7 @@ add_origins(){
 }
 
 preinstallation(){
-    if [ -e $TRUS_PATH]; then
+    if [ ! -e $TRUS_PATH ]; then
         add_origins
         
         print_message_with_animation "Actualizando sistema" "$COLOR_TERNARY" 2
@@ -1345,6 +1344,11 @@ preinstallation(){
         install_asdf
         instal_awscli
         install_kubectl         
+        install_zsh
+        
+        install_trus
+    else
+        configure_omz
         configure_asdf
         install_gradient_terminal  
     fi
@@ -2210,11 +2214,11 @@ configure_menu(){
             ;;
 
         8) 
-            install_trus
+            echo "PENDIENTE"
             ;;
 
         9) 
-            install_trus
+            echo "PENDIENTE"
             ;;
 
          0)
@@ -2721,10 +2725,9 @@ clone_truedat_project(){
 
 clear
 set_terminal_config
-
+TRUS_ACTUAL_PATH=$(realpath "$0")
 
 if ! [ -e "$TRUS_PATH" ]; then
-    install_trus
     preinstallation
 elif [ -z "$1" ]; then       
     print_logo
