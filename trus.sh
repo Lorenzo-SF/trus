@@ -24,7 +24,8 @@ TRUS_PATH=$TRUS_DIRECTORY/trus.sh
 TRUS_LINK_PATH=/usr/local/bin/trus
 AWS_TEST_CONTEXT="test-truedat-eks"
 TMUX_SESION="truedat"
-INSTALLATION_PACKAGES=("redis-tools" "screen" "tmux" "unzip" "curl" "vim" "build-essential" "git" "libssl-dev" "automake" "autoconf" "libncurses5" "libncurses5-dev" "docker.io" "postgresql-client-14" "jq" "gedit" "xclip" "xdotool" "x11-utils" "winehq-stable" "gdebi-core" "libvulkan1" "libvulkan1:i386" "fonts-powerline" "stress" "bluez" "bluez-tools" "tlp" "lm-sensors" "psensor" "xsltproc" "fop" "xmllint" "bc" "wmctrl" "fzf")
+PREINSTALLATION_PACKAGES=("unzip" "curl" "vim" "git" "gedit" "wmctrl")
+INSTALLATION_PACKAGES=("redis-tools" "screen" "tmux" "build-essential" "libssl-dev" "automake" "autoconf" "libncurses5" "libncurses5-dev" "docker.io" "postgresql-client-14" "jq" "gedit" "xclip" "xdotool" "x11-utils" "winehq-stable" "gdebi-core" "libvulkan1" "libvulkan1:i386" "fonts-powerline" "stress" "bluez" "bluez-tools" "tlp" "lm-sensors" "psensor" "xsltproc" "fop" "xmllint" "bc")
 TRUS_CONFIG="$USER_HOME/trus.config"
 
 ### Menus
@@ -1115,6 +1116,9 @@ bash_config() {
         echo '}'
         echo
         echo 'PS1="${debian_chroot:+($debian_chroot)}\[\033[1;38;5;231;48;5;208m\]\w\[\033[00m\]\[\033[1;38;5;039m\] $(parse_git_branch)\[\033[00m\]-> "'
+        echo
+        echo '[ -f ~/.fzf.bash ] && source ~/.fzf.bash'
+        echo
     } >> $BASH_PATH_CONFIG
     
     print_message "Prompt de Bash actualizado" "$COLOR_SUCCESS" 3 "both"
@@ -1172,6 +1176,8 @@ zsh_config() {
         echo '# prompt bigfade'
         echo ''
         echo '# PROMPT="%B%F{208}$schars[333]$schars[262]$schars[261]$schars[260]%B%~/$schars[260]$schars[261]$schars[262]$schars[333]%b%F{208}%b%f%k "'
+        echo ''
+        echo '[ -f ~/.fzf.bash ] && source ~/.fzf.bash'
         echo ''
     } > $ZSH_PATH_CONFIG
 
@@ -1307,11 +1313,19 @@ add_origins(){
 }
 
 preinstallation(){
-    package_installation
+    print_message_with_animation "Actualizando sistema" "$COLOR_TERNARY" 2
+    eval "sudo apt -qq update $REDIRECT"
+    eval "sudo apt -qq upgrade -y $REDIRECT"
+    print_message "Sistema actualizado" "$COLOR_SUCCESS" 3
+
+    eval "sudo apt install -y --install-recommends "${PREINSTALLATION_PACKAGES[@]}" $REDIRECT"
+
+    git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
+    ~/.fzf/install
+
+    install_asdf
     install_zsh
     configure_omz
-    configuration_menu
-    install_trus
 }
 
 package_installation() {
@@ -1325,35 +1339,31 @@ package_installation() {
     print_semiheader "Instalación de paquetes"
 
     print_message_with_animation "Instalando Docker Compose" "$COLOR_TERNARY" 2
-    # sudo curl -s -L "https://github.com/docker/compose/releases/download/v2.16.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/compose
-    do_api_call "" "https://github.com/docker/compose/releases/download/v2.16.0/docker-compose-$(uname -s)-$(uname -m)" "" "-o /usr/local/bin/compose"
+    sudo curl -s -L "https://github.com/docker/compose/releases/download/v2.16.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/compose
+    
     eval "sudo chmod +x /usr/local/bin/docker-compose $REDIRECT"
     eval "sudo groupadd docker $REDIRECT"
     eval "sudo usermod -aG docker '$USER' $REDIRECT"
     print_message "Docker Compose instalado" "$COLOR_SUCCESS" 3
-
-    for package in "${INSTALLATION_PACKAGES[@]}"; do
-        print_message_with_animation "Instalando $package" "$COLOR_TERNARY" 2
-        eval "sudo apt install -y --install-recommends $package $REDIRECT"
-        print_message "$package instalado" "$COLOR_SUCCESS" 3
-    done
-
-    install_asdf
-    instal_awscli
-    install_kubectl     
-    configure_asdf
-    install_gradient_terminal
     
+    eval "sudo apt install -y --install-recommends "${INSTALLATION_PACKAGES[@]}" $REDIRECT"
+    print_message "$package instalado" "$COLOR_SUCCESS" 3   
+    
+    instal_awscli
+    install_kubectl         
+    configure_asdf
+    install_gradient_terminal    
+
     print_centered_message "Paquetes instalados" "$COLOR_SUCCESS"
 }
 
 install_asdf() {
     if [ -e "$ASDF_PATH" ]; then   
-        rm "$ASDF_PATH"
+        rm -fr $ASDF_PATH
     fi
-
+    
     print_message_with_animation "Instalando ASDF" "$COLOR_TERNARY" 2
-    eval "git clone https://github.com/asdf-vm/asdf.git $ASDF_PATH --branch v0.14.0 $REDIRECT"
+    eval "git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.14.1 $REDIRECT"
     print_message "ASDF instalado" "$COLOR_SUCCESS" 3
 }
 
@@ -1471,16 +1481,17 @@ configure_omz(){
     cd
 
     if [ -e "$OMZ_PATH" ]; then
-        rm -r -f $OMZ_PATH
+        rm -fr $OMZ_PATH
     fi
 
-    # sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-    eval "do_api_call '' 'https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh' $REDIRECT"
-
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+    
     clone_if_not_exists https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-$OMZ_PATH/custom}/plugins/zsh-syntax-highlighting
     clone_if_not_exists https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-$OMZ_PATH/custom}/plugins/zsh-autosuggestions
     clone_if_not_exists https://github.com/zsh-users/zsh-completions ${ZSH_CUSTOM:-${ZSH:-$OMZ_PATH}/custom}/plugins/zsh-completions
     clone_if_not_exists https://github.com/gusaiani/elixir-oh-my-zsh.git ${ZSH_CUSTOM:-${ZSH:-$OMZ_PATH}/custom}/plugins/elixir
+    # no uso la funcion 'clone_if_not_exists' porque paso de modificarla para añadir el depth para esto solo 
+    git clone --depth 1 https://github.com/unixorn/fzf-zsh-plugin.git ${ZSH_CUSTOM:-${$OMZ_PATH}/custom}/plugins/fzf-zsh-plugin
 
     zsh_config
 
@@ -2220,7 +2231,7 @@ configure_menu(){
             ;;
 
         9) 
-            preinstallation
+            install_trus
             ;;
 
          0)
@@ -2729,6 +2740,7 @@ clear
 set_terminal_config
 
 if ! [ -e "$TRUS_PATH" ]; then
+    install_trus
     preinstallation
 elif [ -z "$1" ]; then       
     print_logo
