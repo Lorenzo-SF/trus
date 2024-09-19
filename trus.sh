@@ -127,6 +127,7 @@ KUBECONFIG_PATH=$KUBE_PATH/config
 
 BASH_PATH_CONFIG=$USER_HOME/.bashrc
 ZSH_PATH_CONFIG=$USER_HOME/.zshrc
+OMZ_PATH=$USER_HOME/.oh-my-zsh
 TMUX_PATH_CONFIG=$USER_HOME/.tmux.conf
 TLP_PATH_CONFIG=/etc/tlp.conf
 
@@ -1317,8 +1318,8 @@ package_installation() {
     add_origins
 
     print_message_with_animation "Actualizando sistema" "$COLOR_TERNARY" 2
-    eval "sudo apt update $REDIRECT"
-    eval "sudo apt upgrade -y $REDIRECT"
+    eval "sudo apt -qq update $REDIRECT"
+    eval "sudo apt -qq upgrade -y $REDIRECT"
     print_message "Sistema actualizado" "$COLOR_SUCCESS" 3
 
     print_semiheader "Instalación de paquetes"
@@ -1440,7 +1441,8 @@ install_kubectl() {
         
         print_message "Kubectl instalado y configurado" "$COLOR_SUCCESS" 3
     fi
-    print_message "Paquetes y dependencias (extra) instalado correctamente" "$COLOR_SUCCESS" 3 "both"
+    
+    print_message "Paquetes y dependencias instalado correctamente" "$COLOR_SUCCESS" 3 "both"
 }
 
 install_gradient_terminal() {
@@ -1464,19 +1466,21 @@ install_zsh() {
 }
 
 configure_omz(){
-    cd ~
+    print_semiheader "Instalación de Oh-My-ZSH"
 
-    if [ -e "~/.oh-my-zsh" ]; then
-        rm -r -f ~/.oh-my-zsh
+    cd
+
+    if [ -e "$OMZ_PATH" ]; then
+        rm -r -f $OMZ_PATH
     fi
 
     # sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
     eval "do_api_call '' 'https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh' $REDIRECT"
 
-    clone_if_not_exists https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
-    clone_if_not_exists https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
-    clone_if_not_exists https://github.com/zsh-users/zsh-completions ${ZSH_CUSTOM:-${ZSH:-~/.oh-my-zsh}/custom}/plugins/zsh-completions
-    clone_if_not_exists https://github.com/gusaiani/elixir-oh-my-zsh.git ${ZSH_CUSTOM:-${ZSH:-~/.oh-my-zsh}/custom}/plugins/elixir
+    clone_if_not_exists https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-$OMZ_PATH/custom}/plugins/zsh-syntax-highlighting
+    clone_if_not_exists https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-$OMZ_PATH/custom}/plugins/zsh-autosuggestions
+    clone_if_not_exists https://github.com/zsh-users/zsh-completions ${ZSH_CUSTOM:-${ZSH:-$OMZ_PATH}/custom}/plugins/zsh-completions
+    clone_if_not_exists https://github.com/gusaiani/elixir-oh-my-zsh.git ${ZSH_CUSTOM:-${ZSH:-$OMZ_PATH}/custom}/plugins/elixir
 
     zsh_config
 
@@ -2725,7 +2729,6 @@ clear
 set_terminal_config
 
 if ! [ -e "$TRUS_PATH" ]; then
-    install_trus
     preinstallation
 elif [ -z "$1" ]; then       
     print_logo
