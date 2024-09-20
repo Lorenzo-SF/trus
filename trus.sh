@@ -631,7 +631,7 @@ compile_elixir() {
     local create_ddbb=${1:-""}
 
     print_message_with_animation "Actualizando dependencias Elixir..." "$COLOR_SECONDARY" 3
-    eval "mix deps.get --force $REDIRECT"
+    eval "y | mix deps.get --force $REDIRECT"
     print_message "Actualizando dependencias Elixir (HECHO)" "$COLOR_SUCCESS" 3
 
     print_message_with_animation "Compilando Elixir..." "$COLOR_SECONDARY" 3
@@ -2644,7 +2644,7 @@ clone_truedat_project(){
     mkdir -p $BACK_PATH
     mkdir -p $BACK_PATH/logs
     mkdir -p $FRONT_PATH
-    mkdir -p $DEV_PATH
+    
     
     clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-ai.git $BACK_PATH/td-ai
     clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-audit.git $BACK_PATH/td-audit
