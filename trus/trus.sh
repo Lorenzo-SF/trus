@@ -1360,14 +1360,18 @@ preinstallation(){
         git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
         ~/.fzf/install
 
-        print_message "(GIT) Por favor, indicame tu nombre completo" "$COLOR_SECONDARY" 1 "both"
-        read -r git_user_name
-        git config --global user.name "$git_user_name"
+        local user_name=$(getent passwd $USER | cut -d ':' -f 5 | cut -d ',' -f 1)
+        local user_email=$(whoami)"@bluetab.net"
+        print_centered_message "--- (GIT) Se ha configurado GIT con los siguientes datos" "$COLOR_PRIMARY" 1 "before"
+        print_centered_message "        - Nombre: $user_name" "$COLOR_SECONDARY" 1 "both"
+        print_centered_message "        - Email: $user_email" "$COLOR_SECONDARY" 1 "both"
+        print_centered_message "        Si deseas modificarlo, utiliza los siguientes comandos en la terminal:" "$COLOR_PRIMARY" 1 "before"
+        print_centered_message "        - Nombre: git config --global user.name "\<user_name\>"'" "$COLOR_SECONDARY" 1 "both"
+        print_centered_message "        - Nombre: git config --global user.email "\<user_email\>"'" "$COLOR_SECONDARY" 1 "both"
 
-        print_message "(GIT) Por favor, indicame tu email" "$COLOR_SECONDARY" 1 "both"
-        read -r git_user_email
-        git config --global user.email "$git_user_email"
-        
+        git config --global user.name "$user_name"
+        git config --global user.email "$user_email"
+
         install_asdf
         instal_awscli
         install_kubectl         
