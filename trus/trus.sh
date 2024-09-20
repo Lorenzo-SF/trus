@@ -34,9 +34,9 @@ CONFIGURATION_MENU_OPTIONS=("0 - Volver" "1 - ZSH" "2 - BASH" "3 - TMUX" "4 - TL
 ANIMATION_MENU_OPTIONS=("0 - Volver" "ARROW" "BOUNCE" "BOUNCING_BALL" "BOX" "BRAILLE" "BREATHE" "BUBBLE" "OTHER_BUBBLE" "CLASSIC_UTF8" "CLASSIC" "DOT" "FILLING_BAR" "FIREWORK" "GROWING_DOTS" "HORIZONTAL_BLOCK" "KITT" "METRO" "PASSING_DOTS" "PONG" "QUARTER" "ROTATING_EYES" "SEMI_CIRCLE" "SIMPLE_BRAILLE" "SNAKE" "TRIANGLE" "TRIGRAM" "VERTICAL_BLOCK")
 PRINCIPAL_ACTIONS_MENU_OPTIONS=("0 - Volver" "1 - Arrancar Truedat" "2 - Matar Truedat" "3 - Operaciones de bdd" "4 - Operaciones de repositorios")
 START_MENU_OPTIONS=("0 - Volver" "1 - Todo" "2 - Solo contenedores" "3 - Solo servicios" "4 - Solo el frontal")
-SECONDARY_ACTIONS_MENU_OPTIONS=("0 - Volver" "1 - Indices de ElasticSearch" "2 - Claves SSH" "3 - Kong" "4 - Linkado de modulos del frontal" "5 - Llamada REST que necesita token de login" "6 -Carga de estructuras" "7 - Carga de linajes" "8 - Entrar en una sesion iniciada de TMUX" "9 - Salir de una sesion inciada de TMUX")
+SECONDARY_ACTIONS_MENU_OPTIONS=("0 - Volver" "1 - Indices de ElasticSearch" "2 - Claves SSH" "3 - Kong" "4 - Linkado de modulos del frontal" "5 - Llamada REST que necesita token de login" "6 - Carga de estructuras" "7 - Carga de linajes" "8 - Entrar en una sesion iniciada de TMUX" "9 - Salir de una sesion inciada de TMUX")
 DDBB_MENU_OPTIONS=("0 - Volver" "1 - Descargar SOLO backup de TEST" "2 - Descargar y aplicar backup de TEST" "3 - Aplicar backup de ruta LOCAL" "4 - Crear backup de las bdd actuales" "5 - Limpieza de backups LOCALES")
-REPO_MENU_OPTIONS=("0 - Volver" "1 - Actualizar TODO" "2 -Actualizar solo back" "3 - Actualizar solo front" "4 - Actualizar solo libs")
+REPO_MENU_OPTIONS=("0 - Volver" "1 - Actualizar TODO" "2 - Actualizar solo back" "3 - Actualizar solo front" "4 - Actualizar solo libs")
 KONG_MENU_OPTIONS=("0 - Volver" "1 - (Re)generar rutas de Kong" "2 - Configurar Kong")
 
 
@@ -1385,6 +1385,38 @@ preinstallation(){
     fi
 }
  
+install_docker() {
+    aws ecr get-login-password --profile truedat --region eu-west-1 | docker login --username AWS --password-stdin 576759405678.dkr.ecr.eu-west-1.amazonaws.com
+
+    cd "$DEV_PATH"
+    set -e
+    set -o pipefail
+
+    ip=$(ip -4 addr show docker0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
+    echo SERVICES_HOST="$ip" > local_ip.env
+    sudo chmod 666 /var/run/docker.sock
+
+    start_containers
+
+    print_message "Contenedores instalados y arrancados" "$COLOR_SECONDARY" 1 "before"
+}
+
+set_elixir_versions() {
+    exec_command "cd $BACK_PATH/td-auth && asdf local elixir 1.14.5-otp-25"
+    exec_command "cd $BACK_PATH/td-audit && asdf local elixir 1.14.5-otp-25"
+    exec_command "cd $BACK_PATH/td-ai && asdf local elixir 1.15"
+    exec_command "cd $BACK_PATH/td-bg && asdf local elixir 1.14.5-otp-25"
+    exec_command "cd $BACK_PATH/td-cluster && asdf local elixir 1.14.5-otp-25"
+    exec_command "cd $BACK_PATH/td-core && asdf local elixir 1.14.5-otp-25"
+    exec_command "cd $BACK_PATH/td-dd && asdf local elixir 1.14.5-otp-25"
+    exec_command "cd $BACK_PATH/td-df && asdf local elixir 1.14.5-otp-25"
+    exec_command "cd $BACK_PATH/td-df-lib && asdf local elixir 1.14.5-otp-25"
+    exec_command "cd $BACK_PATH/td-ie && asdf local elixir 1.14.5-otp-25"
+    exec_command "cd $BACK_PATH/td-lm && asdf local elixir 1.14.5-otp-25"
+    exec_command "cd $BACK_PATH/td-qx && asdf local elixir 1.14.5-otp-25"
+    exec_command "cd $BACK_PATH/td-se && asdf local elixir 1.16"
+    print_message "Versiones específicas de Elixir configuradas" "$COLOR_SUCCESS" 2 "both"
+}
 
 install_asdf() {
     if [ -e "$ASDF_PATH" ]; then   
@@ -1546,8 +1578,7 @@ swap() {
     print_message "Memoria SWAP ampliada a $((SWAP_SIZE_MB / 1024))GB" "$COLOR_SUCCESS" 3 "both"
 }
 
- ###################################################################################################
-###### Operaciones secundarias
+
 ### Llamadas a apis
 
 do_api_call() {
@@ -1617,8 +1648,6 @@ load_linages() {
 }
 
 
-###################################################################################################
-###### Operaciones principales
 ### Arranque de Truedat (TMUX y Screen)
 
 start_containers() {
@@ -1832,7 +1861,7 @@ get_service_port() {
 }
 
 kong_routes() {
-    
+    print_header
     print_semiheader "Generación de rutas en Kong"
 
     if [[ "$USE_KONG" = false ]]; then
@@ -1876,7 +1905,6 @@ kong_routes() {
 }
 
 activate_kong() {
-    
     print_semiheader "Habilitación de Kong"
     print_message "A continuación, se van a explicar los pasos que se van a seguir si sigues con este proceso" "$COLOR_PRIMARY" 2 "before"
     print_message "Se va a actualizar el archivo de configuracion para reflejar que se debe utilizar Kong a partir de ahora" "$COLOR_SECONDARY" 3
@@ -1936,8 +1964,7 @@ activate_kong() {
     fi
 }
 
-deactivate_kong() {
-    
+deactivate_kong() {    
     print_semiheader "Deshabilitación de Kong"
     print_message "A continuación, se van a explicar los pasos que se van a seguir si sigues con este proceso" "$COLOR_PRIMARY" 2 "before"
     print_message "Se va a actualizar el archivo de configuracion para reflejar que se debe utilizar Kong a partir de ahora" "$COLOR_SECONDARY" 3
@@ -2529,43 +2556,17 @@ kong_menu(){
     esac
 }
 
+FRONT_PACKAGES
+    for color in "${TERMINAL_COLORS[@]}"; do
+        distance=$(euclidean_distance "$desired_color" "$color")
+        if [[ $closest_distance == -1 || $distance -lt $closest_distance ]]; then
+            closest_distance=$distance
+            closest_color=$color
+        fi
+    done
 
- 
-#########################################
-###### Install
 
-install_docker() {
-    aws ecr get-login-password --profile truedat --region eu-west-1 | docker login --username AWS --password-stdin 576759405678.dkr.ecr.eu-west-1.amazonaws.com
 
-    cd "$DEV_PATH"
-    set -e
-    set -o pipefail
-
-    ip=$(ip -4 addr show docker0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
-    echo SERVICES_HOST="$ip" > local_ip.env
-    sudo chmod 666 /var/run/docker.sock
-
-    start_containers
-
-    print_message "Contenedores instalados y arrancados" "$COLOR_SECONDARY" 1 "before"
-}
-
-set_elixir_versions() {
-    exec_command "cd $BACK_PATH/td-auth && asdf local elixir 1.14.5-otp-25"
-    exec_command "cd $BACK_PATH/td-audit && asdf local elixir 1.14.5-otp-25"
-    exec_command "cd $BACK_PATH/td-ai && asdf local elixir 1.15"
-    exec_command "cd $BACK_PATH/td-bg && asdf local elixir 1.14.5-otp-25"
-    exec_command "cd $BACK_PATH/td-cluster && asdf local elixir 1.14.5-otp-25"
-    exec_command "cd $BACK_PATH/td-core && asdf local elixir 1.14.5-otp-25"
-    exec_command "cd $BACK_PATH/td-dd && asdf local elixir 1.14.5-otp-25"
-    exec_command "cd $BACK_PATH/td-df && asdf local elixir 1.14.5-otp-25"
-    exec_command "cd $BACK_PATH/td-df-lib && asdf local elixir 1.14.5-otp-25"
-    exec_command "cd $BACK_PATH/td-ie && asdf local elixir 1.14.5-otp-25"
-    exec_command "cd $BACK_PATH/td-lm && asdf local elixir 1.14.5-otp-25"
-    exec_command "cd $BACK_PATH/td-qx && asdf local elixir 1.14.5-otp-25"
-    exec_command "cd $BACK_PATH/td-se && asdf local elixir 1.16"
-    print_message "Versiones específicas de Elixir configuradas" "$COLOR_SUCCESS" 2 "both"
-}
 
 #########################################
 ### Acciones Principales
@@ -2802,3 +2803,17 @@ TRUS_ACTUAL_PATH=$(realpath "$0")
 
 param_routing $1 $2 $3 $4 $5
  
+
+print_centered_message "TAREAS POR COMPLETAR" "$COLOR_PRIMARY" "before"
+print_centered_message "    - Informe PiDi (script Victor)" "$COLOR_SECONDARY" 
+print_centered_message "    - Multi yarn test" "$COLOR_SECONDARY" 
+print_centered_message "    - Configurar colores de trus" "$COLOR_SECONDARY" 
+print_centered_message "    - Configurar animacion" "$COLOR_SECONDARY" 
+print_centered_message "    - Funciones de ayuda" "$COLOR_SECONDARY" 
+print_centered_message "    - Añadir submenu al reindexado de elastic, para seleccionar qué indices se quiere reindexar" "$COLOR_SECONDARY" 
+print_centered_message "    - Añadir submenu al arranque de todo/servicios de truedat, para seleccionar qué servicios se quiere arrancar" "$COLOR_SECONDARY" 
+print_centered_message "    - Añadir submenu a la actualizacion de repos para seleccionar qué actualizar" "$COLOR_SECONDARY" 
+print_centered_message "    - Añadir submenu a la descarga de bdd de test para seleccionar qué actualizar" "$COLOR_SECONDARY"
+print_centered_message "    - Añadir submenu a la descarga de bdd de test para seleccionar qué actualizar" "$COLOR_SECONDARY"
+
+# RNTDELL001174.bluetab.net
