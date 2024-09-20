@@ -11,9 +11,9 @@
 ### Principales
 
 trap stop_animation SIGINT
-# git config --global user.email "lorenzo.sanchez@bluetab.net"
-# git config --global user.name "Lorenzo Sánchez Fraile
 
+
+DATE_NOW=$(date +"%Y-%m-%d")
 HEADER_MESSAGE="Truedat Utils (TrUs)"
 DESCRIPTION_MESSAGE=""
 SWAP_SIZE_MB=$(free --mega | awk '/^Mem:/ {print int($2 + ($2))}')
@@ -127,6 +127,7 @@ KUBECONFIG_PATH=$KUBE_PATH/config
 BASH_PATH_CONFIG=$USER_HOME/.bashrc
 ZSH_PATH_CONFIG=$USER_HOME/.zshrc
 OMZ_PATH=$USER_HOME/.oh-my-zsh
+OMZ_PLUGINS_PATH=$OMZ_PATH/custom/plugins
 TMUX_PATH_CONFIG=$USER_HOME/.tmux.conf
 TLP_PATH_CONFIG=/etc/tlp.conf
 
@@ -795,22 +796,22 @@ download_test_backup() {
         local SERVICE_DBNAME="${DATABASE}_dev"
         local SERVICE_PATH="$BACK_PATH/$SERVICE_NAME"
         local FILENAME=$SERVICE_DBNAME".sql"
-        local PASSWORD=$(kubectl --context ${CONTEXT} get secrets postgres -o json | jq -r '.data.PGPASSWORD' | base64 -d)
-        local USER=$(kubectl --context ${CONTEXT} get secrets postgres -o json | jq -r '.data.PGUSER' | base64 -d)
+        local PASSWORD=$(kubectl --context ${AWS_TEST_CONTEXT} get secrets postgres -o json | jq -r '.data.PGPASSWORD' | base64 -d)
+        local USER=$(kubectl --context ${AWS_TEST_CONTEXT} get secrets postgres -o json | jq -r '.data.PGUSER' | base64 -d)
 
         cd "$SERVICE_PATH"
         print_message_with_animation "Creación de backup" "$COLOR_SECONDARY" 2
-        kubectl --context ${CONTEXT} exec ${PSQL} -- bash -c "PGPASSWORD='${PASSWORD}' pg_dump -d ${SERVICE_PODNAME} -U ${USER} -f ${DATABASE}.sql -x -O"
+        kubectl --context ${AWS_TEST_CONTEXT} exec ${PSQL} -- bash -c "PGPASSWORD='${PASSWORD}' pg_dump -d ${SERVICE_PODNAME} -U ${USER} -f ${DATABASE}.sql -x -O"
         print_message "Creación de backup (HECHO)" "$COLOR_SUCCESS" 2
 
         print_message_with_animation "Descarga backup" "$COLOR_SECONDARY" 2
-        eval "kubectl --context ${CONTEXT} cp \"${PSQL}:/${DATABASE}.sql\" \"./${FILENAME}\"  $REDIRECT"
+        eval "kubectl --context ${AWS_TEST_CONTEXT} cp \"${PSQL}:/${DATABASE}.sql\" \"./${FILENAME}\"  $REDIRECT"
         print_message "Descarga backup (HECHO)" "$COLOR_SUCCESS" 2
 
         print_message " Backup descargado en $SERVICE_PATH/$FILENAME" "$COLOR_WARNING" 2
 
         print_message_with_animation "Borrando fichero generado en el POD" "$COLOR_SECONDARY" 2
-        eval "kubectl --context \"${CONTEXT}\" exec \"${PSQL}\" -- rm \"/${DATABASE}.sql\"  $REDIRECT"
+        eval "kubectl --context \"${AWS_TEST_CONTEXT}\" exec \"${PSQL}\" -- rm \"/${DATABASE}.sql\"  $REDIRECT"
         print_message "Borrando fichero generado en el POD (HECHO)" "$COLOR_SUCCESS" 2
 
         print_message_with_animation "Comentado de 'CREATE PUBLICATION'" "$COLOR_SECONDARY" 2
@@ -1142,7 +1143,7 @@ zsh_config() {
         echo 'HIST_STAMPS="dd/mm/yyyy"'
         echo ''
         echo ''
-        echo '# User configuration'
+        echo '# configuration'
         echo 'export MANPATH="/usr/local/man:$MANPATH"'
         echo 'export LANG=en_US.UTF-8'
         echo 'EDITOR='code''
@@ -1271,6 +1272,12 @@ configure_asdf(){
     asdf global elixir 1.13.4
     asdf global nodejs 18.20.3
     asdf global yarn latest
+
+    # Meto esto aqui porque aunque no es de ASDF, depende de que ASDF instale NodeJs
+    # https://github.com/aurora-0025/gradient-terminal?tab=readme-ov-file
+    npm install -g gradient-terminal
+    npm install tinygradient
+    npm install ansi-regex
     print_message "Configurando ASDF (HECHO)" "$COLOR_SUCCESS" 3 "before"
 }
 
@@ -1286,7 +1293,7 @@ install_trus() {
     cp "$TRUS_ACTUAL_PATH" "$TRUS_PATH"
 
     sudo rm -f "$TRUS_LINK_PATH"
-    sudo ln -s "$TRUS_PATH $TRUS_LINK_PATH"
+    sudo ln -s "$TRUS_PATH" "$TRUS_LINK_PATH"
     
     print_centered_message "Truedat Utils (TrUs) instalado con éxito" "$COLOR_SUCCESS"
 }
@@ -1340,17 +1347,24 @@ preinstallation(){
         git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
         ~/.fzf/install
 
+        print_message "(GIT) Por favor, indicame tu nombre completo" "$COLOR_SECONDARY" 1 "both"
+        read -r git_user_name
+        git config --global user.name "$git_user_name"
+
+        print_message "(GIT) Por favor, indicame tu email" "$COLOR_SECONDARY" 1 "both"
+        read -r git_user_email
+        git config --global user.email "$git_user_email"
         
         install_asdf
         instal_awscli
         install_kubectl         
-        install_zsh
-        
+        install_zsh        
+
         install_trus
     else
-        configure_omz
         configure_asdf
-        install_gradient_terminal  
+        zsh_config
+        bash_config        
     fi
 }
  
@@ -1449,16 +1463,8 @@ install_kubectl() {
     print_message "Paquetes y dependencias instalado correctamente" "$COLOR_SUCCESS" 3 "both"
 }
 
-install_gradient_terminal() {
-    # https://github.com/aurora-0025/gradient-terminal?tab=readme-ov-file
-    npm install -g gradient-terminal
-    npm install tinygradient
-    npm install ansi-regex
-}
-
-
-### Personalizacion del equipo
-
+ 
+ ### Personalizacion del equipo
 install_zsh() {
     print_semiheader "Instalación de ZSH"
 
@@ -1466,10 +1472,6 @@ install_zsh() {
     eval "sudo apt install -y --install-recommends zsh $REDIRECT"
     print_message "$package instalado" "$COLOR_SUCCESS" 3
 
-    chsh -s $(which zsh)
-}
-
-configure_omz(){
     print_semiheader "Instalación de Oh-My-ZSH"
 
     cd
@@ -1480,16 +1482,14 @@ configure_omz(){
 
     sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
     
-    clone_if_not_exists https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-$OMZ_PATH/custom}/plugins/zsh-syntax-highlighting
-    clone_if_not_exists https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-$OMZ_PATH/custom}/plugins/zsh-autosuggestions
-    clone_if_not_exists https://github.com/zsh-users/zsh-completions ${ZSH_CUSTOM:-${ZSH:-$OMZ_PATH}/custom}/plugins/zsh-completions
-    clone_if_not_exists https://github.com/gusaiani/elixir-oh-my-zsh.git ${ZSH_CUSTOM:-${ZSH:-$OMZ_PATH}/custom}/plugins/elixir
-    # no uso la funcion 'clone_if_not_exists' porque paso de modificarla para añadir el depth para esto solo 
-    git clone --depth 1 https://github.com/unixorn/fzf-zsh-plugin.git ${ZSH_CUSTOM:-${$OMZ_PATH}/custom}/plugins/fzf-zsh-plugin
+    clone_if_not_exists https://github.com/zsh-users/zsh-syntax-highlighting.git $OMZ_PLUGINS_PATH/zsh-syntax-highlighting
+    clone_if_not_exists https://github.com/zsh-users/zsh-autosuggestions $OMZ_PLUGINS_PATH/zsh-autosuggestions
+    clone_if_not_exists https://github.com/zsh-users/zsh-completions $OMZ_PLUGINS_PATH/zsh-completions
+    clone_if_not_exists https://github.com/gusaiani/elixir-oh-my-zsh.git $OMZ_PLUGINS_PATH/elixir
 
     zsh_config
-
-    print_message "ZSH Instalado correctamente. ZSH estará disponible en el próximo inicio de sesión" "$COLOR_SUCCESS" 3 "both"
+    
+    print_message "Oh-My-ZSH Instalado correctamente. ZSH y Oh-My-ZSH estará disponible en el próximo inicio de sesión" "$COLOR_SUCCESS" 3 "both"
 }
 
 splash_loader() {
@@ -2190,7 +2190,6 @@ configure_menu(){
 
         2) 
             install_zsh
-            configure_omz
             ;;
 
         3) 
@@ -2579,25 +2578,6 @@ install() {
 
             aws ecr get-login-password --profile truedat --region eu-west-1 | docker login --username AWS --password-stdin 576759405678.dkr.ecr.eu-west-1.amazonaws.com
             print_message "Configuración de aws (HECHO)" "$COLOR_SUCCESS" 3 "before"
-
-            asdf plugin add erlang https://github.com/asdf-vm/asdf-erlang.git
-            asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git
-            asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
-            asdf plugin-add yarn
-            KERL_BUILD_DOCS=yes asdf install erlang 25.3
-            asdf install elixir 1.13.4
-            asdf install elixir 1.14.5-otp-25
-            asdf install elixir 1.15
-            asdf install elixir 1.16
-            asdf install nodejs 18.20.3
-            asdf install yarn latest
-            print_message "Instalando plugins y librerias de ASDF (HECHO)" "$COLOR_SUCCESS" 3 "before"
-
-            asdf global erlang 25.3
-            asdf global elixir 1.13.4
-            asdf global nodejs 18.20.3
-            asdf global yarn latest
-            print_message "Configurando ASDF (HECHO)" "$COLOR_SUCCESS" 3 "before"
 
             #Este eval está porque si se instala el entorno en el WSL de windows, el agente no se mantiene levantado
             #En linux no es necesario pero no molesta
