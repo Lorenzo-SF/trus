@@ -2245,11 +2245,11 @@ configuration_menu(){
             tmux_config
             ;;
 
-        3)  
+        4)  
             tlp_config
             ;;
 
-        4) 
+        5) 
             zsh_config
             bash_config
             tmux_config
