@@ -12,7 +12,6 @@
 
 trap stop_animation SIGINT
 
-
 DATE_NOW=$(date +"%Y-%m-%d")
 HEADER_MESSAGE="Truedat Utils (TrUs)"
 DESCRIPTION_MESSAGE=""
@@ -23,7 +22,8 @@ TRUS_PATH=$TRUS_DIRECTORY/trus.sh
 TRUS_LINK_PATH=/usr/local/bin/trus
 AWS_TEST_CONTEXT="test-truedat-eks"
 TMUX_SESION="truedat"
-INSTALLATION_PACKAGES=("redis-tools" "screen" "tmux" "unzip" "curl" "vim" "build-essential" "git" "libssl-dev" "automake" "autoconf" "libncurses5" "libncurses5-dev" "docker.io" "postgresql-client-14" "jq" "gedit" "xclip" "xdotool" "x11-utils" "winehq-stable" "gdebi-core" "libvulkan1" "libvulkan1:i386" "fonts-powerline" "stress" "bluez" "bluez-tools" "tlp" "lm-sensors" "psensor" "xsltproc" "fop" "xmllint" "bc" "wmctrl" "fzf")
+APT_INSTALLATION_PACKAGES=("redis-tools" "screen" "tmux" "unzip" "curl" "vim" "build-essential" "git" "libssl-dev" "automake" "autoconf" "libncurses5" "libncurses5-dev" "docker.io" "postgresql-client-14" "jq" "gedit" "xclip" "xdotool" "x11-utils" "winehq-stable" "gdebi-core" "libvulkan1" "libvulkan1:i386" "fonts-powerline" "stress" "bluez" "bluez-tools" "tlp" "lm-sensors" "psensor" "xsltproc" "fop" "xmllint" "bc" "wmctrl" "fzf")
+SNAP_INSTALLATION_PACKAGES=("dbeaver-ce" "discord" "vivaldi")
 TRUS_CONFIG="$USER_HOME/trus.config"
 
 ### Menus
@@ -41,7 +41,6 @@ KONG_MENU_OPTIONS=("0 - Volver" "1 - (Re)generar rutas de Kong" "2 - Configurar 
 
 
 ### Esquema de colores
-
 NO_COLOR="FFFCE2"
 COLOR_PRIMARY="BED5E8"
 COLOR_SECONDARY="DEE0B7"
@@ -63,7 +62,6 @@ GRADIENT_6=""
 
 
 ### Animaciones
-
 TERMINAL_ANIMATION_ARROW=(▹▹▹▹▹ ▸▹▹▹▹ ▹▸▹▹▹ ▹▹▸▹▹ ▹▹▹▸▹ ▹▹▹▹▸ ▹▹▹▹▹ ▹▹▹▹▹ ▹▹▹▹▹ ▹▹▹▹▹ ▹▹▹▹▹ ▹▹▹▹▹ ▹▹▹▹▹)
 TERMINAL_ANIMATION_BOUNCE=(. · ˙ ·)
 TERMINAL_ANIMATION_BOUNCING_BALL=("(●     )" "( ●    )" "(  ●   )" "(   ●  )" "(    ● )" "(     ●)" "(    ● )" "(   ●  )" "(  ●   )" "( ●    )")
@@ -101,8 +99,9 @@ HEADER_LOGO=("  _________   ______     __  __    ______       "
              "        \__\/    \_\/ \_\/  \_____\/  \_____\/  "
          )
 
-### Rutas
 
+
+### Rutas
 WORKSPACE_PATH=$USER_HOME/workspace
 TRUEDAT_ROOT_PATH=$WORKSPACE_PATH/truedat
 BACK_PATH=$TRUEDAT_ROOT_PATH/back
@@ -133,7 +132,6 @@ TLP_PATH_CONFIG=/etc/tlp.conf
 
 
 ### Listados de infraestructura
-
 DATABASES=("td_ai" "td_audit" "td_bg" "td_dd" "td_df" "td_i18n" "td_ie" "td_lm" "td_qx")
 INDEXES=("dd" "bg" "ie" "qx")
 CONTAINERS=("elasticsearch" "redis" "redis_test" "vault")
@@ -146,6 +144,7 @@ KONG_ADMIN_URL="localhost:8001"
 KONG_ROUTES_SERVICES=("health" "td_audit" "td_auth" "td_bg" "td_dd" "td_qx" "td_dq" "td_lm" "td_qe" "td_se" "td_df" "td_ie" "td_cx" "td_i18n" "td_ai")
 
 
+###################################################################################################
 ###### Herramientas
 ### General
 
@@ -219,6 +218,7 @@ message_size() {
 
 
 ### Colorinchis
+
 
 get_color() {
     local COLOR=${1:-$COLOR_PRIMARY}
@@ -304,6 +304,12 @@ set_terminal_config() {
     fi
 }
 
+exec_command(){
+    local command=$1
+    eval "$command $REDIRECT"
+}
+
+
 ###### Mensajes
 ### Base
 
@@ -337,8 +343,8 @@ print_message() {
     echo -ne "$message"
 }
             
-# para su uso: if print_question "<mensaje>" = 0; then
 print_question(){
+    # para su uso: if print_question "<mensaje>" = 0; then
     local question=${1:-""}
     local color=${2:-"$COLOR_WARNING"}
     local response=1
@@ -385,6 +391,7 @@ print_menu() {
 
 
 ### Especiales
+
 print_centered_message() {
     local message=$1
     local color=$2
@@ -582,14 +589,14 @@ checkout() {
     local HEADER=${1:-""}
 
     print_message_with_animation "Apuntando a $HEADER..." "$COLOR_SECONDARY" 3
-    eval "git checkout $HEADER $REDIRECT"
+    exec_command "git checkout $HEADER"
     print_message "Apuntando a $HEADER (HECHO)" "$COLOR_SUCCESS" 3
 }
 
 update_git() {
     print_message_with_animation "Actualizando repositorio..." "$COLOR_SECONDARY" 3
-    eval "git fetch $REDIRECT"
-    eval "git pull  $REDIRECT"
+    exec_command "git fetch"
+    exec_command "git pull "
     print_message "Actualizando repositorio (HECHO)" "$COLOR_SUCCESS" 3
 }
 
@@ -631,16 +638,16 @@ compile_elixir() {
     local create_ddbb=${1:-""}
 
     print_message_with_animation "Actualizando dependencias Elixir..." "$COLOR_SECONDARY" 3
-    eval "y | mix deps.get --force $REDIRECT"
+    exec_command "y | mix deps.get --force"
     print_message "Actualizando dependencias Elixir (HECHO)" "$COLOR_SUCCESS" 3
 
     print_message_with_animation "Compilando Elixir..." "$COLOR_SECONDARY" 3
-    eval "mix compile $REDIRECT"
+    exec_command "mix compile"
     print_message "Compilando Elixir (HECHO)" "$COLOR_SUCCESS" 3
 
     if [ ! "$create_ddbb" = "" ]; then
         print_message_with_animation "Creando bdd..." "$COLOR_SECONDARY" 3
-        eval "yes | mix ecto.create $REDIRECT"
+        exec_command "yes | mix ecto.create"
         print_message "Creacion de bdd (HECHO)" "$COLOR_SUCCESS" 3
     fi
 }
@@ -722,7 +729,7 @@ update_repositories() {
 
 compile_web() {
     print_message_with_animation "Compilando React..." "$COLOR_SECONDARY" 3
-    eval "yarn $REDIRECT"
+    exec_command "yarn"
     print_message "Compilando React (HECHO)" "$COLOR_SUCCESS" 3
 }
 
@@ -730,16 +737,16 @@ compile_elixir() {
     local create_ddbb=${1:-""}
 
     print_message_with_animation "Actualizando dependencias Elixir..." "$COLOR_SECONDARY" 3
-    eval "mix deps.get --force $REDIRECT"
+    exec_command "mix deps.get --force"
     print_message "Actualizando dependencias Elixir (HECHO)" "$COLOR_SUCCESS" 3
 
     print_message_with_animation "Compilando Elixir..." "$COLOR_SECONDARY" 3
-    eval "mix compile $REDIRECT"
+    exec_command "mix compile"
     print_message "Compilando Elixir (HECHO)" "$COLOR_SUCCESS" 3
 
     if [ ! "$create_ddbb" = "" ]; then
         print_message_with_animation "Creando bdd..." "$COLOR_SECONDARY" 3
-        eval "yes | mix ecto.create $REDIRECT"
+        exec_command "yes | mix ecto.create"
         print_message "Creacion de bdd (HECHO)" "$COLOR_SUCCESS" 3
     fi
 }
@@ -805,21 +812,21 @@ download_test_backup() {
         print_message "Creación de backup (HECHO)" "$COLOR_SUCCESS" 2
 
         print_message_with_animation "Descarga backup" "$COLOR_SECONDARY" 2
-        eval "kubectl --context ${AWS_TEST_CONTEXT} cp \"${PSQL}:/${DATABASE}.sql\" \"./${FILENAME}\"  $REDIRECT"
+        exec_command "kubectl --context ${AWS_TEST_CONTEXT} cp \"${PSQL}:/${DATABASE}.sql\" \"./${FILENAME}\" "
         print_message "Descarga backup (HECHO)" "$COLOR_SUCCESS" 2
 
         print_message " Backup descargado en $SERVICE_PATH/$FILENAME" "$COLOR_WARNING" 2
 
         print_message_with_animation "Borrando fichero generado en el POD" "$COLOR_SECONDARY" 2
-        eval "kubectl --context \"${AWS_TEST_CONTEXT}\" exec \"${PSQL}\" -- rm \"/${DATABASE}.sql\"  $REDIRECT"
+        exec_command "kubectl --context \"${AWS_TEST_CONTEXT}\" exec \"${PSQL}\" -- rm \"/${DATABASE}.sql\" "
         print_message "Borrando fichero generado en el POD (HECHO)" "$COLOR_SUCCESS" 2
 
         print_message_with_animation "Comentado de 'CREATE PUBLICATION'" "$COLOR_SECONDARY" 2
-        eval "sed -i 's/CREATE PUBLICATION/--CREATE PUBLICATION/g' \"./${FILENAME}\"  $REDIRECT"
+        exec_command "sed -i 's/CREATE PUBLICATION/--CREATE PUBLICATION/g' \"./${FILENAME}\" "
         print_message "Comentado de 'CREATE PUBLICATION' (HECHO)" "$COLOR_SUCCESS" 2
 
         print_message_with_animation "Moviendo fichero $FILENAME a backup" "$COLOR_SECONDARY" 2
-        eval "mv \"$FILENAME\" \"$DDBB_BACKUP_PATH\"  $REDIRECT"
+        exec_command "mv \"$FILENAME\" \"$DDBB_BACKUP_PATH\" "
         print_message "Moviendo fichero $FILENAME a backup (HECHO)" "$COLOR_SUCCESS" 2
     done
 
@@ -831,19 +838,19 @@ update_ddbb() {
     local SERVICE_DBNAME=$2
 
     print_message_with_animation " Borrado de bdd $SERVICE_DBNAME" "$COLOR_SECONDARY" 2
-    eval "mix ecto.drop $REDIRECT"
+    exec_command "mix ecto.drop"
     print_message " Borrado de bdd $SERVICE_DBNAME (HECHO)" "$COLOR_SUCCESS" 2
 
     print_message_with_animation " Creacion de bdd $SERVICE_DBNAME" "$COLOR_SECONDARY" 2
-    eval "mix ecto.create $REDIRECT"
+    exec_command "mix ecto.create"
     print_message " Creacion de bdd $SERVICE_DBNAME (HECHO)" "$COLOR_SUCCESS" 2
 
     print_message_with_animation " Volcado de datos del backup de test" "$COLOR_SECONDARY" 2
-    eval "PGPASSWORD=postgres psql -d \"${SERVICE_DBNAME}\" -U postgres  -h localhost < \"${FILENAME}\" $REDIRECT"
+    exec_command "PGPASSWORD=postgres psql -d \"${SERVICE_DBNAME}\" -U postgres  -h localhost < \"${FILENAME}\""
     print_message " Volcado de datos del backup de test (HECHO)" "$COLOR_SUCCESS" 2
 
     print_message_with_animation " Aplicando migraciones" "$COLOR_SECONDARY" 2
-    eval "mix ecto.migrate $REDIRECT"
+    exec_command "mix ecto.migrate"
     print_message " Aplicando migraciones (HECHO)" "$COLOR_SUCCESS" 2
 }
 
@@ -907,7 +914,7 @@ create_backup_local_ddbb() {
 
 remove_all_redis() {
     if print_question "¿Quieres borrar todos los datos de Redis?" = 0; then
-        eval "redis-cli flushall  $REDIRECT"
+        exec_command "redis-cli flushall "
         print_message "✳ Borrado de Redis completado ✳" "$COLOR_SUCCESS" 1 "both"
     fi
 }
@@ -966,48 +973,48 @@ reindex_one() {
     case "$service" in
     "dd")
         print_message_with_animation " Reindexando :jobs" "$COLOR_SECONDARY" 2
-        eval "mix run -e \"TdCore.Search.Indexer.reindex(:jobs, :all)\" $REDIRECT"
+        exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:jobs, :all)\""
         print_message " Reindexando :jobs (HECHO)" "$COLOR_SUCCESS" 2
 
         print_message_with_animation " Reindexando :structures" "$COLOR_SECONDARY" 2
-        eval "mix run -e \"TdCore.Search.Indexer.reindex(:structures, :all)\" $REDIRECT"
+        exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:structures, :all)\""
         print_message " Reindexando :structures (HECHO)" "$COLOR_SUCCESS" 2
 
         print_message_with_animation " Reindexando :grants" "$COLOR_SECONDARY" 2
-        eval "mix run -e \"TdCore.Search.Indexer.reindex(:grants, :all)\" $REDIRECT"
+        exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:grants, :all)\""
         print_message " Reindexando :grants (HECHO)" "$COLOR_SUCCESS" 2
 
         print_message_with_animation " Reindexando :grant_requests" "$COLOR_SECONDARY" 2
-        eval "mix run -e \"TdCore.Search.Indexer.reindex(:grant_requests, :all)\" $REDIRECT"
+        exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:grant_requests, :all)\""
         print_message " Reindexando :grant_requests (HECHO)" "$COLOR_SUCCESS" 2
 
         print_message_with_animation " Reindexando :implementations" "$COLOR_SECONDARY" 2
-        eval "mix run -e \"TdCore.Search.Indexer.reindex(:implementations, :all)\" $REDIRECT"
+        exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:implementations, :all)\""
         print_message " Reindexando :implementations (HECHO)" "$COLOR_SUCCESS" 2
 
         print_message_with_animation " Reindexando :rules" "$COLOR_SECONDARY" 2
-        eval "mix run -e \"TdCore.Search.Indexer.reindex(:rules, :all)\" $REDIRECT"
+        exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:rules, :all)\""
         print_message " Reindexando :rules (HECHO)" "$COLOR_SUCCESS" 2 "after"
 
         ;;
 
     "bg")
         print_message_with_animation " Reindexando :concepts" "$COLOR_SECONDARY" 2
-        eval "mix run -e \"TdCore.Search.Indexer.reindex(:concepts, :all)\" $REDIRECT"
+        exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:concepts, :all)\""
         print_message " Reindexando :concepts (HECHO)" "$COLOR_SUCCESS" 2 "after"
 
         ;;
 
     "ie")
         print_message_with_animation " Reindexando :ingests" "$COLOR_SECONDARY" 2
-        eval "mix run -e \"TdCore.Search.Indexer.reindex(:ingests, :all)\" $REDIRECT"
+        exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:ingests, :all)\""
         print_message " Reindexando :ingests (HECHO)" "$COLOR_SUCCESS" 2 "after"
 
         ;;
 
     "qx")
         print_message_with_animation " Reindexando :quality_controls" "$COLOR_SECONDARY" 2
-        eval "mix run -e \"TdCore.Search.Indexer.reindex(:quality_controls, :all)\" $REDIRECT"
+        exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:quality_controls, :all)\""
         print_message " Reindexando :quality_controls (HECHO)" "$COLOR_SUCCESS" 2 "after"
 
         ;;
@@ -1041,7 +1048,7 @@ create_ssh() {
             fi
         fi
 
-        eval "yes | ssh-keygen -t ed25519 -f $SSH_PRIVATE_FILE -q -N \"\" $REDIRECT"
+        exec_command "yes | ssh-keygen -t ed25519 -f $SSH_PRIVATE_FILE -q -N \"\""
         print_message "Clave creada correctamente" "$COLOR_SUCCESS" 3 "before"
 
         #Este eval está porque si se instala el entorno en el WSL de windows, el agente no se mantiene levantado
@@ -1068,8 +1075,8 @@ link_web_modules() {
     if print_question "Se borrarán los links y se volveran a crear" = 0; then   
         for d in "${FRONT_PACKAGES[@]}"; do
             cd "$FRONT_PATH/td-web-modules/packages/$d"
-            eval "yarn unlink $REDIRECT"
-            eval "yarn link $REDIRECT"
+            exec_command "yarn unlink"
+            exec_command "yarn link"
             cd "$FRONT_PATH/td-web"
             yarn link "@truedat/$d"
         done
@@ -1089,6 +1096,7 @@ extract_menu_option() {
 }
 
 
+###################################################################################################
 ###### Herramientas para de la instalación
 ### Configuración
 
@@ -1237,8 +1245,8 @@ tlp_config() {
 
     print_message "Archivo de configuración creado con éxito" "$COLOR_SUCCESS" 3
 
-    eval "sudo tlp start $REDIRECT"
-    eval "sudo systemctl enable tlp.service $REDIRECT"
+    exec_command "sudo tlp start"
+    exec_command "sudo systemctl enable tlp.service"
 }
 
 trus_config(){    
@@ -1303,20 +1311,20 @@ add_origins(){
     
     #postgres
     print_message_with_animation "Añadiendo origen de Postgres" "$COLOR_TERNARY" 2
-    eval "wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add - $REDIRECT"
+    exec_command "wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -"
     eval "echo 'deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main' | sudo tee /etc/apt/sources.list.d/pgdg.list$REDIRECT"
     print_message "Origen de Postgres añadido" "$COLOR_SUCCESS" 3
 
     # wine
     print_message_with_animation "Instalando Wine" "$COLOR_TERNARY" 2
-    eval "sudo dpkg --add-architecture i386 $REDIRECT"
-    eval "wget -q -O- https://dl.winehq.org/wine-builds/winehq.key | sudo apt-key add - $REDIRECT"
-    eval "sudo apt-add-repository -y 'deb https://dl.winehq.org/wine-builds/ubuntu/ jammy main' $REDIRECT"
+    exec_command "sudo dpkg --add-architecture i386"
+    exec_command "wget -q -O- https://dl.winehq.org/wine-builds/winehq.key | sudo apt-key add -"
+    exec_command "sudo apt-add-repository -y 'deb https://dl.winehq.org/wine-builds/ubuntu/ jammy main'"
     print_message "Wine instalado" "$COLOR_SUCCESS" 3
 
     # para añadir soporte vulkan, que ayuda con temas de temperatura
     print_message_with_animation "Instalando soporte Vulkan" "$COLOR_TERNARY" 2
-    eval "sudo add-apt-repository -y ppa:graphics-drivers/ppa $REDIRECT"
+    exec_command "sudo add-apt-repository -y ppa:graphics-drivers/ppa"
     print_message "Vulkan instalado" "$COLOR_SUCCESS" 3
 }
 
@@ -1325,22 +1333,27 @@ preinstallation(){
         add_origins
         
         print_message_with_animation "Actualizando sistema" "$COLOR_TERNARY" 2
-        eval "sudo apt -qq update $REDIRECT"
-        eval "sudo apt -qq upgrade -y $REDIRECT"
+        exec_command "sudo apt -qq update"
+        exec_command "sudo apt -qq upgrade -y"
         print_message "Sistema actualizado" "$COLOR_SUCCESS" 3
         
         
         print_message_with_animation "Instalando Docker Compose" "$COLOR_TERNARY" 2
-        sudo curl -s -L "https://github.com/docker/compose/releases/download/v2.16.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/compose
-          
-        eval "sudo chmod +x /usr/local/bin/docker-compose $REDIRECT"
-        eval "sudo groupadd docker $REDIRECT"
-        eval "sudo usermod -aG docker '$USER' $REDIRECT"
+        do_api_call "" "https://github.com/docker/compose/releases/download/v2.16.0/docker-compose-$(uname -s)-$(uname -m)" "" "-o /usr/local/bin/compose"
+        exec_command "sudo chmod +x /usr/local/bin/docker-compose"
+        exec_command "sudo groupadd docker"
+        exec_command "sudo usermod -aG docker '$USER'"
         print_message "Docker Compose instalado" "$COLOR_SUCCESS" 3
         
-        for package in "${INSTALLATION_PACKAGES[@]}"; do
+        for package in "${APT_INSTALLATION_PACKAGES[@]}"; do
             print_message_with_animation "Instalando $package" "$COLOR_TERNARY" 2
-            eval "sudo apt install -y --install-recommends $package $REDIRECT"
+            exec_command "sudo apt -qq install -y --install-recommends $package"
+            print_message "$package instalado" "$COLOR_SUCCESS" 3
+        done
+
+        for snap in "${SNAP_INSTALLATION_PACKAGES[@]}"; do
+            print_message_with_animation "Instalando $package" "$COLOR_TERNARY" 2
+            exec_command "sudo snap install $package"
             print_message "$package instalado" "$COLOR_SUCCESS" 3
         done
 
@@ -1375,14 +1388,14 @@ install_asdf() {
     fi
     
     print_message_with_animation "Instalando ASDF" "$COLOR_TERNARY" 2
-    eval "git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.14.1 $REDIRECT"
+    exec_command "git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.14.1"
     print_message "ASDF instalado" "$COLOR_SUCCESS" 3
 }
 
 instal_awscli(){
     mkdir $AWS_PATH
     cd $AWS_PATH
-    curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    do_api_call "" "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" "" "-o 'awscliv2.zip'"
     unzip awscliv2.zip
     cd aws
     sudo ./install
@@ -1396,7 +1409,7 @@ install_kubectl() {
 
         cd $KUBE_PATH
 
-        eval "curl -LO https://dl.k8s.io/release/v1.23.6/bin/linux/amd64/kubectl && sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl $REDIRECT"
+        exec_command "curl -LO https://dl.k8s.io/release/v1.23.6/bin/linux/amd64/kubectl && sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl"
         
         touch "$KUBECONFIG_PATH"
 
@@ -1464,12 +1477,13 @@ install_kubectl() {
 }
 
  
- ### Personalizacion del equipo
+### Personalizacion del equipo
+
 install_zsh() {
     print_semiheader "Instalación de ZSH"
 
     print_message_with_animation "Instalando $package" "$COLOR_TERNARY" 2
-    eval "sudo apt install -y --install-recommends zsh $REDIRECT"
+    exec_command "sudo apt install -y --install-recommends zsh"
     print_message "$package instalado" "$COLOR_SUCCESS" 3
 
     print_semiheader "Instalación de Oh-My-ZSH"
@@ -1528,7 +1542,7 @@ swap() {
     print_message "Memoria SWAP ampliada a $((SWAP_SIZE_MB / 1024))GB" "$COLOR_SUCCESS" 3 "both"
 }
 
- 
+ ###################################################################################################
 ###### Operaciones secundarias
 ### Llamadas a apis
 
@@ -1557,7 +1571,7 @@ do_api_call() {
 
     command+="--location \"$url\" "
 
-    eval "$command $REDIRECT"
+    exec_command "$command"
 }
 
 get_token() {
@@ -1599,7 +1613,7 @@ load_linages() {
 }
 
 
-###
+###################################################################################################
 ###### Operaciones principales
 ### Arranque de Truedat (TMUX y Screen)
 
@@ -1610,11 +1624,11 @@ start_containers() {
     cd $DEV_PATH
 
     for container in "${CONTAINERS[@]}"; do
-        eval "docker-compose up -d '${container}' $REDIRECT"
+        exec_command "docker-compose up -d '${container}'"
     done
 
     if "$USE_KONG" = true ; then
-        eval "docker-compose up -d 'kong' $REDIRECT"            
+        exec_command "            docker-compose up -d 'kong'"
     fi
 }
 
@@ -1624,11 +1638,11 @@ stop_docker() {
     cd "$DEV_PATH"
 
     for container in "${CONTAINERS[@]}"; do
-        eval "docker stop '${container}' $REDIRECT"                    
+        exec_command "                    docker stop '${container}'"
     done
 
     if "$USE_KONG" = true ; then
-        eval "docker stop 'kong' $REDIRECT"            
+        exec_command "            docker stop 'kong'"
     fi
 }
 
@@ -1727,17 +1741,17 @@ start_truedat() {
 kill_truedat() {
     
     print_semiheader "Matando procesos 'mix' (elixir)"
-    eval "pkill -9 mix $REDIRECT"
+    exec_command "pkill -9 mix"
 
     print_semiheader "Matando sesiones Screen"
-    eval "screen -ls | grep -oP \"^\s*\K\d+\.(?=[^\t])\" | xargs -I {} screen -X -S {} quit $REDIRECT"
-    eval "screen -wipe $REDIRECT"
+    exec_command "screen -ls | grep -oP \"^\s*\K\d+\.(?=[^\t])\" | xargs -I {} screen -X -S {} quit"
+    exec_command "screen -wipe"
 
     print_semiheader "Matando front"
-    eval "pkill -9 $(pgrep -f \"yarn\") $REDIRECT"
+    exec_command "pkill -9 $(pgrep -f \"yarn\")"
 
     print_semiheader "Matando sesiones TMUX"
-    eval "tmux kill-server $REDIRECT"
+    exec_command "tmux kill-server"
 
 }
 
@@ -1826,37 +1840,31 @@ kong_routes() {
 
         for SERVICE in ${KONG_SERVICES[@]}; do
             local PORT=$(get_service_port "$SERVICE")
-            # local SERVICE_ID=$(curl --silent -X GET "${KONG_ADMIN_URL}/services/${SERVICE}" | jq -r '.id // empty')
             local SERVICE_ID=$(do_api_call "${KONG_ADMIN_URL}/services/${SERVICE}" | jq -r '.id // empty')
             local DATA='{ "name": "'${SERVICE}'", "host": "'${DOCKER_LOCALHOST}'", "port": '$PORT' }'
 
             print_message_with_animation "Creando rutas para el servicio: $SERVICE (puerto: $PORT)" "$COLOR_SECONDARY" 2
             
             if [ -n "${SERVICE_ID}" ]; then
-                # ROUTE_IDS=$(curl --silent -X GET "${KONG_ADMIN_URL}/services/${SERVICE}/routes" | jq -r '.data[].id')
                 ROUTE_IDS=$(do_api_call ""  "${KONG_ADMIN_URL}/services/${SERVICE}/routes" | jq -r '.data[].id')
 
                 if [ -n "${ROUTE_IDS}" ]; then
                     for ROUTE_ID in ${ROUTE_IDS}; do
-                        # curl --fail --silent -X DELETE "${KONG_ADMIN_URL}/routes/${ROUTE_ID}"
                         do_api_call ""  "${KONG_ADMIN_URL}/routes/${ROUTE_ID}" "DELETE"
                     done
                 fi
-                # curl --fail --silent -X DELETE "${KONG_ADMIN_URL}/services/${SERVICE_ID}"
                 do_api_call ""  "${KONG_ADMIN_URL}/services/${SERVICE_ID}" "DELETE"
 
             fi
 
-            # local API_ID=$(curl --fail --silent -H 'Content-Type: application/json' -X POST "${KONG_ADMIN_URL}/services" -d "$DATA" | jq -r '.id')
             local API_ID=$(do_api_call "" "${KONG_ADMIN_URL}/services" "POST" "-d '$DATA'") | jq -r '.id'
 
-            eval "sed -e \"s/%API_ID%/${API_ID}/\" ${SERVICE}.json | curl --silent -H \"Content-Type: application/json\" -X POST \"${KONG_ADMIN_URL}/routes\" -d @- | jq -r '.id' $REDIRECT"
+            exec_command "sed -e \"s/%API_ID%/${API_ID}/\" ${SERVICE}.json | curl --silent -H \"Content-Type: application/json\" -X POST \"${KONG_ADMIN_URL}/routes\" -d @- | jq -r '.id'"
 
             print_message "Rutas servicio: $SERVICE (puerto: $PORT) creadas con éxito" "$COLOR_SUCCESS" 2
         done
 
-        # eval "curl --silent -X POST \"${KONG_ADMIN_URL}/services/health/plugins\" --data \"name=request-termination\" --data \"config.status_code=200\" --data \"config.message=Kong is alive\"  | jq -r '.id' $REDIRECT"
-        eval "do_api_call '${KONG_ADMIN_URL}/services/health/plugins' "POST" "--data 'name=request-termination' --data 'config.status_code=200' --data 'config.message=Kong is alive'"  | jq -r '.id' $REDIRECT"
+        exec_command "do_api_call '${KONG_ADMIN_URL}/services/health/plugins' "POST" "--data 'name=request-termination' --data 'config.status_code=200' --data 'config.message=Kong is alive'"  | jq -r '.id'"
 
         print_message "Creacion de rutas finalizada" "$COLOR_SUCCESS" 2 "both"
 
@@ -2143,9 +2151,8 @@ config_kong() {
 }
 
 
-###### Logica inicial
-### Menus principales
-### Subprincipales 
+###################################################################################################
+###### Menus principales
 
 main_menu(){    
     local option=$(print_menu "${MAIN_MENU_OPTIONS[@]}")
@@ -2521,7 +2528,7 @@ kong_menu(){
 
  
 #########################################
-# Install
+###### Install
 
 install_docker() {
     aws ecr get-login-password --profile truedat --region eu-west-1 | docker login --username AWS --password-stdin 576759405678.dkr.ecr.eu-west-1.amazonaws.com
@@ -2540,24 +2547,24 @@ install_docker() {
 }
 
 set_elixir_versions() {
-    eval "cd $BACK_PATH/td-auth && asdf local elixir 1.14.5-otp-25 $REDIRECT"
-    eval "cd $BACK_PATH/td-audit && asdf local elixir 1.14.5-otp-25 $REDIRECT"
-    eval "cd $BACK_PATH/td-ai && asdf local elixir 1.15 $REDIRECT"
-    eval "cd $BACK_PATH/td-bg && asdf local elixir 1.14.5-otp-25 $REDIRECT"
-    eval "cd $BACK_PATH/td-cluster && asdf local elixir 1.14.5-otp-25 $REDIRECT"
-    eval "cd $BACK_PATH/td-core && asdf local elixir 1.14.5-otp-25 $REDIRECT"
-    eval "cd $BACK_PATH/td-dd && asdf local elixir 1.14.5-otp-25 $REDIRECT"
-    eval "cd $BACK_PATH/td-df && asdf local elixir 1.14.5-otp-25 $REDIRECT"
-    eval "cd $BACK_PATH/td-df-lib && asdf local elixir 1.14.5-otp-25 $REDIRECT"
-    eval "cd $BACK_PATH/td-ie && asdf local elixir 1.14.5-otp-25 $REDIRECT"
-    eval "cd $BACK_PATH/td-lm && asdf local elixir 1.14.5-otp-25 $REDIRECT"
-    eval "cd $BACK_PATH/td-qx && asdf local elixir 1.14.5-otp-25 $REDIRECT"
-    eval "cd $BACK_PATH/td-se && asdf local elixir 1.16 $REDIRECT"
+    exec_command "cd $BACK_PATH/td-auth && asdf local elixir 1.14.5-otp-25"
+    exec_command "cd $BACK_PATH/td-audit && asdf local elixir 1.14.5-otp-25"
+    exec_command "cd $BACK_PATH/td-ai && asdf local elixir 1.15"
+    exec_command "cd $BACK_PATH/td-bg && asdf local elixir 1.14.5-otp-25"
+    exec_command "cd $BACK_PATH/td-cluster && asdf local elixir 1.14.5-otp-25"
+    exec_command "cd $BACK_PATH/td-core && asdf local elixir 1.14.5-otp-25"
+    exec_command "cd $BACK_PATH/td-dd && asdf local elixir 1.14.5-otp-25"
+    exec_command "cd $BACK_PATH/td-df && asdf local elixir 1.14.5-otp-25"
+    exec_command "cd $BACK_PATH/td-df-lib && asdf local elixir 1.14.5-otp-25"
+    exec_command "cd $BACK_PATH/td-ie && asdf local elixir 1.14.5-otp-25"
+    exec_command "cd $BACK_PATH/td-lm && asdf local elixir 1.14.5-otp-25"
+    exec_command "cd $BACK_PATH/td-qx && asdf local elixir 1.14.5-otp-25"
+    exec_command "cd $BACK_PATH/td-se && asdf local elixir 1.16"
     print_message "Versiones específicas de Elixir configuradas" "$COLOR_SUCCESS" 2 "both"
 }
 
 #########################################
-# Acciones Principales
+### Acciones Principales
 
 install() {
      
@@ -2673,29 +2680,110 @@ clone_truedat_project(){
     
 }
 
+param_routing(){
+    local param1=$1
+    local param2=$2
+    local param3=$3
+    local param4=$4
+    local param5=$5
 
+    if ! [ -e "$TRUS_PATH" ]; then
+        preinstallation
+    elif [ -z "$param1" ]; then       
+        print_logo
+        sleep 0.5
+        print_header   
+        main_menu
+    else
+        params=()
+        case "$param1" in
+        "-i" | "--install")
+            install
+            ;;
 
-#
-#
-#
-# TODO
-# LO QUE HAY A PARTIR DE AQUI
-# HAY QUE TERMINARLO
-#
-#
-#
+        "-s" | "--start")
+            shift
+            start_truedat "$@"
+            ;;
 
+        "-d" | "--ddbb")
+            ddbb "$param2"
+            ;;
 
+        "-r" | "--reindex")
+            reindex_all $(normalize_text "$param2")
+            ;;
 
+        "-k" | "--kill")
+            kill_truedat
+            ;;
 
+        "-cs" | "--create-ssh")
+            create_ssh
+            ;;
 
+        "-ur" | "--update-repos")
+            update_repositories "$param2" "$param3"
+            ;;
 
+        "-l" | "--link-modules")
+            link_web_modules
+            ;;
 
+        "-kr" | "--kong-routes")
+            kong_routes
+            ;;
 
+        "-cl" | "--config_kong")
+            config_kong
+            ;;
 
+        "-h" | "--help")
+            help $param2
+            ;;
 
+        "-sc" | "--start-containers")
+            start_containers
+            ;;
 
+        "-ss" | "--start-services")
+            shift
+            header="$param1"
+            shift
+            params_echo="${*}"
+            start_services "$header" "$params_echo"
+            ;;
 
+        "-sf" | "--start-front")
+            start_front "$param1"
+            ;;
+
+        "-ls" | "--load-structures")
+            load_structures "$param2" "$param3"
+            ;;
+
+        "-ll" | "--load-linages")
+            load_linages "$param2"
+            ;;
+
+        "--rest")
+            do_api_call "$param2" "$param3" "$param4"
+            ;;
+
+        "-at" | "--attach")
+            go_to_session
+            ;;
+
+        "-dt" | "--dettach")
+            go_out_session
+            ;;
+
+        "*")
+            help
+            ;;
+        esac
+    fi
+}
 
 
 ###################################################################################################
@@ -2705,103 +2793,8 @@ clone_truedat_project(){
 
 clear
 set_terminal_config
+
 TRUS_ACTUAL_PATH=$(realpath "$0")
 
-if ! [ -e "$TRUS_PATH" ]; then
-    preinstallation
-elif [ -z "$1" ]; then       
-    print_logo
-    sleep 0.5
-    print_header   
-    main_menu
-else
-    params=()
-    case "$1" in
-    "-i" | "--install")
-        install
-        ;;
-
-    "-s" | "--start")
-        shift
-        start_truedat "$@"
-        ;;
-
-    "-d" | "--ddbb")
-        ddbb "$2"
-        ;;
-
-    "-r" | "--reindex")
-        reindex_all $(normalize_text "$2")
-        ;;
-
-    "-k" | "--kill")
-        kill_truedat
-        ;;
-
-    "-cs" | "--create-ssh")
-        create_ssh
-        ;;
-
-    "-ur" | "--update-repos")
-        update_repositories "$2" "$3"
-        ;;
-
-    "-l" | "--link-modules")
-        link_web_modules
-        ;;
-
-    "-kr" | "--kong-routes")
-        kong_routes
-        ;;
-
-    "-cl" | "--config_kong")
-        config_kong
-        ;;
-
-    "-h" | "--help")
-        help $2
-        ;;
-
-    "-sc" | "--start-containers")
-        start_containers
-        ;;
-
-    "-ss" | "--start-services")
-        shift
-        header="$1"
-        shift
-        params_echo="${*}"
-        start_services "$header" "$params_echo"
-        ;;
-
-    "-sf" | "--start-front")
-        start_front "$1"
-        ;;
-
-    "-ls" | "--load-structures")
-        load_structures "$2" "$3"
-        ;;
-
-    "-ll" | "--load-linages")
-        load_linages "$2"
-        ;;
-
-    "--rest")
-        do_api_call "$2" "$3" "$4"
-        ;;
-
-    "-at" | "--attach")
-        go_to_session
-        ;;
-
-    "-dt" | "--dettach")
-        go_out_session
-        ;;
-
-    "*")
-        help
-        ;;
-    esac
-fi
-
+param_routing $1 $2 $3 $4 $5
  
