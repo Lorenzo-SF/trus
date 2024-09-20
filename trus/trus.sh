@@ -470,7 +470,7 @@ print_semiheader() {
         print_separator    
     fi
 
-    print_message "$message\n" "" 0 "" "after"
+    print_message "$message\n"
 }
 
 print_logo() {
