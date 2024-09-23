@@ -29,7 +29,7 @@ TRUS_CONFIG="$USER_HOME/trus.config"
 ### Menus
 MAIN_MENU_OPTIONS=("0 - Salir" "1 - Configurar" "2 - Acciones principales" "3 - Actiones secundarias" "4 - Ayuda")
 
-CONFIGURE_MENU_OPTIONS=("0 - Volver" "1 - Instalación de paquetes y dependencias" "2 - Instalar ZSH y Oh My ZSH" "3 - Archivos de configuración" "4 - Actualizar splash loader" "6 - Actualizar la memoria SWAP (a $(($SWAP_SIZE_MB/1024)) GB)" "7 - Configurar animación de los mensajes" "8 - Configurar colores" "9 - Instala TrUs (Truedat Utils)" "10 - Todo")
+CONFIGURE_MENU_OPTIONS=("0 - Volver" "1 - Instalación de paquetes y dependencias" "2 - Instalar ZSH y Oh My ZSH" "3 - Archivos de configuración" "4 - Actualizar splash loader" "5 - Actualizar la memoria SWAP (a $(($SWAP_SIZE_MB/1024)) GB)" "6 - Configurar animación de los mensajes" "7 - Configurar colores" "8 - Instala TrUs (Truedat Utils)" "9 - Todo")
 CONFIGURATION_MENU_OPTIONS=("0 - Volver" "1 - ZSH" "2 - BASH" "3 - TMUX" "4 - TLP" "5 - Todos")
 ANIMATION_MENU_OPTIONS=("0 - Volver" "ARROW" "BOUNCE" "BOUNCING_BALL" "BOX" "BRAILLE" "BREATHE" "BUBBLE" "OTHER_BUBBLE" "CLASSIC_UTF8" "CLASSIC" "DOT" "FILLING_BAR" "FIREWORK" "GROWING_DOTS" "HORIZONTAL_BLOCK" "KITT" "METRO" "PASSING_DOTS" "PONG" "QUARTER" "ROTATING_EYES" "SEMI_CIRCLE" "SIMPLE_BRAILLE" "SNAKE" "TRIANGLE" "TRIGRAM" "VERTICAL_BLOCK")
 PRINCIPAL_ACTIONS_MENU_OPTIONS=("0 - Volver" "1 - Arrancar Truedat" "2 - Matar Truedat" "3 - Operaciones de bdd" "4 - Operaciones de repositorios")
@@ -1339,10 +1339,11 @@ preinstallation(){
         
         
         print_message_with_animation "Instalando Docker Compose" "$COLOR_TERNARY" 2
-        do_api_call "" "https://github.com/docker/compose/releases/download/v2.16.0/docker-compose-$(uname -s)-$(uname -m)" "" "-o /usr/local/bin/compose"
-        exec_command "sudo chmod +x /usr/local/bin/docker-compose"
-        exec_command "sudo groupadd docker"
-        exec_command "sudo usermod -aG docker '$USER'"
+        sudo curl -L "https://github.com/docker/compose/releases/download/v2.16.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose 
+                
+        sudo chmod +x /usr/local/bin/docker-compose
+        sudo groupadd docker
+        sudo usermod -aG docker '$USER'
         print_message "Docker Compose instalado" "$COLOR_SUCCESS" 3
         
         for package in "${APT_INSTALLATION_PACKAGES[@]}"; do
@@ -1388,9 +1389,7 @@ preinstallation(){
 install_docker() {
     aws ecr get-login-password --profile truedat --region eu-west-1 | docker login --username AWS --password-stdin 576759405678.dkr.ecr.eu-west-1.amazonaws.com
 
-    cd "$DEV_PATH"
-    set -e
-    set -o pipefail
+    cd $DEV_PATH 
 
     ip=$(ip -4 addr show docker0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
     echo SERVICES_HOST="$ip" > local_ip.env
@@ -1657,11 +1656,11 @@ start_containers() {
     cd $DEV_PATH
 
     for container in "${CONTAINERS[@]}"; do
-        exec_command "docker-compose up -d '${container}'"
+        docker-compose up -d "${container}"
     done
 
     if "$USE_KONG" = true ; then
-        exec_command "            docker-compose up -d 'kong'"
+        docker-compose up -d 'kong'
     fi
 }
 
@@ -1975,7 +1974,6 @@ deactivate_kong() {
         print_message "${container[@]}" "$COLOR_TERNARY" 4
     done
 
-    print_message "Kong" "$COLOR_TERNARY" 4
     print_message "Se va a actualizar el archivo $TD_WEB_DEV_CONFIG para que se encargue de enrutar td-web" "$COLOR_SECONDARY" 3
 
     if print_question "Se va a desactivar Kong" = 0; then   
@@ -2804,16 +2802,17 @@ TRUS_ACTUAL_PATH=$(realpath "$0")
 param_routing $1 $2 $3 $4 $5
  
 
-print_centered_message "TAREAS POR COMPLETAR" "$COLOR_PRIMARY" "before"
-print_centered_message "    - Informe PiDi (script Victor)" "$COLOR_SECONDARY" 
-print_centered_message "    - Multi yarn test" "$COLOR_SECONDARY" 
-print_centered_message "    - Configurar colores de trus" "$COLOR_SECONDARY" 
-print_centered_message "    - Configurar animacion" "$COLOR_SECONDARY" 
-print_centered_message "    - Funciones de ayuda" "$COLOR_SECONDARY" 
-print_centered_message "    - Añadir submenu al reindexado de elastic, para seleccionar qué indices se quiere reindexar" "$COLOR_SECONDARY" 
-print_centered_message "    - Añadir submenu al arranque de todo/servicios de truedat, para seleccionar qué servicios se quiere arrancar" "$COLOR_SECONDARY" 
-print_centered_message "    - Añadir submenu a la actualizacion de repos para seleccionar qué actualizar" "$COLOR_SECONDARY" 
-print_centered_message "    - Añadir submenu a la descarga de bdd de test para seleccionar qué actualizar" "$COLOR_SECONDARY"
-print_centered_message "    - Añadir submenu a la descarga de bdd de test para seleccionar qué actualizar" "$COLOR_SECONDARY"
+# print_centered_message "TAREAS POR COMPLETAR" "$COLOR_PRIMARY" "before"
+# print_centered_message "    - Revisar error de 'ruta/*' sale en algunas ocasiones al actualizar la bdd" "$COLOR_SECONDARY" 
+# print_centered_message "    - Informe PiDi (script Victor)" "$COLOR_SECONDARY" 
+# print_centered_message "    - Multi yarn test" "$COLOR_SECONDARY" 
+# print_centered_message "    - Configurar colores de trus" "$COLOR_SECONDARY" 
+# print_centered_message "    - Configurar animacion" "$COLOR_SECONDARY" 
+# print_centered_message "    - Funciones de ayuda" "$COLOR_SECONDARY" 
+# print_centered_message "    - Añadir submenu al reindexado de elastic, para seleccionar qué indices se quiere reindexar" "$COLOR_SECONDARY" 
+# print_centered_message "    - Añadir submenu al arranque de todo/servicios de truedat, para seleccionar qué servicios se quiere arrancar" "$COLOR_SECONDARY" 
+# print_centered_message "    - Añadir submenu a la actualizacion de repos para seleccionar qué actualizar" "$COLOR_SECONDARY" 
+# print_centered_message "    - Añadir submenu a la descarga de bdd de test para seleccionar qué actualizar" "$COLOR_SECONDARY"
+# print_centered_message "    - Añadir submenu a la descarga de bdd de test para seleccionar qué actualizar" "$COLOR_SECONDARY"
 
 # RNTDELL001174.bluetab.net
