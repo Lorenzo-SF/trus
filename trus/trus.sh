@@ -4,6 +4,10 @@
 #     - Monolitico, porque 3 archivos de script y uno de config es complicado de mantener
 #     - Interactivo, con menuses bonitos que faciliten la vida
 #     - Configurable, desde los colorinchis a formas de instalacion o de trabajar
+# nuevo trus v7.0
+#     - monolitico, porque 3 archivos de script y uno de config es complicado de mantener
+#     - interactivo, con menuses bonitos que faciliten la vida
+#     - configurable, desde los colorinchis a formas de instalacion o de trabajar
 #     - 
   
 ###################################################################################################
@@ -12,7 +16,8 @@
 
 trap stop_animation SIGINT
 
-DATE_NOW=$(date +"%Y-%m-%d")
+
+DATE_NOW=$(date +"%y-%m-%d %h:%m")
 HEADER_MESSAGE="Truedat Utils (TrUs)"
 DESCRIPTION_MESSAGE=""
 SWAP_SIZE_MB=$(free --mega | awk '/^Mem:/ {print int($2 + ($2))}')
@@ -28,7 +33,6 @@ TRUS_CONFIG="$USER_HOME/trus.config"
 
 ### Menus
 MAIN_MENU_OPTIONS=("0 - Salir" "1 - Configurar" "2 - Acciones principales" "3 - Actiones secundarias" "4 - Ayuda")
-
 CONFIGURE_MENU_OPTIONS=("0 - Volver" "1 - Instalación de paquetes y dependencias" "2 - Instalar ZSH y Oh My ZSH" "3 - Archivos de configuración" "4 - Actualizar splash loader" "5 - Actualizar la memoria SWAP (a $(($SWAP_SIZE_MB/1024)) GB)" "6 - Configurar animación de los mensajes" "7 - Configurar colores" "8 - Instala TrUs (Truedat Utils)" "9 - Todo")
 CONFIGURATION_MENU_OPTIONS=("0 - Volver" "1 - ZSH" "2 - BASH" "3 - TMUX" "4 - TLP" "5 - Todos")
 ANIMATION_MENU_OPTIONS=("0 - Volver" "ARROW" "BOUNCE" "BOUNCING_BALL" "BOX" "BRAILLE" "BREATHE" "BUBBLE" "OTHER_BUBBLE" "CLASSIC_UTF8" "CLASSIC" "DOT" "FILLING_BAR" "FIREWORK" "GROWING_DOTS" "HORIZONTAL_BLOCK" "KITT" "METRO" "PASSING_DOTS" "PONG" "QUARTER" "ROTATING_EYES" "SEMI_CIRCLE" "SIMPLE_BRAILLE" "SNAKE" "TRIANGLE" "TRIGRAM" "VERTICAL_BLOCK")
@@ -344,21 +348,19 @@ print_message() {
 }
             
 print_question(){
-    # para su uso: if print_question "<mensaje>" = 0; then
     local question=${1:-""}
-    local color=${2:-"$COLOR_WARNING"}
     local response=1
 
-    print_centered_message "$question" "$color"
+    print_centered_message "$question" "$color_warning"
     
     if [ -n "$BASH_VERSION" ]; then
-        read -p "¿Deseas hacerlo ahora? (S/N): " user_input
+        read -p "¿deseas hacerlo ahora? (s/n): " user_input
     else
-        echo -n "¿Deseas hacerlo ahora? (S/N): "
+        echo -n "¿deseas hacerlo ahora? (s/n): "
         read user_input
     fi    
 
-    local continue_question=$(normalize_text "$question")
+    local continue_question=$(normalize_text "$user_input")
 
     if [ "$continue_question" = "si" ] || [ "$continue_question" = "s" ] || [ "$continue_question" = "y" ] || [ "$continue_question" = "yes" ]; then
         response=0
@@ -368,12 +370,14 @@ print_question(){
 }
 
 print_menu() {
+    local HELP_SCRIPT=$1
+    shift
     local items=("$@")
     
     if [ "$HELP_SCRIPT" = "" ]; then
-        HELP_SCRIPT="echo 'No hay ayuda disponible'"
+        HELP_SCRIPT="echo 'no hay ayuda disponible'"
     else
-        HELP_SCRIPT="$HELP_SCRIPT --help {}"
+        HELP_SCRIPT="$HELP_SCRIPT {}"
     fi
 
     printf '%s\n' "${items[@]}" | fzf \
@@ -390,7 +394,8 @@ print_menu() {
 }
 
 
-### Especiales
+### especiales
+
 
 print_centered_message() {
     local message=$1
@@ -398,7 +403,7 @@ print_centered_message() {
     local new_line_before_or_after=${3:-""}
 
     if [ -z "$SIMPLE_ECHO" ]; then
-        print_message "$(pad_message "$message")" "$color" 0 "$new_line_before_or_after"
+        print_message "$(pad_message "$message")" "$color" 0 "both"
     fi
 }
 
@@ -413,7 +418,7 @@ print_separator() {
     local message=${1:-""}
     local separator=${2:-"-"}
     local full_line=$3
-    IFS=' ' read -r total_length filled_space <<< "$(message_size "$message")"
+    ifs=' ' read -r total_length filled_space <<< "$(message_size "$message")"
     
     if [ -z "$full_line" ]; then
         echo $(pad_message "" "left" "-" $((filled_space / 4)))
@@ -482,7 +487,7 @@ print_semiheader() {
 
 print_logo() {
     clear
-    wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz
+    wmctrl -r :active: -b add,maximized_vert,maximized_horz
     
 
     local logo=("" "" "" 
@@ -532,7 +537,7 @@ print_logo() {
 }
 
 
-### Animaciones. Original aqui: https://github.com/Silejonu/bash_loading_animations
+### animaciones. original aqui: https://github.com/silejonu/bash_loading_animations
 
 set_active_animation(){
     local selected=${1:-$SELECTED_ANIMATION}
@@ -633,25 +638,7 @@ update_services() {
         trus -d -du
     fi
 }
-
-compile_elixir() {
-    local create_ddbb=${1:-""}
-
-    print_message_with_animation "Actualizando dependencias Elixir..." "$COLOR_SECONDARY" 3
-    exec_command "y | mix deps.get --force"
-    print_message "Actualizando dependencias Elixir (HECHO)" "$COLOR_SUCCESS" 3
-
-    print_message_with_animation "Compilando Elixir..." "$COLOR_SECONDARY" 3
-    exec_command "mix compile"
-    print_message "Compilando Elixir (HECHO)" "$COLOR_SUCCESS" 3
-
-    if [ ! "$create_ddbb" = "" ]; then
-        print_message_with_animation "Creando bdd..." "$COLOR_SECONDARY" 3
-        exec_command "yes | mix ecto.create"
-        print_message "Creacion de bdd (HECHO)" "$COLOR_SUCCESS" 3
-    fi
-}
-
+ 
 update_libraries() {
     print_semiheader "Actualizando librerias"
 
@@ -778,56 +765,80 @@ ddbb() {
 
         update_ddbb_from_backup "$backup_path"
 
-        if print_question "Se ha realizado la actualizacion de las bbdd correctamente. Es recomendable reindexar" = 0; then
-            reindex_all
-        fi
+        reindex_all
     fi
 }
 
-download_test_backup() {
-    
-    print_semiheader "Creación y descarga de backup de test "
+download_test_backup() {    
+    print_semiheader "creación y descarga de backup de test "
 
-    local PSQL
+    local psql
 
-    PSQL=$(kubectl get pods -l run=psql -o name | cut -d/ -f2)
+    local psql=$(kubectl get pods -l run=psql -o name | cut -d/ -f2)
 
-    mkdir -p "$DDBB_BACKUP_PATH"
+    mkdir -p "$ddbb_backup_path"
 
-    print_message "Ruta de backup creada: $DDBB_BACKUP_PATH" "$COLOR_SECONDARY" 1 "before"
-    for DATABASE in "${DATABASES[@]}"; do
-        print_message "-->  Descargando $DATABASE" "$COLOR_SECONDARY" 1 "before"
+    print_message "ruta de backup creada: $ddbb_backup_path" "$color_secondary" 1 "before"
+    for database in "${databases[@]}"; do
+        print_message "-->  descargando $database" "$color_secondary" 1 "before"
 
-        local SERVICE_NAME="${DATABASE//_/-}"
-        local SERVICE_PODNAME="${DATABASE//-/_}"
-        local SERVICE_DBNAME="${DATABASE}_dev"
-        local SERVICE_PATH="$BACK_PATH/$SERVICE_NAME"
-        local FILENAME=$SERVICE_DBNAME".sql"
-        local PASSWORD=$(kubectl --context ${AWS_TEST_CONTEXT} get secrets postgres -o json | jq -r '.data.PGPASSWORD' | base64 -d)
-        local USER=$(kubectl --context ${AWS_TEST_CONTEXT} get secrets postgres -o json | jq -r '.data.PGUSER' | base64 -d)
+        local service_name="${database//_/-}"
+        local service_podname="${database//-/_}"
+        local service_dbname="${database}_dev"
+        local service_path="$back_path/$service_name"
+        local filename=$service_dbname".sql"
+        local password=$(kubectl --context ${aws_test_context} get secrets postgres -o json | jq -r '.data.pgpassword' | base64 -d)
+        local user=$(kubectl --context ${aws_test_context} get secrets postgres -o json | jq -r '.data.pguser' | base64 -d)
 
-        cd "$SERVICE_PATH"
-        print_message_with_animation "Creación de backup" "$COLOR_SECONDARY" 2
-        kubectl --context ${AWS_TEST_CONTEXT} exec ${PSQL} -- bash -c "PGPASSWORD='${PASSWORD}' pg_dump -d ${SERVICE_PODNAME} -U ${USER} -f ${DATABASE}.sql -x -O"
-        print_message "Creación de backup (HECHO)" "$COLOR_SUCCESS" 2
+        # este codigo está asi (sin usar exec_command) porque al meter la contraseá en una variable e interpretala con eval, se jode y no la interpreta bien,
+        # por lo que la funcionalidad que se desa con esa funcion (mostrar o no los mensajes de los comandos) hay que hacerla a lo borrico
 
-        print_message_with_animation "Descarga backup" "$COLOR_SECONDARY" 2
-        exec_command "kubectl --context ${AWS_TEST_CONTEXT} cp \"${PSQL}:/${DATABASE}.sql\" \"./${FILENAME}\" "
-        print_message "Descarga backup (HECHO)" "$COLOR_SUCCESS" 2
+        cd "$service_path"
+        if [ "$hide_output" = true ]; then
+            print_message_wIth_animation "creación de backup" "$COLOR_SECONDARY" 2
+            kubectl --context ${aws_test_context} exec ${psql} -- bash -c "pgpassword='${password}' pg_dump -d '${service_podname}' -u '${user}' -f '/tmp/${database}.sql' -x -o" > /dev/null 2>&1
+            print_message "Creación de backup (HECHO)" "$COLOR_SUCCESS" 2
 
-        print_message " Backup descargado en $SERVICE_PATH/$FILENAME" "$COLOR_WARNING" 2
+            print_message_wIth_animation "descarga backup" "$COLOR_SECONDARY" 2
+            kubectl --context ${aws_test_context} cp "${psql}:/tmp/${database}.sql" "./${filename}" > /dev/null 2>&1
+            print_message "Descarga backup (HECHO)" "$COLOR_SUCCESS" 2
 
-        print_message_with_animation "Borrando fichero generado en el POD" "$COLOR_SECONDARY" 2
-        exec_command "kubectl --context \"${AWS_TEST_CONTEXT}\" exec \"${PSQL}\" -- rm \"/${DATABASE}.sql\" "
-        print_message "Borrando fichero generado en el POD (HECHO)" "$COLOR_SUCCESS" 2
+            print_message " backup descargado en $service_path/$filename" "$COLOR_WARNING" 2
 
-        print_message_with_animation "Comentado de 'CREATE PUBLICATION'" "$COLOR_SECONDARY" 2
-        exec_command "sed -i 's/CREATE PUBLICATION/--CREATE PUBLICATION/g' \"./${FILENAME}\" "
-        print_message "Comentado de 'CREATE PUBLICATION' (HECHO)" "$COLOR_SUCCESS" 2
+            print_message_wIth_animation "borrando fichero generado en el pod" "$COLOR_SECONDARY" 2
+            kubectl --context "${aws_test_context}" exec "${psql}" -- rm "/tmp/${database}.sql"   > /dev/null 2>&1
+            print_message "Borrando fichero generado en el pod (HECHO)" "$COLOR_SUCCESS" 2
 
-        print_message_with_animation "Moviendo fichero $FILENAME a backup" "$COLOR_SECONDARY" 2
-        exec_command "mv \"$FILENAME\" \"$DDBB_BACKUP_PATH\" "
-        print_message "Moviendo fichero $FILENAME a backup (HECHO)" "$COLOR_SUCCESS" 2
+            print_message_wIth_animation "comentado de 'create publication'" "$COLOR_SECONDARY" 2
+            sed -i 's/create publication/--create publication/g' "./${filename}"  > /dev/null 2>&1
+            print_message "Comentado de 'create publication' (HECHO)" "$COLOR_SUCCESS" 2
+
+            print_message_wIth_animation "moviendo fichero $filename a backup" "$COLOR_SECONDARY" 2
+            mv "$filename" "$ddbb_backup_path" > /dev/null 2>&1
+            print_message "Moviendo fichero $filename a backup (HECHO)" "$COLOR_SUCCESS" 2
+        else
+            print_message "Creación de backup" "$COLOR_SECONDARY" 2
+            kubectl --context ${aws_test_context} exec ${psql} -- bash -c "pgpassword='${password}' pg_dump -d '${service_podname}' -u '${user}' -f '/tmp/${database}.sql' -x -o"
+            print_message "Creación de backup (HECHO)" "$color_success" 2 "BOTH"
+
+            print_message "Descarga backup" "$COLOR_SECONDARY" 2
+            kubectl --context ${aws_test_context} cp "${psql}:/tmp/${database}.sql" "./${filename}"
+            print_message "Descarga backup (HECHO)" "$COLOR_SUCCESS" 2
+
+            print_message " backup descargado en $service_path/$filename" "$COLOR_WARNING" 2
+
+            print_message "Borrando fichero generado en el pod" "$COLOR_SECONDARY" 2
+            kubectl --context "${aws_test_context}" exec "${psql}" -- rm "/tmp/${database}.sql"  
+            print_message "Borrando fichero generado en el pod (HECHO)" "$COLOR_SUCCESS" 2
+
+            print_message "Comentado de 'create publication'" "$COLOR_SECONDARY" 2
+            sed -i 's/create publication/--create publication/g' "./${filename}" 
+            print_message "Comentado de 'create publication' (HECHO)" "$COLOR_SUCCESS" 2
+
+            print_message "Moviendo fichero $filename a backup" "$COLOR_SECONDARY" 2
+            mv "$filename" "$ddbb_backup_path"
+            print_message "Moviendo fichero $filename a backup (HECHO)" "$COLOR_SUCCESS" 2
+        fi
     done
 
     print_message "Descarga de backup de test terminada" "$COLOR_SUCCESS" 3 "both"
@@ -855,26 +866,35 @@ update_ddbb() {
 }
 
 update_ddbb_from_backup() {
-    local path_backup=$1
-    local files=${path_backup}"/*"
+    local path_backup="$1"
 
-    
-    print_semiheader "Actualizando bdd desde el backup -> $path_backup"
+    if [ -d "$path_backup" ]; then
+        sql_files=()
+        
+        while IFS= read -r file; do
+            sql_files+=("$file")
+        done < <(find "$path_backup" -type f -name "*.sql")
 
-    for FILENAME in $files; do
-        local SERVICE_DBNAME
-        local SERVICE_NAME
+        if [ ${#sql_files[@]} -eq 0 ]; then
+            print_centered_message "No se encontraron archivos .sql en el directorio." "$COLOR_ERROR"
+        else
+            for filename in "${sql_files[@]}"; do
+                service_dbname=$(basename "$filename" ".sql")
+                service_name=$(basename "$filename" "_dev.sql" | sed 's/_dev//g; s/_/-/g')
 
-        SERVICE_DBNAME=$(basename "$FILENAME" ".sql")
-        SERVICE_NAME=$(basename "$FILENAME" "_dev.sql" | sed 's/_dev//g; s/_/-/g')
+                cd "$back_path"/"$service_name"
 
-        cd "$BACK_PATH"/"$SERVICE_NAME"
-
-        print_message "-->  Actualizando $SERVICE_DBNAME" "$COLOR_SECONDARY" 1 "before"
-        update_ddbb "$FILENAME" "$SERVICE_DBNAME"
-    done
-
-    print_message "Actualizacion de bdd local terminada" "$COLOR_SUCCESS" 1
+                print_message "-->  actualizando $service_dbname" "$color_secondary" 1 "before"
+                update_ddbb "$filename" "$service_dbname"
+            done
+        fi
+    else
+        print_centered_message "El directorio especificado no existe." "$COLOR_ERROR"        
+        exit 1
+    fi
+ 
+        
+    print_message "actualizacion de bdd local terminada" "$color_success" 1
 }
 
 get_local_backup_path() {
@@ -920,10 +940,7 @@ remove_all_redis() {
 }
 
 remove_all_index() {
-    local remove_all_indexes=${1:-""}
-    local continue_elastic_clean
-
-    if [ "$remove_all_indexes" = "-r" ] || [ print_question "¿Quieres borrar todos los datos de ElasticSearch antes de reindexar?" = 0]; then
+    if print_question "¿Quieres borrar todos los datos de elasticsearch antes de reindexar?" = 0 ; then
         do_api_call "" "http://localhost:9200/_all" "DELETE" "--fail"
         print_message "✳ Borrado de ElasticSearch completado ✳" "$COLOR_SUCCESS" 1 "both"
     fi
@@ -945,80 +962,75 @@ go_out_session() {
 }
 
 
-### Elasticsearch
+### elasticsearch
 
 reindex_all() {
-    local remove_all_indexes=${1:-""}
-    
     print_semiheader "Reindexado de Elasticsearch"
 
-    remove_all_index "$remove_all_indexes"
+    remove_all_index
 
-    for service in "${INDEXES[@]}"; do
-        local normalized_service
+    if print_question "¿Seguro que quieres reindexar los indices de ElasticSearch?" = 0 ; then
+        for service in "${INDEXES[@]}"; do
+            local normalized_service
 
-        normalized_service=$(normalize_text "$service")
+            normalized_service=$(normalize_text "$service")
 
-        reindex_one "$normalized_service" "$SILENT"
-    done
+            reindex_one "$normalized_service"
+        done
+    fi
+    
 }
 
 reindex_one() {
     local service=$1
-    local SILENT=${2:-""}
-
+    
     cd "$BACK_PATH/td-$service"
     print_message "Reindexando servicios de td-$service" "$COLOR_PRIMARY" 1
-
+    
     case "$service" in
-    "dd")
-        print_message_with_animation " Reindexando :jobs" "$COLOR_SECONDARY" 2
-        exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:jobs, :all)\""
-        print_message " Reindexando :jobs (HECHO)" "$COLOR_SUCCESS" 2
+        "dd")
+            print_message_with_animation " reindexando :jobs" "$color_secondary" 2
+            exec_command "mix run -e \"tdcore.search.indexer.reindex(:jobs, :all)\""
+            print_message " reindexando :jobs (hecho)" "$color_success" 2
 
-        print_message_with_animation " Reindexando :structures" "$COLOR_SECONDARY" 2
-        exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:structures, :all)\""
-        print_message " Reindexando :structures (HECHO)" "$COLOR_SUCCESS" 2
+            print_message_with_animation " reindexando :structures" "$color_secondary" 2
+            exec_command "mix run -e \"tdcore.search.indexer.reindex(:structures, :all)\""
+            print_message " reindexando :structures (hecho)" "$color_success" 2
 
-        print_message_with_animation " Reindexando :grants" "$COLOR_SECONDARY" 2
-        exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:grants, :all)\""
-        print_message " Reindexando :grants (HECHO)" "$COLOR_SUCCESS" 2
+            print_message_with_animation " reindexando :grants" "$color_secondary" 2
+            exec_command "mix run -e \"tdcore.search.indexer.reindex(:grants, :all)\""
+            print_message " reindexando :grants (hecho)" "$color_success" 2
 
-        print_message_with_animation " Reindexando :grant_requests" "$COLOR_SECONDARY" 2
-        exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:grant_requests, :all)\""
-        print_message " Reindexando :grant_requests (HECHO)" "$COLOR_SUCCESS" 2
+            print_message_with_animation " reindexando :grant_requests" "$color_secondary" 2
+            exec_command "mix run -e \"tdcore.search.indexer.reindex(:grant_requests, :all)\""
+            print_message " reindexando :grant_requests (hecho)" "$color_success" 2
 
-        print_message_with_animation " Reindexando :implementations" "$COLOR_SECONDARY" 2
-        exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:implementations, :all)\""
-        print_message " Reindexando :implementations (HECHO)" "$COLOR_SUCCESS" 2
+            print_message_with_animation " reindexando :implementations" "$color_secondary" 2
+            exec_command "mix run -e \"tdcore.search.indexer.reindex(:implementations, :all)\""
+            print_message " reindexando :implementations (hecho)" "$color_success" 2
 
-        print_message_with_animation " Reindexando :rules" "$COLOR_SECONDARY" 2
-        exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:rules, :all)\""
-        print_message " Reindexando :rules (HECHO)" "$COLOR_SUCCESS" 2 "after"
+            print_message_with_animation " reindexando :rules" "$color_secondary" 2
+            exec_command "mix run -e \"tdcore.search.indexer.reindex(:rules, :all)\""
+            print_message " reindexando :rules (hecho)" "$color_success" 2 "after"
+            ;;
 
-        ;;
+        "bg")
+            print_message_with_animation " reindexando :concepts" "$color_secondary" 2
+            exec_command "mix run -e \"tdcore.search.indexer.reindex(:concepts, :all)\""
+            print_message " reindexando :concepts (hecho)" "$color_success" 2 "after"
+            ;;
 
-    "bg")
-        print_message_with_animation " Reindexando :concepts" "$COLOR_SECONDARY" 2
-        exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:concepts, :all)\""
-        print_message " Reindexando :concepts (HECHO)" "$COLOR_SUCCESS" 2 "after"
+        "ie")
+            print_message_with_animation " reindexando :ingests" "$color_secondary" 2
+            exec_command "mix run -e \"tdcore.search.indexer.reindex(:ingests, :all)\""
+            print_message " reindexando :ingests (hecho)" "$color_success" 2 "after"
+            ;;
 
-        ;;
-
-    "ie")
-        print_message_with_animation " Reindexando :ingests" "$COLOR_SECONDARY" 2
-        exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:ingests, :all)\""
-        print_message " Reindexando :ingests (HECHO)" "$COLOR_SUCCESS" 2 "after"
-
-        ;;
-
-    "qx")
-        print_message_with_animation " Reindexando :quality_controls" "$COLOR_SECONDARY" 2
-        exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:quality_controls, :all)\""
-        print_message " Reindexando :quality_controls (HECHO)" "$COLOR_SUCCESS" 2 "after"
-
-        ;;
-
+        "qx")
+            print_message_with_animation " reindexando :quality_controls" "$color_secondary" 2
+            exec_command "mix run -e \"tdcore.search.indexer.reindex(:quality_controls, :all)\""
+            print_message " reindexando :quality_controls (hecho)" "$color_success" 2 "after"
+            ;;
     esac
 }
 
@@ -1029,7 +1041,7 @@ create_ssh() {
     local continue_ssh_normalized
     
     
-    # if print_question "SE VA A PROCEDER HACER BACKUP DE LAS CLAVES '$TRUEDAT' ACTUALES, BORRAR LA CLAVE EXISTENTE Y CREAR UNA NUEVA HOMÓNIMA" "$COLOR_ERROR" = 0; then
+    if print_question "SE VA A PROCEDER HACER BACKUP DE LAS CLAVES '$TRUEDAT' ACTUALES, BORRAR LA CLAVE EXISTENTE Y CREAR UNA NUEVA HOMÓNIMA" "$COLOR_ERROR" = 0; then
         cd $SSH_PATH
 
         if [ -f "$SSH_PUBLIC_FILE" ] || [ -f "$SSH_PRIVATE_FILE" ]; then
@@ -1062,7 +1074,7 @@ create_ssh() {
         else
             print_centered_message "Hubo un problema al registrar la clave: $ssh_add_result" "$COLOR_ERROR"
         fi
-    # fi
+    fi
 }
 
 
@@ -2181,10 +2193,10 @@ config_kong() {
 
 
 ###################################################################################################
-###### Menus principales
+###### menus principales
 
 main_menu(){    
-    local option=$(print_menu "${MAIN_MENU_OPTIONS[@]}")
+    local option=$(print_menu "main_menu_help" "${MAIN_MENU_OPTIONS[@]}")
 
     option=$(extract_menu_option "$option")
 
@@ -2215,7 +2227,7 @@ main_menu(){
 
 configure_menu(){
     
-    local option=$(print_menu "${CONFIGURE_MENU_OPTIONS[@]}")
+    local option=$(print_menu "configure_menu_help" "${CONFIGURE_MENU_OPTIONS[@]}")
 
     option=$(extract_menu_option "$option")
 
@@ -2245,15 +2257,15 @@ configure_menu(){
             ;;
 
         7) 
-            echo "PENDIENTE"
+            echo "pendiente"
             ;;
 
         8) 
-            echo "PENDIENTE"
+            echo "pendiente"
             ;;
 
         9) 
-            echo "PENDIENTE"
+            echo "pendiente"
             ;;
 
          0)
@@ -2264,7 +2276,7 @@ configure_menu(){
 
 configuration_menu(){
     
-    local option=$(print_menu "${CONFIGURATION_MENU_OPTIONS[@]}")
+    local option=$(print_menu "configuration_menu_help" "${CONFIGURATION_MENU_OPTIONS[@]}")
 
     option=$(extract_menu_option "$option")
 
@@ -2300,7 +2312,7 @@ configuration_menu(){
 
 animation_menu(){
     
-    local option=$(print_menu "${ANIMATION_MENU_OPTIONS[@]}")
+    local option=$(print_menu "animation_menu_help" "${ANIMATION_MENU_OPTIONS[@]}")
 
     option=$(extract_menu_option "$option")
 
@@ -2310,14 +2322,14 @@ animation_menu(){
             ;;
         
         *)
-            sed -i "s/^SELECTED_ANIMATION=.*/SELECTED_ANIMATION=$option/" "$PATH_GLOBAL_CONFIG"            
+            sed -i "s/^selected_animation=.*/selected_animation=$option/" "$path_global_config"            
             ;;
     esac
 }
 
 principal_actions_menu(){
     
-    local option=$(print_menu "${PRINCIPAL_ACTIONS_MENU_OPTIONS[@]}")
+    local option=$(print_menu "principal_actions_menu_help" "${PRINCIPAL_ACTIONS_MENU_OPTIONS[@]}")
 
     option=$(extract_menu_option "$option")
 
@@ -2345,7 +2357,7 @@ principal_actions_menu(){
 
 start_menu(){
     
-    local option=$(print_menu "${START_MENU_OPTIONS[@]}")
+    local option=$(print_menu "start_menu_help" "${START_MENU_OPTIONS[@]}")
 
     option=$(extract_menu_option "$option")
 
@@ -2374,7 +2386,7 @@ start_menu(){
  
 secondary_actions_menu(){
     
-    local option=$(print_menu "${SECONDARY_ACTIONS_MENU_OPTIONS[@]}")
+    local option=$(print_menu "secondary_actions_menu_help" "${SECONDARY_ACTIONS_MENU_OPTIONS[@]}")
 
     option=$(extract_menu_option "$option")
 
@@ -2423,16 +2435,16 @@ secondary_actions_menu(){
 }
 
 local_backup_menu(){
-    local backups=("Volver" $(find "$DDBB_BASE_BACKUP_PATH" -mindepth 2 -type d) "Otro...")
+    local backups=("volver" $(find "$ddbb_base_backup_path" -mindepth 2 -type d) "otro...")
     
-    local option=$(print_menu "${backups[@]}")
+    local option=$(print_menu "" "${backups[@]}")
 
     case "$option" in
         0)
             ddbb_menu
             ;;
 
-        "Otro")
+        "otro")
             trus -d -lu
             ;;
 
@@ -2443,41 +2455,40 @@ local_backup_menu(){
 }
 
 clean_local_backup_menu(){ 
-    local backups=("Volver" $(find "$DDBB_BASE_BACKUP_PATH" -mindepth 2 -type d) "Borrar todo")
+    local backups=("volver" $(find "$ddbb_base_backup_path" -mindepth 2 -type d) "borrar todo")
     
-    local option=$(print_menu "${backups[@]}")
+    local option=$(print_menu "" "${backups[@]}")
 
     case "$option" in
         0)
             ddbb_menu
             ;;
 
-        "Borrar todo")
-            if print_question "Se van a borrar todos los backups de $DDBB_BASE_BACKUP_PATH" = 0; then   
-                local files=${DDBB_BASE_BACKUP_PATH}"/*"
+        "borrar todo")
+            if print_question "se van a borrar todos los backups de $ddbb_base_backup_path" = 0; then   
+                local files=${ddbb_base_backup_path}"/*"
                 
-                for FILENAME in $files; do
-                    print_message_with_animation "Borrando backup -> $FILENAME"
-                    rm -fr $FILENAME
-                    print_message "Backup $FILENAME Borrado" "$COLOR_SUCCESS" 1 "before"
+                for filename in $files; do
+                    print_message_with_animation "borrando backup -> $filename"
+                    rm -fr $filename
+                    print_message "backup $filename borrado" "$color_success" 1 "before"
                     
                 done
 
-                print_message "Backups borrados" "$COLOR_SUCCESS" 1
+                print_message "backups borrados" "$color_success" 1
             fi            
             ;;
 
         "*")
-            if print_question "Se van a borrar el backup $option" = 0; then
+            if print_question "se van a borrar el backup $option" = 0; then
                 rm -fr $option
             fi            
             ;; 
     esac
 }
 
-ddbb_menu(){
-    
-    local option=$(print_menu "${DDBB_MENU_OPTIONS[@]}")
+ddbb_menu(){    
+    local option=$(print_menu "ddbb_menu_help" "${DDBB_MENU_OPTIONS[@]}")
 
     option=$(extract_menu_option "$option")
 
@@ -2506,9 +2517,8 @@ ddbb_menu(){
     esac
 }
 
-repo_menu(){
-    
-    local option=$(print_menu "${REPO_MENU_OPTIONS[@]}")
+repo_menu(){    
+    local option=$(print_menu "repo_menu_help" "${REPO_MENU_OPTIONS[@]}")
 
     option=$(extract_menu_option "$option")
 
@@ -2533,9 +2543,8 @@ repo_menu(){
     esac
 }
 
-kong_menu(){
-    
-    local option=$(print_menu "${KONG_MENU_OPTIONS[@]}")
+kong_menu(){    
+    local option=$(print_menu "kong_menu_help" "${KONG_MENU_OPTIONS[@]}")
 
     option=$(extract_menu_option "$option")
 
@@ -2554,8 +2563,8 @@ kong_menu(){
     esac
 }
 
-FRONT_PACKAGES
-    for color in "${TERMINAL_COLORS[@]}"; do
+front_packages
+    for color in "${terminal_colors[@]}"; do
         distance=$(euclidean_distance "$desired_color" "$color")
         if [[ $closest_distance == -1 || $distance -lt $closest_distance ]]; then
             closest_distance=$distance
@@ -2567,39 +2576,36 @@ FRONT_PACKAGES
 
 
 #########################################
-### Acciones Principales
+### acciones principales
 
-install() {
-     
-    print_message "Guia de instalación: https://confluence.bluetab.net/pages/viewpage.action?pageId=136022683" "$COLOR_QUATERNARY" 5 "both"
+install() {     
+    print_message "guia de instalación: https://confluence.bluetab.net/pages/viewpage.action?pageid=136022683" "$color_quaternary" 5 "both"
 
     if [ ! -e "/tmp/truedat_installation" ]; then
-        
-
-        if [ -f "$SSH_PUBLIC_FILE" ]; then
-            if [ ! -e "$AWSCONFIG" ]; then
-                print_message "ATENCIÓN, SE VA A SOLICITAR LA CONFIGURACIÓN DE AWS 2 VECES" "$COLOR_WARNING" 2 "before"
-                print_message "Una para el perfil predeterminado y otra para el de truedat" "$COLOR_WARNING" 2 "both"
-                print_message "Estos datos te los debe dar tu responsable" "$COLOR_SECONDARY" 2 "both"
+        if [ -f "$ssh_public_file" ]; then
+            if [ ! -e "$awsconfig" ]; then
+                print_message "atención, se va a solicitar la configuración de aws 2 veces" "$color_warning" 2 "before"
+                print_message "una para el perfil predeterminado y otra para el de truedat" "$color_warning" 2 "both"
+                print_message "estos datos te los debe dar tu responsable" "$color_secondary" 2 "both"
                 
                 aws configure
                 aws configure --profile truedat    
             fi
 
-            aws ecr get-login-password --profile truedat --region eu-west-1 | docker login --username AWS --password-stdin 576759405678.dkr.ecr.eu-west-1.amazonaws.com
-            print_message "Configuración de aws (HECHO)" "$COLOR_SUCCESS" 3 "before"
+            aws ecr get-login-password --profile truedat --region eu-west-1 | docker login --username aws --password-stdin 576759405678.dkr.ecr.eu-west-1.amazonaws.com
+            print_message "configuración de aws (hecho)" "$color_success" 3 "before"
 
-            #Este eval está porque si se instala el entorno en el WSL de windows, el agente no se mantiene levantado
-            #En linux no es necesario pero no molesta
+            #este eval está porque si se instala el entorno en el wsl de windows, el agente no se mantiene levantado
+            #en linux no es necesario pero no molesta
             eval "$(ssh-agent -s)"
-            ssh-add $SSH_PRIVATE_FILE
+            ssh-add $ssh_private_file
 
             clone_truedat_project
 
-            cd $DEV_PATH
+            cd $dev_path
             sudo sysctl -w vm.max_map_count=262144
             sudo cp elastic-search/999-map-count.conf /etc/sysctl.d/
-            print_message "Truedat descargado" "$COLOR_SUCCESS" 3 "before"
+            print_message "truedat descargado" "$color_success" 3 "before"
 
             update_repositories "-a" "yes"
             link_web_modules
@@ -2609,7 +2615,7 @@ install() {
 
             sudo sh -c '{
                         echo "##################"
-                        echo "# Añadido por trus"
+                        echo "# añadido por trus"
                         echo "##################"
                         echo "127.0.0.1 localhost"
                         echo "127.0.0.1 $(uname -n).bluetab.net $(uname -n)"
@@ -2621,29 +2627,29 @@ install() {
                         echo "127.0.0.1 vault"
                         echo "0.0.0.0 localhost"
                         echo "##################"
-                        echo "# Añadido por trus"
+                        echo "# añadido por trus"
                         echo "##################"
                     } > /etc/hosts'
 
 
             touch "/tmp/truedat_installation"
-            print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3 "both"
+            print_message "truedat ha sido instalado" "$color_primary" 3 "both"
             
             
 
-            if print_question "Si deseas reinstalarlo, puedes hacerlo borrando el archivo '/temp/truedat_installation'" = 0; then
+            if print_question "si deseas reinstalarlo, puedes hacerlo borrando el archivo '/temp/truedat_installation'" = 0; then
                 rm "/tmp/truedat_installation"
             fi            
         else
-            print_message "- Claves SSH (NO CREADAS): Tienes que tener creada una clave SSH (el script chequea que la clave se llame 'truedat') en la carpeta ~/.ssh" "$COLOR_ERROR" 3 "before"
-            print_message "RECUERDA que tiene que estar registrada en el equipo y en Gitlab. Si no, debes crearla con 'trus -cr' y registarla en la web'" "$COLOR_WARNING" 3 "after"
+            print_message "- claves ssh (no creadas): tienes que tener creada una clave ssh (el script chequea que la clave se llame 'truedat') en la carpeta ~/.ssh" "$color_error" 3 "before"
+            print_message "recuerda que tiene que estar registrada en el equipo y en gitlab. si no, debes crearla con 'trus -cr' y registarla en la web'" "$color_warning" 3 "after"
         fi
     else
-        print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3 "both"
+        print_message "truedat ha sido instalado" "$color_primary" 3 "both"
         
-        if print_question "Si deseas reinstalarlo, puedes hacerlo borrando el archivo '/temp/truedat_installation'" = 0; then
+        if print_question "si deseas reinstalarlo, puedes hacerlo borrando el archivo '/temp/truedat_installation'" = 0; then
             rm "/tmp/truedat_installation"
-            print_message "Archivo '/tmp/truedat_installation' eliminado correctamente" "$COLOR_PRIMARY" 3 "both"
+            print_message "archivo '/tmp/truedat_installation' eliminado correctamente" "$color_primary" 3 "both"
         fi            
     fi
 }
@@ -2654,7 +2660,6 @@ clone_truedat_project(){
     mkdir -p $BACK_PATH
     mkdir -p $BACK_PATH/logs
     mkdir -p $FRONT_PATH
-    
     
     clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-ai.git $BACK_PATH/td-ai
     clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-audit.git $BACK_PATH/td-audit
@@ -2670,7 +2675,7 @@ clone_truedat_project(){
     
     clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/td-helm.git $BACK_PATH/td-helm
     clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/clients/demo/k8s.git $BACK_PATH/k8s
-
+    
     clone_if_not_exists git@github.com:Bluetab/td-df-lib.git $BACK_PATH/td-df-lib
     clone_if_not_exists git@github.com:Bluetab/td-cache.git $BACK_PATH/td-cache
     clone_if_not_exists git@github.com:Bluetab/td-core.git $BACK_PATH/td-core
@@ -2678,7 +2683,7 @@ clone_truedat_project(){
     
     clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/front-end/td-web-modules.git $FRONT_PATH/td-web-modules
     clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/front-end/td-web $FRONT_PATH/td-web
-
+    
     clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/true-dev.git $DEV_PATH
     
 }
@@ -2714,7 +2719,7 @@ param_routing(){
             ;;
 
         "-r" | "--reindex")
-            reindex_all $(normalize_text "$param2")
+            reindex_all
             ;;
 
         "-k" | "--kill")
@@ -2790,7 +2795,7 @@ param_routing(){
 
 
 ###################################################################################################
-###### Lógica inicial
+###### lógica inicial
 ###################################################################################################
 
 
@@ -2799,20 +2804,31 @@ set_terminal_config
 
 TRUS_ACTUAL_PATH=$(realpath "$0")
 
+print_centered_message "tareas por completar" "$color_primary" "both"
+print_message "bugs" "$color_primary" 1
+print_message "- revisar error de 'ruta/*' sale en algunas ocasiones al actualizar la bdd" "$color_secondary" 2
+print_message "- revisar error del linkado de paquetes de yarn que no va" "$color_secondary" 2
+print_message "- revisar error cuando se pregunta por  algo de s/n que antes pinta un error de get_color" "$color_secondary" 2
+
+print_message "cosas que antes habia y ahora no" "$color_primary" 1
+print_message "- hacer los helps" "$color_secondary" 2
+print_message "- configurar animacion" "$color_secondary" 2
+print_message "- funciones de ayuda" "$color_secondary" 2
+
+
+print_message "cosas nuevas" "$color_primary" 1
+print_message "- informe pidi (script victor)" "$color_secondary" 2
+print_message "- multi yarn test" "$color_secondary" 2
+print_message "- configurar colores de trus" "$color_secondary" 2
+print_message "- añadir submenu al reindexado de elastic, para seleccionar qué indices se quiere reindexar" "$color_secondary" 2
+print_message "- añadir submenu al arranque de todo/servicios de truedat, para seleccionar qué servicios se quiere arrancar" "$color_secondary" 2
+print_message "- añadir submenu a la actualizacion de repos para seleccionar qué actualizar" "$color_secondary" 2
+print_message "- añadir submenu a la descarga de bdd de test para seleccionar qué actualizar" "$color_secondary" 2 "after"
+print_message 
+
+# seq 10 -1 1 | while read i; do echo -ne "cuenta atrás: $i\r"; sleep 1; done; echo -ne "¡tiempo!\n"
+
 param_routing $1 $2 $3 $4 $5
- 
 
-# print_centered_message "TAREAS POR COMPLETAR" "$COLOR_PRIMARY" "before"
-# print_centered_message "    - Revisar error de 'ruta/*' sale en algunas ocasiones al actualizar la bdd" "$COLOR_SECONDARY" 
-# print_centered_message "    - Informe PiDi (script Victor)" "$COLOR_SECONDARY" 
-# print_centered_message "    - Multi yarn test" "$COLOR_SECONDARY" 
-# print_centered_message "    - Configurar colores de trus" "$COLOR_SECONDARY" 
-# print_centered_message "    - Configurar animacion" "$COLOR_SECONDARY" 
-# print_centered_message "    - Funciones de ayuda" "$COLOR_SECONDARY" 
-# print_centered_message "    - Añadir submenu al reindexado de elastic, para seleccionar qué indices se quiere reindexar" "$COLOR_SECONDARY" 
-# print_centered_message "    - Añadir submenu al arranque de todo/servicios de truedat, para seleccionar qué servicios se quiere arrancar" "$COLOR_SECONDARY" 
-# print_centered_message "    - Añadir submenu a la actualizacion de repos para seleccionar qué actualizar" "$COLOR_SECONDARY" 
-# print_centered_message "    - Añadir submenu a la descarga de bdd de test para seleccionar qué actualizar" "$COLOR_SECONDARY"
-# print_centered_message "    - Añadir submenu a la descarga de bdd de test para seleccionar qué actualizar" "$COLOR_SECONDARY"
 
-# RNTDELL001174.bluetab.net
+# RNTDELL001174.BLUETAB.NET
