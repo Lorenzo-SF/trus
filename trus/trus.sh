@@ -1,10 +1,6 @@
 #!/bin/bash
 #
-# Nuevo TrUs v5.0
-#     - Monolitico, porque 3 archivos de script y uno de config es complicado de mantener
-#     - Interactivo, con menuses bonitos que faciliten la vida
-#     - Configurable, desde los colorinchis a formas de instalacion o de trabajar
-# nuevo trus v7.0
+# Nuevo TrUs v7.0
 #     - monolitico, porque 3 archivos de script y uno de config es complicado de mantener
 #     - interactivo, con menuses bonitos que faciliten la vida
 #     - configurable, desde los colorinchis a formas de instalacion o de trabajar
@@ -306,6 +302,8 @@ set_terminal_config() {
     else
         REDIRECT=""
     fi
+
+    wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz
 }
 
 exec_command(){
@@ -430,7 +428,7 @@ print_separator() {
 
 print_header() {
     clear
-    wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz
+    
     sleep 0.11
 
     local USER_DATA="Usuario: $(echo "$(getent passwd $USER)" | cut -d ':' -f 5 | cut -d ',' -f 1) ($USER)"
@@ -487,9 +485,7 @@ print_semiheader() {
 
 print_logo() {
     clear
-    wmctrl -r :active: -b add,maximized_vert,maximized_horz
     
-
     local logo=("" "" "" 
         "              &&             &&&&&&&&&&&&&&&&&&&&              &&               " 
         "                &&&&&   &&&&&&&                 &&&&&&&   &&&&&                 " 
@@ -990,45 +986,45 @@ reindex_one() {
     case "$service" in
         "dd")
             print_message_with_animation " reindexando :jobs" "$color_secondary" 2
-            exec_command "mix run -e \"tdcore.search.indexer.reindex(:jobs, :all)\""
+            exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:jobs, :all)\""
             print_message " reindexando :jobs (hecho)" "$color_success" 2
 
             print_message_with_animation " reindexando :structures" "$color_secondary" 2
-            exec_command "mix run -e \"tdcore.search.indexer.reindex(:structures, :all)\""
+            exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:structures, :all)\""
             print_message " reindexando :structures (hecho)" "$color_success" 2
 
             print_message_with_animation " reindexando :grants" "$color_secondary" 2
-            exec_command "mix run -e \"tdcore.search.indexer.reindex(:grants, :all)\""
+            exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:grants, :all)\""
             print_message " reindexando :grants (hecho)" "$color_success" 2
 
             print_message_with_animation " reindexando :grant_requests" "$color_secondary" 2
-            exec_command "mix run -e \"tdcore.search.indexer.reindex(:grant_requests, :all)\""
+            exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:grant_requests, :all)\""
             print_message " reindexando :grant_requests (hecho)" "$color_success" 2
 
             print_message_with_animation " reindexando :implementations" "$color_secondary" 2
-            exec_command "mix run -e \"tdcore.search.indexer.reindex(:implementations, :all)\""
+            exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:implementations, :all)\""
             print_message " reindexando :implementations (hecho)" "$color_success" 2
 
             print_message_with_animation " reindexando :rules" "$color_secondary" 2
-            exec_command "mix run -e \"tdcore.search.indexer.reindex(:rules, :all)\""
+            exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:rules, :all)\""
             print_message " reindexando :rules (hecho)" "$color_success" 2 "after"
             ;;
 
         "bg")
             print_message_with_animation " reindexando :concepts" "$color_secondary" 2
-            exec_command "mix run -e \"tdcore.search.indexer.reindex(:concepts, :all)\""
+            exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:concepts, :all)\""
             print_message " reindexando :concepts (hecho)" "$color_success" 2 "after"
             ;;
 
         "ie")
             print_message_with_animation " reindexando :ingests" "$color_secondary" 2
-            exec_command "mix run -e \"tdcore.search.indexer.reindex(:ingests, :all)\""
+            exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:ingests, :all)\""
             print_message " reindexando :ingests (hecho)" "$color_success" 2 "after"
             ;;
 
         "qx")
             print_message_with_animation " reindexando :quality_controls" "$color_secondary" 2
-            exec_command "mix run -e \"tdcore.search.indexer.reindex(:quality_controls, :all)\""
+            exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:quality_controls, :all)\""
             print_message " reindexando :quality_controls (hecho)" "$color_success" 2 "after"
             ;;
     esac
@@ -2435,7 +2431,7 @@ secondary_actions_menu(){
 }
 
 local_backup_menu(){
-    local backups=("volver" $(find "$ddbb_base_backup_path" -mindepth 2 -type d) "otro...")
+    local backups=("0 - Volver" $(find "$DDBB_BASE_BACKUP_PATH" -mindepth 1 -type d) "otro...")
     
     local option=$(print_menu "" "${backups[@]}")
 
@@ -2455,7 +2451,7 @@ local_backup_menu(){
 }
 
 clean_local_backup_menu(){ 
-    local backups=("volver" $(find "$ddbb_base_backup_path" -mindepth 2 -type d) "borrar todo")
+    local backups=("0 - Volver" $(find "$DDBB_BASE_BACKUP_PATH" -mindepth 2 -type d) "Borrar todo")
     
     local option=$(print_menu "" "${backups[@]}")
 
@@ -2465,8 +2461,8 @@ clean_local_backup_menu(){
             ;;
 
         "borrar todo")
-            if print_question "se van a borrar todos los backups de $ddbb_base_backup_path" = 0; then   
-                local files=${ddbb_base_backup_path}"/*"
+            if print_question "se van a borrar todos los backups de $DDBB_BASE_BACKUP_PATH" = 0; then   
+                local files=${DDBB_BASE_BACKUP_PATH}"/*"
                 
                 for filename in $files; do
                     print_message_with_animation "borrando backup -> $filename"
@@ -2688,7 +2684,7 @@ clone_truedat_project(){
     
 }
 
-param_routing(){
+param_router(){
     local param1=$1
     local param2=$2
     local param3=$3
@@ -2828,7 +2824,7 @@ print_message
 
 # seq 10 -1 1 | while read i; do echo -ne "cuenta atrás: $i\r"; sleep 1; done; echo -ne "¡tiempo!\n"
 
-param_routing $1 $2 $3 $4 $5
+param_router $1 $2 $3 $4 $5
 
 
 # RNTDELL001174.BLUETAB.NET
