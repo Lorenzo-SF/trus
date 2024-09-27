@@ -2210,7 +2210,7 @@ config_kong() {
 ###################################################################################################
 ###### Menus principales
 
-main_menu(){    ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+main_menu(){    
     local option=$(print_menu "${MAIN_MENU_OPTIONS[@]}")
 
     option=$(extract_menu_option "$option")
