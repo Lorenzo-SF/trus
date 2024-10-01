@@ -617,3 +617,18 @@ Snowflake%3A%2F%2FUS_OPEN_CENSUS_DATA__NEIGHBORHOOD_INSIGHTS__FREE_DATASET%2FPUB
  Implementation notes
 
 Needed increase liveness probe value because the migration may take time if there is a lot of data volume
+
+
+
+
+**kubectl --context "arn:aws:eks:eu-west-1:576759405678:cluster/truedat" get pods**
+**kubectl --context "arn:aws:eks:eu-west-1:576759405678:cluster/truedat" exec -it dd-6db797d977-kl8gz    /bin/bash**
+**kubectl --context "arn:aws:eks:eu-west-1:576759405678:cluster/truedat" logs -f dd-757cf99cd8-82rpf **
+kubectl get secrets postgres -o json | jq '.data | map_values(@base64d)'
+kubectl port-forward svc/haproxy-rds 5432
+kubectl port-forward svc/haproxy-rds 5432
+kubectl get pods -l run=psql -o name | cut -d/ -f2)    
+kubectl --context "${CONTEXT}" exec "${PSQL}" -- pg_dump -d "td_dd" -U "pgadmin" -f "td_dd_dev.sql" -S postgres -x -Ofkube
+
+
+kubectl --context "arn:aws:eks:eu-west-1:576759405678:cluster/truedat" logs -f dd-d999f499b-p977q
