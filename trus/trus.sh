@@ -4,18 +4,18 @@
 #     - monolitico, porque 3 archivos de script y uno de config es complicado de mantener
 #     - interactivo, con menuses bonitos que faciliten la vida
 #     - configurable, desde los colorinchis a formas de instalacion o de trabajar
-#     - 
+#     -
 ###################################################################################################
-###### Variables 
+###### Variables
 ### Principales
 
 trap stop_animation SIGINT
 
-
 DATE_NOW=$(date +"%Y-%m-%d_%H-%M-%S")
 HEADER_MESSAGE="Truedat Utils (TrUs)"
 DESCRIPTION_MESSAGE=""
-SWAP_SIZE_MB=$(free --mega | awk '/^Mem:/ {print int($2 + ($2))}')
+SWAP_FILE='/swapfile'
+SWAP_SIZE=$(free --giga | awk '/^Mem:/ {print int($2)}')
 USER_HOME=$(eval echo ~"$SUDO_USER")
 TRUS_DIRECTORY=$USER_HOME/.trus
 TRUS_PATH=$TRUS_DIRECTORY/trus.sh
@@ -28,16 +28,15 @@ TRUS_CONFIG="$USER_HOME/trus.config"
 
 ### Menus
 MAIN_MENU_OPTIONS=("0 - Salir" "1 - Configurar" "2 - Acciones principales" "3 - Actiones secundarias" "4 - Ayuda")
-CONFIGURE_MENU_OPTIONS=("0 - Volver" "1 - Instalación de paquetes y dependencias" "2 - Instalar ZSH y Oh My ZSH" "3 - Archivos de configuración" "4 - Actualizar splash loader" "5 - Actualizar la memoria SWAP (a $(($SWAP_SIZE_MB/1024)) GB)" "6 - Configurar animación de los mensajes" "7 - Configurar colores" "8 - Instala TrUs (Truedat Utils)" "9 - Todo")
-CONFIGURATION_MENU_OPTIONS=("0 - Volver" "1 - ZSH" "2 - BASH" "3 - TMUX" "4 - TLP" "5 - Todos")
+CONFIGURE_MENU_OPTIONS=("0 - Volver" "1 - Instalación de paquetes y dependencias" "2 - Instalar ZSH y Oh My ZSH" "3 - Archivos de configuración" "4 - Actualizar splash loader" "5 - Actualizar la memoria SWAP (a $SWAP_SIZE GB)" "6 - Configurar animación de los mensajes" "7 - Configurar colores" "8 - Instala TrUs (Truedat Utils)" "9 - Todo")
+CONFIGURATION_MENU_OPTIONS=("0 - Volver" "1 - ZSH" "2 - BASH" "3 - Fix login Google (solo BASH)" "4 - TMUX" "5 - TLP" "6 - Grub" "7 - Todos")
 ANIMATION_MENU_OPTIONS=("0 - Volver" "ARROW" "BOUNCE" "BOUNCING_BALL" "BOX" "BRAILLE" "BREATHE" "BUBBLE" "OTHER_BUBBLE" "CLASSIC_UTF8" "CLASSIC" "DOT" "FILLING_BAR" "FIREWORK" "GROWING_DOTS" "HORIZONTAL_BLOCK" "KITT" "METRO" "PASSING_DOTS" "PONG" "QUARTER" "ROTATING_EYES" "SEMI_CIRCLE" "SIMPLE_BRAILLE" "SNAKE" "TRIANGLE" "TRIGRAM" "VERTICAL_BLOCK")
 PRINCIPAL_ACTIONS_MENU_OPTIONS=("0 - Volver" "1 - Arrancar Truedat" "2 - Matar Truedat" "3 - Operaciones de bdd" "4 - Operaciones de repositorios")
 START_MENU_OPTIONS=("0 - Volver" "1 - Todo" "2 - Solo contenedores" "3 - Solo servicios" "4 - Solo el frontal")
 SECONDARY_ACTIONS_MENU_OPTIONS=("0 - Volver" "1 - Indices de ElasticSearch" "2 - Claves SSH" "3 - Kong" "4 - Linkado de modulos del frontal" "5 - Llamada REST que necesita token de login" "6 - Carga de estructuras" "7 - Carga de linajes" "8 - Entrar en una sesion iniciada de TMUX" "9 - Salir de una sesion inciada de TMUX")
-DDBB_MENU_OPTIONS=("0 - Volver" "1 - Descargar SOLO backup de TEST" "2 - Descargar y aplicar backup de TEST" "3 - Aplicar backup de ruta LOCAL" "4 - Crear backup de las bdd actuales" "5 - Limpieza de backups LOCALES")
+DDBB_MENU_OPTIONS=("0 - Volver" "1 - Descargar SOLO backup de TEST" "2 - Descargar y aplicar backup de TEST" "3 - Aplicar backup de ruta LOCAL" "4 - Crear backup de las bdd actuales" "5 - Limpieza de backups LOCALES" "6 - (Re)crear bdd locales VACÍAS")
 REPO_MENU_OPTIONS=("0 - Volver" "1 - Actualizar TODO" "2 - Actualizar solo back" "3 - Actualizar solo front" "4 - Actualizar solo libs")
 KONG_MENU_OPTIONS=("0 - Volver" "1 - (Re)generar rutas de Kong" "2 - Configurar Kong")
-
 
 ### Esquema de colores
 NO_COLOR="FFFCE2"
@@ -47,7 +46,7 @@ COLOR_TERNARY="937F5F"
 COLOR_QUATERNARY="808F9C"
 COLOR_SUCCESS="10C90A"
 COLOR_WARNING="FFCE00"
-COLOR_ERROR="C90D0A"   
+COLOR_ERROR="C90D0A"
 COLOR_BACKRGROUND="000000"
 
 # Echar un ojo para ver qué formato de colores admite (son muchos)
@@ -58,7 +57,6 @@ GRADIENT_3=""
 GRADIENT_4=""
 GRADIENT_5=""
 GRADIENT_6=""
-
 
 ### Animaciones
 TERMINAL_ANIMATION_ARROW=(▹▹▹▹▹ ▸▹▹▹▹ ▹▸▹▹▹ ▹▹▸▹▹ ▹▹▹▸▹ ▹▹▹▹▸ ▹▹▹▹▹ ▹▹▹▹▹ ▹▹▹▹▹ ▹▹▹▹▹ ▹▹▹▹▹ ▹▹▹▹▹ ▹▹▹▹▹)
@@ -90,15 +88,13 @@ TERMINAL_ANIMATION_TRIGRAM=(☰ ☱ ☳ ☶ ☴)
 TERMINAL_ANIMATION_VERTICAL_BLOCK=(▁ ▂ ▃ ▄ ▅ ▆ ▇ █ █ ▇ ▆ ▅ ▄ ▃ ▂ ▁)
 
 HEADER_LOGO=("  _________   ______     __  __    ______       "
-             " /________/\ /_____/\   /_/\/_/\  /_____/\      "
-             " \__.::.__\/ \:::_ \ \  \:\ \:\ \ \::::_\/_     "
-             "     \::\ \   \:(_) ) )  \:\ \:\ \ \:\/___/\    "
-             "      \::\ \   \: __ ´\ \ \:\ \:\ \ \_::._\:\   "
-             "       \::\ \   \ \ ´\ \ \ \:\_\:\ \  /____\:\  "
-             "        \__\/    \_\/ \_\/  \_____\/  \_____\/  "
-         )
-
-
+    " /________/\ /_____/\   /_/\/_/\  /_____/\      "
+    " \__.::.__\/ \:::_ \ \  \:\ \:\ \ \::::_\/_     "
+    "     \::\ \   \:(_) ) )  \:\ \:\ \ \:\/___/\    "
+    "      \::\ \   \: __ ´\ \ \:\ \:\ \ \_::._\:\   "
+    "       \::\ \   \ \ ´\ \ \ \:\_\:\ \  /____\:\  "
+    "        \__\/    \_\/ \_\/  \_____\/  \_____\/  "
+)
 
 ### Rutas
 WORKSPACE_PATH=$USER_HOME/workspace
@@ -129,7 +125,6 @@ OMZ_PLUGINS_PATH=$OMZ_PATH/custom/plugins
 TMUX_PATH_CONFIG=$USER_HOME/.tmux.conf
 TLP_PATH_CONFIG=/etc/tlp.conf
 
-
 ### Listados de infraestructura
 DATABASES=("td_ai" "td_audit" "td_bg" "td_dd" "td_df" "td_i18n" "td_ie" "td_lm" "td_qx")
 INDEXES=("dd" "bg" "ie" "qx")
@@ -141,7 +136,6 @@ LIBRARIES=("td-cache" "td-cluster" "td-core" "td-df-lib" "td-helm" "k8s")
 DOCKER_LOCALHOST="172.17.0.1"
 KONG_ADMIN_URL="localhost:8001"
 KONG_ROUTES_SERVICES=("health" "td_audit" "td_auth" "td_bg" "td_dd" "td_qx" "td_dq" "td_lm" "td_qe" "td_se" "td_df" "td_ie" "td_cx" "td_i18n" "td_ai")
-
 
 ###################################################################################################
 ###### Herramientas
@@ -167,10 +161,10 @@ get_tabs() {
 generate_separator() {
     local length=$1
     local separator=$2
-    
+
     printf "%${length}s" | tr ' ' "${separator}"
 }
- 
+
 pad_message() {
     local message=$1
     local position=${2:-"center"}
@@ -180,48 +174,46 @@ pad_message() {
     local message_length=${#message}
 
     if [ $max_size -eq -1 ]; then
-        IFS=' ' read -r total_length filled_space <<< "$(message_size "$message")"
+        IFS=' ' read -r total_length filled_space <<<"$(message_size "$message")"
     else
         filled_space=$max_size
     fi
 
     case "$position" in
-        "left")
-            local padding_left=$(generate_separator $filled_space "$separator")
-            echo "${padding_left}${message}"
-            ;;
-        "right")
-            local padding_right=$(generate_separator $filled_space "$separator")
-            echo "${message}${padding_right}"
-            ;;
-        "center")
-            filled_space=$((filled_space / 2))
-            local padding=$(generate_separator $filled_space "$separator")
-            
-            echo "${padding}${message}${padding}"
-            ;;
-        *)
-            echo "Posición no reconocida. Usa 'left', 'right' o 'center'."
-            ;;
+    "left")
+        local padding_left=$(generate_separator $filled_space "$separator")
+        echo "${padding_left}${message}"
+        ;;
+    "right")
+        local padding_right=$(generate_separator $filled_space "$separator")
+        echo "${message}${padding_right}"
+        ;;
+    "center")
+        filled_space=$((filled_space / 2))
+        local padding=$(generate_separator $filled_space "$separator")
+
+        echo "${padding}${message}${padding}"
+        ;;
+    *)
+        echo "Posición no reconocida. Usa 'left', 'right' o 'center'."
+        ;;
     esac
 }
 
 message_size() {
     local message=$1
-    
+
     local total_length=$(tput cols)
     local filled_space=$(((longitud_total - ${#message})))
-    
+
     echo "$total_length $filled_space"
 }
 
-
 ### Colorinchis
-
 
 get_color() {
     local COLOR=${1:-$COLOR_PRIMARY}
-    
+
     R=$((16#${COLOR:0:2}))
     G=$((16#${COLOR:2:2}))
     B=$((16#${COLOR:4:2}))
@@ -305,11 +297,10 @@ set_terminal_config() {
     wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz
 }
 
-exec_command(){
+exec_command() {
     local command=$1
     eval "$command $REDIRECT"
 }
-
 
 ###### Mensajes
 ### Base
@@ -319,14 +310,14 @@ print_message() {
     local color=${2:-"$NO_COLOR"}
     local tabs=${3:-0}
     local new_line_before_or_after=${4:-"normal"}
-    
+
     local transformed_color=$(get_color "$color")
     local transformed_no_color=$(get_color "$NO_COLOR")
-    
+
     stop_animation
-    
+
     message="$(get_tabs $tabs)$message"
-    
+
     if [ -z "$SIMPLE_ECHO" ]; then
         message=$transformed_color$message$transformed_no_color
 
@@ -343,27 +334,27 @@ print_message() {
 
     echo -ne "$message"
 }
-            
-print_question(){
+
+print_question() {
     # para su uso: if print_question "<mensaje>" = 0; then
     local question=${1:-""}
     local response=1
 
     print_centered_message "$question" "$COLOR_WARNING"
-    
+
     if [ -n "$BASH_VERSION" ]; then
         read -p "¿Deseas hacerlo ahora? (S/N): " user_input
     else
         echo -n "¿Deseas hacerlo ahora? (S/N): "
         read user_input
-    fi    
+    fi
 
     local continue_question=$(normalize_text "$user_input")
 
     if [ "$continue_question" = "si" ] || [ "$continue_question" = "s" ] || [ "$continue_question" = "y" ] || [ "$continue_question" = "yes" ]; then
         response=0
-    fi            
-    
+    fi
+
     return $response
 }
 
@@ -371,7 +362,7 @@ print_menu() {
     local HELP_SCRIPT=$1
     shift
     local items=("$@")
-        
+
     if [ "$HELP_SCRIPT" = "" ]; then
         HELP_SCRIPT="echo 'No hay ayuda disponible'"
     else
@@ -387,10 +378,9 @@ print_menu() {
         --margin=0,3 \
         --padding=1 \
         --preview-window=right,60%,wrap \
-        --preview="$HELP_SCRIPT"\
-        --prompt="Búsqueda > " 
+        --preview="$HELP_SCRIPT" \
+        --prompt="Búsqueda > "
 }
-
 
 ### Especiales
 
@@ -404,25 +394,25 @@ print_centered_message() {
     fi
 }
 
-print_message_with_gradient(){
+print_message_with_gradient() {
     local message=$1
     local message_length=${#message}
-    
-    echo "$message" | gterm $GRADIENT_1 $GRADIENT_2 $GRADIENT_3 $GRADIENT_4 $GRADIENT_5 $GRADIENT_6   
+
+    echo "$message" | gterm $GRADIENT_1 $GRADIENT_2 $GRADIENT_3 $GRADIENT_4 $GRADIENT_5 $GRADIENT_6
 }
 
 print_separator() {
     local message=${1:-""}
     local separator=${2:-"-"}
     local full_line=$3
-    IFS=' ' read -r total_length filled_space <<< "$(message_size "$message")"
-    
+    IFS=' ' read -r total_length filled_space <<<"$(message_size "$message")"
+
     if [ -z "$full_line" ]; then
         echo $(pad_message "" "left" "-" $((filled_space / 4)))
-    
-    else    
+
+    else
         echo $(pad_message "" "left" "-" $filled_space)
-    fi    
+    fi
 }
 
 print_header() {
@@ -433,24 +423,23 @@ print_header() {
     local EQUIPO="Equipo: $(hostname)"
     local empty_line="                                     "
 
-
     local logo=($empty_line
-                "  &           &&&&&&&&&           &  $(print_separator "$empty_line" "y")"
-                "   &&&  &&&&&           &&&&&  &&&   "
-                "     &&&&&&&&&&       &&&&&&&&&&     "
-                "     &&&*****&&&&& &&&&&*****&&&      _________   ______     __  __    ______       "
-                "     &&  *******&&&&&*******  &&     /________/\ /_____/\   /_/\/_/\  /_____/\      $HEADER_MESSAGE"
-                "    &&&     **    &   ***     &&&    \__.::.__\/ \:::_ \ \  \:\ \:\ \ \::::_\/_     "
-                "   &&&&                      &&&&&       \::\ \   \:(_) ) )  \:\ \:\ \ \:\/___/\    $USER_DATA"
-                "   &&&                     &&& &&&        \::\ \   \: __ ´\ \ \:\ \:\ \ \_::._\:\   $EQUIPO"
-                "  &&&&                  &&&&&  &&&&        \::\ \   \ \ ´\ \ \ \:\_\:\ \  /____\:\  "
-                "  &&&&         &&&&&&&&&&&     &&&&         \__\/    \_\/ \_\/  \_____\/  \_____\/  $DESCRIPTION_MESSAGE"
-                "   &&&&&  &&&&&&&&&&         &&&&&   "
-                "    &&&&&&&&&&&            &&&&&&    "
-                "      &&&&&&&           &&&&&&       $(print_separator "$empty_line" "y")"
-                "         &&&&&&&&   &&&&&&&&         "
-                "             &&&&&&&&&&&             "
-                "                 &&                  ")
+        "  &           &&&&&&&&&           &  $(print_separator "$empty_line" "y")"
+        "   &&&  &&&&&           &&&&&  &&&   "
+        "     &&&&&&&&&&       &&&&&&&&&&     "
+        "     &&&*****&&&&& &&&&&*****&&&      _________   ______     __  __    ______       "
+        "     &&  *******&&&&&*******  &&     /________/\ /_____/\   /_/\/_/\  /_____/\      $HEADER_MESSAGE"
+        "    &&&     **    &   ***     &&&    \__.::.__\/ \:::_ \ \  \:\ \:\ \ \::::_\/_     "
+        "   &&&&                      &&&&&       \::\ \   \:(_) ) )  \:\ \:\ \ \:\/___/\    $USER_DATA"
+        "   &&&                     &&& &&&        \::\ \   \: __ ´\ \ \:\ \:\ \ \_::._\:\   $EQUIPO"
+        "  &&&&                  &&&&&  &&&&        \::\ \   \ \ ´\ \ \ \:\_\:\ \  /____\:\  "
+        "  &&&&         &&&&&&&&&&&     &&&&         \__\/    \_\/ \_\/  \_____\/  \_____\/  $DESCRIPTION_MESSAGE"
+        "   &&&&&  &&&&&&&&&&         &&&&&   "
+        "    &&&&&&&&&&&            &&&&&&    "
+        "      &&&&&&&           &&&&&&       $(print_separator "$empty_line" "y")"
+        "         &&&&&&&&   &&&&&&&&         "
+        "             &&&&&&&&&&&             "
+        "                 &&                  ")
 
     local centered_logo=()
     local min_length=${#logo[0]}
@@ -461,8 +450,6 @@ print_header() {
             min_length=$line_length
         fi
     done
-
-    
 
     for line in "${logo[@]}"; do
         centered_logo+=("$(pad_message "$line" "right" " " "$min_length")")
@@ -475,7 +462,7 @@ print_semiheader() {
     local message=$1
 
     if [ -z "$SIMPLE_ECHO" ]; then
-        print_separator    
+        print_separator
     fi
 
     print_message "$message\n"
@@ -484,37 +471,37 @@ print_semiheader() {
 print_logo() {
     clear
 
-    local logo=("" "" "" 
-        "              &&             &&&&&&&&&&&&&&&&&&&&              &&               " 
-        "                &&&&&   &&&&&&&                 &&&&&&&   &&&&&                 " 
-        "                  &&&&&&&&&&&&&                 &&&&&&&&&&&&&                   " 
-        "                     &&&&&&&&&&&&&&&       &&&&&&&&&&&&&&&                      " 
-        "                    &&& ********&&&&&&& &&&&&&&******** &&&                     " 
-        "                   &&&& ***********&&&&&&&&&*********** &&&&                    " 
-        "                  &&&&&  ************&&&&&************  &&&&&                   " 
-        "                  &&&&       *****     &     *****      &&&&&                   " 
-        "                 &&&&&                                  &&&&&&                  " 
-        "                &&&&&                                  &&&&&&&                  " 
-        "                &&&&&                                &&&& &&&&&                 " 
-        "               &&&&&&                             &&&&&&  &&&&&                 " 
-        "               &&&&&                         &&&&&&&&&    &&&&&&                " 
-        "               &&&&&&               &&&&&&&&&&&&&&&       &&&&&&                " 
-        "               &&&&&&&       &&&&&&&&&&&&&&&&&           &&&&&&                 " 
-        "                &&&&&&&& &&&&&&&&&&&&&&                &&&&&&&                  " 
-        "                  &&&&&&&&&&&&&&&&&                  &&&&&&&&                   " 
-        "                    &&&&&&&&&&&&&                 &&&&&&&&&                     " 
-        "                      &&&&&&&&&&               &&&&&&&&&&                       " 
-        "                         &&&&&&&&&&&       &&&&&&&&&&&                          " 
-        "                            &&&&&&&&&&&&&&&&&&&&&&                              " 
-        "                                &&&&&&&&&&&&&&&                                 " 
-        "                                    &&&&&&&                                     " 
-        "                                                                                " 
-        "                                                            **                  " 
-        "    &&&    &&&                                             ***             ***  " 
-        "   &&&     &&&&&  &&&&&& &&&     &&&   &&&&&&&&      *********   ********  *****" 
-        "  &&&&     &&&   &&&     &&&     &&&  &&&    &&&&  ***    **** ****   (*** ***  " 
-        " &&&&      &&&   &&&     &&&     &&& &&&&&&&&&&&& ***      ***   ********* ***  " 
-        "&&&&       &&&   &&&     &&&    &&&& &&&          ****     *** ***    **** ***  " 
+    local logo=("" "" ""
+        "              &&             &&&&&&&&&&&&&&&&&&&&              &&               "
+        "                &&&&&   &&&&&&&                 &&&&&&&   &&&&&                 "
+        "                  &&&&&&&&&&&&&                 &&&&&&&&&&&&&                   "
+        "                     &&&&&&&&&&&&&&&       &&&&&&&&&&&&&&&                      "
+        "                    &&& ********&&&&&&& &&&&&&&******** &&&                     "
+        "                   &&&& ***********&&&&&&&&&*********** &&&&                    "
+        "                  &&&&&  ************&&&&&************  &&&&&                   "
+        "                  &&&&       *****     &     *****      &&&&&                   "
+        "                 &&&&&                                  &&&&&&                  "
+        "                &&&&&                                  &&&&&&&                  "
+        "                &&&&&                                &&&& &&&&&                 "
+        "               &&&&&&                             &&&&&&  &&&&&                 "
+        "               &&&&&                         &&&&&&&&&    &&&&&&                "
+        "               &&&&&&               &&&&&&&&&&&&&&&       &&&&&&                "
+        "               &&&&&&&       &&&&&&&&&&&&&&&&&           &&&&&&                 "
+        "                &&&&&&&& &&&&&&&&&&&&&&                &&&&&&&                  "
+        "                  &&&&&&&&&&&&&&&&&                  &&&&&&&&                   "
+        "                    &&&&&&&&&&&&&                 &&&&&&&&&                     "
+        "                      &&&&&&&&&&               &&&&&&&&&&                       "
+        "                         &&&&&&&&&&&       &&&&&&&&&&&                          "
+        "                            &&&&&&&&&&&&&&&&&&&&&&                              "
+        "                                &&&&&&&&&&&&&&&                                 "
+        "                                    &&&&&&&                                     "
+        "                                                                                "
+        "                                                            **                  "
+        "    &&&    &&&                                             ***             ***  "
+        "   &&&     &&&&&  &&&&&& &&&     &&&   &&&&&&&&      *********   ********  *****"
+        "  &&&&     &&&   &&&     &&&     &&&  &&&    &&&&  ***    **** ****   (*** ***  "
+        " &&&&      &&&   &&&     &&&     &&& &&&&&&&&&&&& ***      ***   ********* ***  "
+        "&&&&       &&&   &&&     &&&    &&&& &&&          ****     *** ***    **** ***  "
         "&&&        &&&&& &&&      &&&&&&&&&   &&&&&&&&&&    **********  *********  *****"
     )
 
@@ -530,13 +517,12 @@ print_logo() {
     sleep 1
 }
 
-
 ### Animaciones. Original aqui: https://github.com/Silejonu/bash_loading_animations
 
-set_active_animation(){
+set_active_animation() {
     local selected=${1:-$SELECTED_ANIMATION}
 
-    list_name="TERMINAL_ANIMATION_$selected"    
+    list_name="TERMINAL_ANIMATION_$selected"
     eval "active_animation=(\"\${$list_name[@]}\")"
     sed -i "s/^SELECTED_ANIMATION=.*/SELECTED_ANIMATION='$selected'/" "$TRUS_CONFIG"
 }
@@ -577,10 +563,9 @@ print_message_with_animation() {
         play_animation "$message" "$tabs" "$color" &
         animation_pid="${!}"
     else
-      print_message "$message" "$color" "$tabs"
-    fi    
+        print_message "$message" "$color" "$tabs"
+    fi
 }
-
 
 ### Git
 
@@ -604,10 +589,10 @@ clone_if_not_exists() {
     local target_dir=$2
 
     if [ ! -d "$target_dir" ]; then
-        print_message "Clonando el repositorio desde '$repo_url' en '$target_dir'..." "$COLOR_SUCCESS" 3 
+        print_message "Clonando el repositorio desde '$repo_url' en '$target_dir'..." "$COLOR_SUCCESS" 3
         git clone "$repo_url" "$target_dir"
     else
-        print_message "El directorio '$target_dir' ya existe. No se clonará el repositorio."  "$COLOR_WARNING" 3 
+        print_message "El directorio '$target_dir' ya existe. No se clonará el repositorio." "$COLOR_WARNING" 3
     fi
 }
 
@@ -676,8 +661,6 @@ update_repositories() {
     local updated_option=${1:-"-a"}
     local create_dbb=${2:-""}
 
-    
-
     case "$updated_option" in
     "-b" | "--back")
         update_services "$create_dbb"
@@ -705,7 +688,6 @@ update_repositories() {
     print_centered_message "REPOSITORIOS $updated_option ACTUALIZADOS" "$COLOR_SUCCESS" "both"
 }
 
-
 ### Compilaciones
 
 compile_web() {
@@ -718,7 +700,7 @@ compile_elixir() {
     local create_ddbb=${1:-""}
 
     print_message_with_animation "Actualizando dependencias Elixir..." "$COLOR_SECONDARY" 3
-    exec_command "mix deps.get --force"
+    exec_command "yes | mix deps.get"
     print_message "Actualizando dependencias Elixir (HECHO)" "$COLOR_SUCCESS" 3
 
     print_message_with_animation "Compilando Elixir..." "$COLOR_SECONDARY" 3
@@ -731,7 +713,6 @@ compile_elixir() {
         print_message "Creacion de bdd (HECHO)" "$COLOR_SUCCESS" 3
     fi
 }
-
 
 ### ddbb
 
@@ -752,20 +733,25 @@ ddbb() {
         create_backup_local_ddbb
     fi
 
-    if { [ -d "$backup_path" ] && [ "$backup_path" != "" ]&& [ "$options" = "-du" ] || [ "$options" = "--download-update" ] || [ "$options" = "-lu" ] || [ "$options" = "--local-update" ]; }; then
-        local continue_reindex
+    if [ "$options" = "-rc" ] || [ "$options" = "--recreate" ]; then
+        recreate_local_ddbb
+    fi    
 
-        remove_all_redis
-
+    if { [ -d "$backup_path" ] && [ "$backup_path" != "" ] && [[ "$path_backup" == "$DDBB_BASE_BACKUP_PATH"* ]] && [ "$options" = "-du" ] || [ "$options" = "--download-update" ] || [ "$options" = "-lu" ] || [ "$options" = "--local-update" ]; }; then
         update_ddbb_from_backup "$backup_path"
-
-        reindex_all
     fi
 }
 
-download_test_backup() {    
+recreate_local_ddbb(){
+    if print_question "Esta acción BORRARÁ las bases de datos y las creará de nuevo VACÍAS" = 0; then
+        start_containers
+        create_empty_ddbb
+    fi
+}
+
+download_test_backup() {
     print_semiheader "Creación y descarga de backup de test "
-    
+
     local PSQL=$(kubectl get pods -l run=psql -o name | cut -d/ -f2)
 
     mkdir -p "$DDBB_BACKUP_PATH"
@@ -792,21 +778,21 @@ download_test_backup() {
             print_message "Creación de backup (HECHO)" "$COLOR_SUCCESS" 2
 
             print_message_with_animation "descarga backup" "$COLOR_SECONDARY" 2
-            kubectl --context ${AWS_TEST_CONTEXT} cp "${PSQL}:/${DATABASE}.sql" "./${FILENAME}" > /dev/null 2>&1
+            kubectl --context ${AWS_TEST_CONTEXT} cp "${PSQL}:/${DATABASE}.sql" "./${FILENAME}" >/dev/null 2>&1
             print_message "Descarga backup (HECHO)" "$COLOR_SUCCESS" 2
 
             print_message " backup descargado en $service_path/$FILENAME" "$COLOR_WARNING" 2
 
             print_message_with_animation "borrando fichero generado en el pod" "$COLOR_SECONDARY" 2
-            kubectl --context "${AWS_TEST_CONTEXT}" exec "${PSQL}" -- rm "/${DATABASE}.sql"   > /dev/null 2>&1
+            kubectl --context "${AWS_TEST_CONTEXT}" exec "${PSQL}" -- rm "/${DATABASE}.sql" >/dev/null 2>&1
             print_message "Borrando fichero generado en el pod (HECHO)" "$COLOR_SUCCESS" 2
 
             print_message_with_animation "comentado de 'create publication'" "$COLOR_SECONDARY" 2
-            sed -i 's/create publication/--create publication/g' "./${FILENAME}"  > /dev/null 2>&1
+            sed -i 's/create publication/--create publication/g' "./${FILENAME}" >/dev/null 2>&1
             print_message "Comentado de 'create publication' (HECHO)" "$COLOR_SUCCESS" 2
 
             print_message_with_animation "moviendo fichero $FILENAME a backup" "$COLOR_SECONDARY" 2
-            mv "$FILENAME" "$DDBB_BACKUP_PATH" > /dev/null 2>&1
+            mv "$FILENAME" "$DDBB_BACKUP_PATH" >/dev/null 2>&1
             print_message "Moviendo fichero $FILENAME a backup (HECHO)" "$COLOR_SUCCESS" 2
         else
             print_message "Creación de backup" "$COLOR_SECONDARY" 2
@@ -820,11 +806,11 @@ download_test_backup() {
             print_message " backup descargado en $service_path/$FILENAME" "$COLOR_WARNING" 2
 
             print_message "Borrando fichero generado en el pod" "$COLOR_SECONDARY" 2
-            kubectl --context "${AWS_TEST_CONTEXT}" exec "${PSQL}" -- rm "/${DATABASE}.sql"  
+            kubectl --context "${AWS_TEST_CONTEXT}" exec "${PSQL}" -- rm "/${DATABASE}.sql"
             print_message "Borrando fichero generado en el pod (HECHO)" "$COLOR_SUCCESS" 2
 
             print_message "Comentado de 'create publication'" "$COLOR_SECONDARY" 2
-            sed -i 's/create publication/--create publication/g' "./${FILENAME}" 
+            sed -i 's/create publication/--create publication/g' "./${FILENAME}"
             print_message "Comentado de 'create publication' (HECHO)" "$COLOR_SUCCESS" 2
 
             print_message "Moviendo fichero $FILENAME a backup" "$COLOR_SECONDARY" 2
@@ -836,9 +822,8 @@ download_test_backup() {
     print_message "Descarga de backup de test terminada" "$COLOR_SUCCESS" 3 "both"
 }
 
-update_ddbb() {
-    local FILENAME=$1
-    local SERVICE_DBNAME=$2
+-() {
+    local SERVICE_DBNAME=$1
 
     print_message_with_animation " Borrado de bdd $SERVICE_DBNAME" "$COLOR_SECONDARY" 2
     exec_command "mix ecto.drop"
@@ -848,72 +833,60 @@ update_ddbb() {
     exec_command "mix ecto.create"
     print_message " Creacion de bdd $SERVICE_DBNAME (HECHO)" "$COLOR_SUCCESS" 2
 
-    print_message_with_animation " Volcado de datos del backup de test" "$COLOR_SECONDARY" 2
-    exec_command "PGPASSWORD=postgres psql -d \"${SERVICE_DBNAME}\" -U postgres  -h localhost < \"${FILENAME}\""
-    print_message " Volcado de datos del backup de test (HECHO)" "$COLOR_SUCCESS" 2
-
     print_message_with_animation " Aplicando migraciones" "$COLOR_SECONDARY" 2
     exec_command "mix ecto.migrate"
     print_message " Aplicando migraciones (HECHO)" "$COLOR_SUCCESS" 2
 }
 
-update_ddbb_from_backup() {
-    local path_backup=$1
-    local files=${path_backup}"/*"
-
+update_ddbb() {
+    local FILENAME=("$@")
     
-    print_semiheader "Actualizando bdd desde el backup -> $path_backup"
 
-    for FILENAME in $files; do
-        local SERVICE_DBNAME
-        local SERVICE_NAME
-
+    for FILENAME in "${sql_files[@]}"; do
         SERVICE_DBNAME=$(basename "$FILENAME" ".sql")
         SERVICE_NAME=$(basename "$FILENAME" "_dev.sql" | sed 's/_dev//g; s/_/-/g')
 
         cd "$BACK_PATH"/"$SERVICE_NAME"
 
-        print_message "-->  Actualizando $SERVICE_DBNAME" "$COLOR_SECONDARY" 1 "before"
-        update_ddbb "$FILENAME" "$SERVICE_DBNAME"
-    done
+        print_message "-->  actualizando $SERVICE_DBNAME" "$COLOR_SECONDARY" 1 "before"
+        create_empty_ddbb "$SERVICE_DBNAME"
 
-    print_message "Actualizacion de bdd local terminada" "$COLOR_SUCCESS" 1
+        print_message_with_animation " Volcado de datos del backup de test" "$COLOR_SECONDARY" 2
+        exec_command "PGPASSWORD=postgres psql -d \"${SERVICE_DBNAME}\" -U postgres  -h localhost < \"${FILENAME}\""
+        print_message " Volcado de datos del backup de test (HECHO)" "$COLOR_SUCCESS" 2
+    done
+    
+    
 }
 
-# update_ddbb_from_backup() {
-#     local path_backup="$1"
+update_ddbb_from_backup() {
+    local path_backup="$1"
 
-#     if [ -d "$path_backup" ]; then
-#         sql_files=()
-        
-#         while IFS= read -r file; do
-#             sql_files+=("$file")
-#         done < <(find "$path_backup" -type f -name "*.sql")
+    if [ -d "$path_backup" ] && [ -e "$path_backup" ]; then
+        sql_files=()
 
-#         if [ ${#sql_files[@]} -eq 0 ]; then
-#             print_centered_message "No se encontraron archivos .sql en el directorio." "$COLOR_ERROR"
-#         else
-#             for filename in "${sql_files[@]}"; do
-#                 service_dbname=$(basename "$filename" ".sql")
-#                 service_name=$(basename "$filename" "_dev.sql" | sed 's/_dev//g; s/_/-/g')
+        while IFS= read -r file; do
+            sql_files+=("$file")
+        done < <(find "$path_backup" -type f -name "*.sql")
 
-#                 cd "$back_path"/"$service_name"
+        if [ ${#sql_files[@]} -eq 0 ]; then
+            print_centered_message "No se encontraron archivos .sql en el directorio." "$COLOR_ERROR"
+        else
+            remove_all_redis
 
-#                 print_message "-->  actualizando $service_dbname" "$color_secondary" 1 "before"
-#                 update_ddbb "$filename" "$service_dbname"
-#             done
-#         fi
-#     else
-#         print_centered_message "El directorio especificado no existe." "$COLOR_ERROR"        
-#         exit 1
-#     fi
- 
-        
-#     print_message "actualizacion de bdd local terminada" "$color_success" 1
-# }
+            update_ddbb "${sql_files[@]}"
+
+            reindex_all
+        fi
+    else
+        print_centered_message "El directorio especificado no existe." "$COLOR_ERROR"
+        exit 1
+    fi
+
+    print_message "actualizacion de bdd local terminada" "$color_success" 1
+}
 
 get_local_backup_path() {
-    
     print_semiheader "Aplicando un backup de bdd desde una ruta de local"
 
     print_message "Por favor, indica la carpeta donde está el backup que deseas aplicar (debe estar dentro de '$DDBB_BASE_BACKUP_PATH')" "$COLOR_SECONDARY" 1 "both"
@@ -922,13 +895,13 @@ get_local_backup_path() {
     if [[ "$path_backup" == "$DDBB_BASE_BACKUP_PATH"* ]]; then
         backup_path=$path_backup
     else
-        print_message "La ruta '$path_backup' no es una subruta de '$DDBB_BACKUP_PATH'." "$COLOR_ERROR" 3 "both"
+        print_message "La ruta '$path_backup' no es una subruta de '$DDBB_BASE_BACKUP_PATH'." "$COLOR_ERROR" 3 "both"
     fi
 }
 
 create_backup_local_ddbb() {
     start_containers
-    
+
     print_semiheader "Creando backup de la bdd"
 
     mkdir -p "$DDBB_LOCAL_BACKUP_PATH/LB_$(date +%Y%m%d_%H%M%S)"
@@ -944,7 +917,6 @@ create_backup_local_ddbb() {
     print_message " Backup creado en $DDBB_LOCAL_BACKUP_PATH" "$COLOR_WARNING" 1 "both"
 }
 
-
 ### No-SQL
 
 remove_all_redis() {
@@ -955,12 +927,11 @@ remove_all_redis() {
 }
 
 remove_all_index() {
-    if print_question "¿Quieres borrar todos los datos de ElasticSearch antes de reindexar?" = 0 ; then
+    if print_question "¿Quieres borrar todos los datos de ElasticSearch antes de reindexar?" = 0; then
         do_api_call "" "http://localhost:9200/_all" "DELETE" "--fail"
         print_message "✳ Borrado de ElasticSearch completado ✳" "$COLOR_SUCCESS" 1 "both"
     fi
 }
-
 
 ### tmux y screen
 
@@ -976,17 +947,17 @@ go_out_session() {
     tmux detach-client
 }
 
-
 ### Elasticsearch
 
 reindex_all() {
     local remove_all_indexes=${1:-""}
     
+    print_header
     print_semiheader "Reindexado de Elasticsearch"
 
     remove_all_index
 
-    if print_question "¿Seguro que quieres reindexar los indices de ElasticSearch?" = 0 ; then
+    if print_question "¿Seguro que quieres reindexar los indices de ElasticSearch?" = 0; then
         for service in "${INDEXES[@]}"; do
             local normalized_service
 
@@ -1004,58 +975,57 @@ reindex_one() {
     print_message "Reindexando servicios de td-$service" "$COLOR_PRIMARY" 1
 
     case "$service" in
-        "dd")
-            print_message_with_animation " Reindexando :jobs" "$COLOR_SECONDARY" 2
-            exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:jobs, :all)\""
-            print_message " Reindexando :jobs (HECHO)" "$COLOR_SUCCESS" 2
+    "dd")
+        print_message_with_animation " Reindexando :jobs" "$COLOR_SECONDARY" 2
+        exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:jobs, :all)\""
+        print_message " Reindexando :jobs (HECHO)" "$COLOR_SUCCESS" 2
 
-            print_message_with_animation " Reindexando :structures" "$COLOR_SECONDARY" 2
-            exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:structures, :all)\""
-            print_message " Reindexando :structures (HECHO)" "$COLOR_SUCCESS" 2
+        print_message_with_animation " Reindexando :structures" "$COLOR_SECONDARY" 2
+        exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:structures, :all)\""
+        print_message " Reindexando :structures (HECHO)" "$COLOR_SUCCESS" 2
 
-            print_message_with_animation " Reindexando :grants" "$COLOR_SECONDARY" 2
-            exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:grants, :all)\""
-            print_message " Reindexando :grants (HECHO)" "$COLOR_SUCCESS" 2
+        print_message_with_animation " Reindexando :grants" "$COLOR_SECONDARY" 2
+        exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:grants, :all)\""
+        print_message " Reindexando :grants (HECHO)" "$COLOR_SUCCESS" 2
 
-            print_message_with_animation " Reindexando :grant_requests" "$COLOR_SECONDARY" 2
-            exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:grant_requests, :all)\""
-            print_message " Reindexando :grant_requests (HECHO)" "$COLOR_SUCCESS" 2
+        print_message_with_animation " Reindexando :grant_requests" "$COLOR_SECONDARY" 2
+        exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:grant_requests, :all)\""
+        print_message " Reindexando :grant_requests (HECHO)" "$COLOR_SUCCESS" 2
 
-            print_message_with_animation " Reindexando :implementations" "$COLOR_SECONDARY" 2
-            exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:implementations, :all)\""
-            print_message " Reindexando :implementations (HECHO)" "$COLOR_SUCCESS" 2
+        print_message_with_animation " Reindexando :implementations" "$COLOR_SECONDARY" 2
+        exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:implementations, :all)\""
+        print_message " Reindexando :implementations (HECHO)" "$COLOR_SUCCESS" 2
 
-            print_message_with_animation " Reindexando :rules" "$COLOR_SECONDARY" 2
-            exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:rules, :all)\""
-            print_message " Reindexando :rules (HECHO)" "$COLOR_SUCCESS" 2 "after"
-            ;;
+        print_message_with_animation " Reindexando :rules" "$COLOR_SECONDARY" 2
+        exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:rules, :all)\""
+        print_message " Reindexando :rules (HECHO)" "$COLOR_SUCCESS" 2 "after"
+        ;;
 
-        "bg")
-            print_message_with_animation " Reindexando :concepts" "$COLOR_SECONDARY" 2
-            exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:concepts, :all)\""
-            print_message " Reindexando :concepts (HECHO)" "$COLOR_SUCCESS" 2 "after"
-            ;;
+    "bg")
+        print_message_with_animation " Reindexando :concepts" "$COLOR_SECONDARY" 2
+        exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:concepts, :all)\""
+        print_message " Reindexando :concepts (HECHO)" "$COLOR_SUCCESS" 2 "after"
+        ;;
 
-        "ie")
-            print_message_with_animation " Reindexando :ingests" "$COLOR_SECONDARY" 2
-            exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:ingests, :all)\""
-            print_message " Reindexando :ingests (HECHO)" "$COLOR_SUCCESS" 2 "after"
-            ;;
+    "ie")
+        print_message_with_animation " Reindexando :ingests" "$COLOR_SECONDARY" 2
+        exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:ingests, :all)\""
+        print_message " Reindexando :ingests (HECHO)" "$COLOR_SUCCESS" 2 "after"
+        ;;
 
-        "qx")
-            print_message_with_animation " Reindexando :quality_controls" "$COLOR_SECONDARY" 2
-            exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:quality_controls, :all)\""
-            print_message " Reindexando :quality_controls (HECHO)" "$COLOR_SUCCESS" 2 "after"
-            ;;
+    "qx")
+        print_message_with_animation " Reindexando :quality_controls" "$COLOR_SECONDARY" 2
+        exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:quality_controls, :all)\""
+        print_message " Reindexando :quality_controls (HECHO)" "$COLOR_SUCCESS" 2 "after"
+        ;;
     esac
 }
-
 
 ### ssh
 
 create_ssh() {
     local continue_ssh_normalized
-    
+
     if print_question "SE VA A PROCEDER HACER BACKUP DE LAS CLAVES '$TRUEDAT' ACTUALES, BORRAR LA CLAVE EXISTENTE Y CREAR UNA NUEVA HOMÓNIMA" "$COLOR_ERROR" = 0; then
         cd $SSH_PATH
 
@@ -1092,14 +1062,13 @@ create_ssh() {
     fi
 }
 
-
 ### Link webmodules
 
 link_web_modules() {
-    
+    print_header
     print_semiheader "Linkado de modulos"
 
-    if print_question "Se borrarán los links y se volveran a crear" = 0; then   
+    if print_question "Se borrarán los links y se volveran a crear" = 0; then
         for d in "${FRONT_PACKAGES[@]}"; do
             cd "$FRONT_PATH/td-web-modules/packages/$d"
             exec_command "yarn unlink"
@@ -1122,7 +1091,6 @@ extract_menu_option() {
     echo "$first_value"
 }
 
-
 ###################################################################################################
 ###### Herramientas para de la instalación
 ### Configuración
@@ -1132,31 +1100,94 @@ create_configurations() {
     zsh_config
     tmux_config
     tlp_config
+    grub_config
 }
 
-fix_google_login(){
+grub_config() {
+    sudo sh -c "
+        {
+            echo "##################"
+            echo "# Añadido por trus"
+            echo "##################"
+            
+            echo 'GRUB_DEFAULT=0                              # Para decir qué opcion tiene por defecto (para que se seleccione automaticamente despues del timeout)'
+            echo 'GRUB_TIMEOUT_STYLE=menu 			        # "hidden" para que vaya del tiron'
+            echo 'GRUB_TIMEOUT=5					            # Tiempo de espera para elegir, si no, saltará la opcion seleccionada por defecto'
+            echo 'GRUB_DISTRIBUTOR='echo Cacafuti'		    # Nombre de la distribucion, antes era => lsb_release -i -s 2> /dev/null || echo Debian'
+            echo 'GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"	# Parametros que se le dan al kernel para que haga cosas en el arranque. 'quiet' es para que no muestre mensajes, 'splash' para que muestre la splash screen'
+            echo 'GRUB_CMDLINE_LINUX=""				        # Similar al anterior, pero es para pasar parametros a las entradas que muestra grub'
+            echo ''
+            echo 'GRUB_TERMINAL_OUTPUT="gfxterm"              # Para forzar que pinte colores. Por defecto => console'
+            echo 'GRUB_COLOR_NORMAL="black/yellow"            # Colores grub(letra/fondo)'
+            echo 'GRUB_COLOR_HIGHLIGHT="black/yellow"           # Colores opcion selecionada (letra/fondo)'
+            echo 'GRUB_GFXMODE=auto                           # Resolucion de grub'
+            echo ''
+            echo 'GRUB_DISABLE_OS_PROBER=true			        # Desactivar para que registre particiones con otros SO (como Windows)'
+            echo '#GRUB_DISABLE_LINUX_UUID=true			    # Si se habilita, evitas mandar a grub el UUID al kernel, por lo que habria que pasarle el nombre del dispositivo donde esta el SO (como /(dev/nvme0p1n1 o como se llame la unidad ssd)'
+            echo '#GRUB_DISABLE_RECOVERY='true'			    # Si se habilita, quitas las entradas de recuperacion de los SO en grub. Queda mas limpio pero si se jode algo no puedes entrar    '
+            
+            echo "##################"
+            echo "# Añadido por trus"
+            echo "##################"
+        } > /etc/default/grub"
+
+    sudo update-grub
+
+}
+
+fix_google_login() {
     if ! grep -q "LD_PRELOAD=/lib/x86_64-linux-gnu/libnss_sss.so.2" "$BASH_PATH_CONFIG"; then
-        echo 'export LD_PRELOAD=/lib/x86_64-linux-gnu/libnss_sss.so.2' >> "$BASH_PATH_CONFIG"
+        echo 'export LD_PRELOAD=/lib/x86_64-linux-gnu/libnss_sss.so.2' >>"$BASH_PATH_CONFIG"
     fi
 }
 
 bash_config() {
     print_semiheader "Prompt de Bash"
 
-    {
-        echo 'export COLORTERM=truecolor'
-        echo '. "$HOME/.asdf/asdf.sh"'
-        echo '. "$HOME/.asdf/completions/asdf.bash"'
-        echo '[ -f ~/.fzf.bash ] && source ~/.fzf.bash'
-        echo
-        echo 'parse_git_branch() {'
-        echo ' git branch 2> /dev/null | sed -e "/^[^*]/d" -e "s/* \(.*\)/(\1)/"'
-        echo '}'
-        echo
-        echo 'PS1="${debian_chroot:+($debian_chroot)}\[\033[1;38;5;231;48;5;208m\]\w\[\033[00m\]\[\033[1;38;5;039m\] $(parse_git_branch)\[\033[00m\]-> "'
-        echo
-    } >> $BASH_PATH_CONFIG
-    
+    if  ! grep -q 'export COLORTERM=truecolor' "$BASH_PATH_CONFIG" ||
+        ! grep -q 'shorten_path() {' "$BASH_PATH_CONFIG" ||
+        ! grep -q 'git_branch_status() {' "$BASH_PATH_CONFIG" ||
+        ! grep -q 'parse_git_branch() {' "$BASH_PATH_CONFIG" ||
+        ! grep -q 'PS1="${debian_chroot' "$BASH_PATH_CONFIG"; then
+        {
+            echo 'export COLORTERM=truecolor'
+            echo '. "$HOME/.asdf/asdf.sh"'
+            echo '. "$HOME/.asdf/completions/asdf.bash"'
+            echo ''
+            echo 'shorten_path() {'
+            echo '    full_path=$(pwd)'
+            echo '    echo "$full_path" | awk -F/ "{'
+            echo '        if (NF > 3) {'
+            echo '            print $(NF-2) "/" $(NF-1) "/" $NF;  '
+            echo '        } else {'
+            echo '            print $0;'
+            echo '        }'
+            echo '    }"'
+            echo '}'
+            echo ''
+            echo ''
+            echo 'git_branch_status() {'
+            echo '    branch=$(git branch --show-current 2>/dev/null)'
+            echo '    if [ -n "$branch" ]; then'
+            echo '        if git diff --quiet 2>/dev/null >&2; then'
+            echo '            echo -e "\033[97;48;5;75m($branch)"  '
+            echo '        else'
+            echo '            echo -e "\033[30;48;5;214m($branch)"  '
+            echo ''
+            echo '        fi'
+            echo '    else'
+            echo '        echo ""  '
+            echo '    fi'
+            echo '}'
+            echo ''
+            echo 'if [ "`id -u`" -eq 0 ]; then'
+            echo '    PS1="|\[\033[1;34m\]\t\[\033[m\]|\033[48;5;202m$(git_branch_status)\033[m|\[\033[1;38;5;202m\]$(shorten_path)\[\033[m\]> "'
+            echo 'else'
+            echo '    PS1="|\[\033[1;34m\]\t\[\033[m\]|\033[48;5;202m$(git_branch_status)\033[m|\[\033[1;38;5;202m\]$(shorten_path)\[\033[m\]> "'
+            echo 'fi'
+        } >> $BASH_PATH_CONFIG
+    fi
+
     print_message "Prompt de Bash actualizado" "$COLOR_SUCCESS" 3 "both"
 }
 
@@ -1214,9 +1245,9 @@ zsh_config() {
         echo ''
         echo '# PROMPT="%B%F{208}$schars[333]$schars[262]$schars[261]$schars[260]%B%~/$schars[260]$schars[261]$schars[262]$schars[333]%b%F{208}%b%f%k "'
         echo ''
-        echo '[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh'
+        # echo '[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh'
         echo ''
-    } > $ZSH_PATH_CONFIG
+    } >$ZSH_PATH_CONFIG
 
     print_message "Archivo de configuración creado con éxito" "$COLOR_SUCCESS" 3
 }
@@ -1236,14 +1267,14 @@ tmux_config() {
         echo 'unbind -T copy-mode-vi Enter'
         echo 'bind-key -T copy-mode-vi Enter send-keys -X copy-pipe-and-cancel "xclip -selection c"'
         echo 'bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "xclip -in -selection clipboard"'
-    } > $TMUX_PATH_CONFIG
+    } >$TMUX_PATH_CONFIG
 
     print_message "Archivo de configuración creado con éxito" "$COLOR_SUCCESS" 3
 }
 
 tlp_config() {
     print_semiheader "TLP"
-    
+
     sudo sh -c " touch $TLP_PATH_CONFIG"
 
     sudo sh -c "
@@ -1276,20 +1307,20 @@ tlp_config() {
     exec_command "sudo systemctl enable tlp.service"
 }
 
-trus_config(){    
+trus_config() {
     touch $TRUS_CONFIG
-    
+
     {
         echo 'HIDE_OUTPUT=true'
         echo 'USE_KONG=false'
         echo 'SELECTED_ANIMATION="BUBBLE"'
         echo 'SIMPLE_ECHO=""'
-    } > $TRUS_CONFIG
+    } >$TRUS_CONFIG
 
     source $TRUS_CONFIG
 }
 
-configure_asdf(){
+configure_asdf() {
     asdf plugin add erlang https://github.com/asdf-vm/asdf-erlang.git
     asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git
     asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
@@ -1316,9 +1347,8 @@ configure_asdf(){
     print_message "Configurando ASDF (HECHO)" "$COLOR_SUCCESS" 3 "before"
 }
 
-
 ### Instalación de dependencias
- 
+
 install_trus() {
     print_separator "" "-"
     print_centered_message "Instalando Truedat Utils (TrUs)"
@@ -1329,13 +1359,13 @@ install_trus() {
 
     sudo rm -f "$TRUS_LINK_PATH"
     sudo ln -s "$TRUS_PATH" "$TRUS_LINK_PATH"
-    
+
     print_centered_message "Truedat Utils (TrUs) instalado con éxito" "$COLOR_SUCCESS"
 }
 
-add_origins(){
+add_origins() {
     print_semiheader "Instalación de origenes de software"
-    
+
     #postgres
     print_message_with_animation "Añadiendo origen de Postgres" "$COLOR_TERNARY" 2
     exec_command "wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -"
@@ -1355,24 +1385,30 @@ add_origins(){
     print_message "Vulkan instalado" "$COLOR_SUCCESS" 3
 }
 
-preinstallation(){
-    if [ ! -e $TRUS_PATH ]; then
-        add_origins
+preinstallation() {
+    if [ ! -e "/tmp/trus_install_first_part" ]; then
+        Se va a realizar la primera parte de la instalación de dependencias para TrUs y Truedat
+        En una parte de la instalacion, se ofrecerá instalar zsh y oh my zsh. 
+        Si se decide instalarlo, cuando esté ya disponible zsh, escribir "exit" para salir de dicho terminal, 
+        ya que la instalación se ha lanzado desde bash y en ese contexto, zsh es un proceso lanzado mas, no la terminal por defecto.
         
+        install_trus
+
+        add_origins
+
         print_message_with_animation "Actualizando sistema" "$COLOR_TERNARY" 2
         exec_command "sudo apt -qq update"
         exec_command "sudo apt -qq upgrade -y"
         print_message "Sistema actualizado" "$COLOR_SUCCESS" 3
-        
-        
+
         print_message_with_animation "Instalando Docker Compose" "$COLOR_TERNARY" 2
-        sudo curl -L "https://github.com/docker/compose/releases/download/v2.16.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose 
-                
+        sudo curl -L "https://github.com/docker/compose/releases/download/v2.16.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+
         sudo chmod +x /usr/local/bin/docker-compose
         sudo groupadd docker
         sudo usermod -aG docker '$USER'
         print_message "Docker Compose instalado" "$COLOR_SUCCESS" 3
-        
+
         for package in "${APT_INSTALLATION_PACKAGES[@]}"; do
             print_message_with_animation "Instalando $package" "$COLOR_TERNARY" 2
             exec_command "sudo apt -qq install -y --install-recommends $package"
@@ -1402,24 +1438,24 @@ preinstallation(){
 
         install_asdf
         instal_awscli
-        install_kubectl         
-        install_zsh        
-
-        install_trus
-    else
+        install_kubectl
+        install_zsh
+        
+        touch "/tmp/trus_install_first_part"
+    elif [[ -e "/tmp/trus_install_first_part" ]] && [[ -e "/tmp/trus_install_second_part" ]]; then
         configure_asdf
-        zsh_config
-        bash_config        
+        configurations
+        touch "/tmp/trus_install_second_part"
     fi
 }
- 
+
 install_docker() {
     aws ecr get-login-password --profile truedat --region eu-west-1 | docker login --username AWS --password-stdin 576759405678.dkr.ecr.eu-west-1.amazonaws.com
 
-    cd $DEV_PATH 
+    cd $DEV_PATH
 
     ip=$(ip -4 addr show docker0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
-    echo SERVICES_HOST="$ip" > local_ip.env
+    echo SERVICES_HOST="$ip" >local_ip.env
     sudo chmod 666 /var/run/docker.sock
 
     start_containers
@@ -1445,16 +1481,16 @@ set_elixir_versions() {
 }
 
 install_asdf() {
-    if [ -e "$ASDF_PATH" ]; then   
+    if [ -e "$ASDF_PATH" ]; then
         rm -fr $ASDF_PATH
     fi
-    
+
     print_message_with_animation "Instalando ASDF" "$COLOR_TERNARY" 2
     exec_command "git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.14.1"
     print_message "ASDF instalado" "$COLOR_SUCCESS" 3
 }
 
-instal_awscli(){
+instal_awscli() {
     mkdir $AWS_PATH
     cd $AWS_PATH
     do_api_call "" "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" "" "-o 'awscliv2.zip'"
@@ -1467,12 +1503,12 @@ install_kubectl() {
     if [ ! -e "$KUBE_PATH" ]; then
         print_message_with_animation "Instalando Kubectl" "$COLOR_TERNARY" 2
 
-        mkdir $KUBE_PATH   
+        mkdir $KUBE_PATH
 
         cd $KUBE_PATH
 
         exec_command "curl -LO https://dl.k8s.io/release/v1.23.6/bin/linux/amd64/kubectl && sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl"
-        
+
         touch "$KUBECONFIG_PATH"
 
         {
@@ -1531,14 +1567,15 @@ install_kubectl() {
             echo '      command: aws'
 
         } >$KUBECONFIG_PATH
-        
+
+        aws eks update-kubeconfig --region eu-west-1 --name $AWS_TEST_CONTEXT
+
         print_message "Kubectl instalado y configurado" "$COLOR_SUCCESS" 3
     fi
-    
+
     print_message "Paquetes y dependencias instalado correctamente" "$COLOR_SUCCESS" 3 "both"
 }
 
- 
 ### Personalizacion del equipo
 
 install_zsh() {
@@ -1557,25 +1594,30 @@ install_zsh() {
     fi
 
     sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-    
+
     clone_if_not_exists https://github.com/zsh-users/zsh-syntax-highlighting.git $OMZ_PLUGINS_PATH/zsh-syntax-highlighting
     clone_if_not_exists https://github.com/zsh-users/zsh-autosuggestions $OMZ_PLUGINS_PATH/zsh-autosuggestions
     clone_if_not_exists https://github.com/zsh-users/zsh-completions $OMZ_PLUGINS_PATH/zsh-completions
     clone_if_not_exists https://github.com/gusaiani/elixir-oh-my-zsh.git $OMZ_PLUGINS_PATH/elixir
 
     zsh_config
-    
+
     print_message "Oh-My-ZSH Instalado correctamente. ZSH y Oh-My-ZSH estará disponible en el próximo inicio de sesión" "$COLOR_SUCCESS" 3 "both"
 }
 
 splash_loader() {
     print_semiheader "Splash loader"
 
+    # https://github.com/adi1090x/plymouth-themes
+    if [ -e "~/plymouth-themes" ]; then
+        rm -fr ~/plymouth-themes
+    fi
+
     cd ~/
     git clone https://github.com/adi1090x/plymouth-themes.git ~/plymouth-themes
     cd plymouth-themes/pack_3
-    sudo cp -r loader /usr/share/plymouth/themes/
-    sudo update-alternatives --install /usr/share/plymouth/themes/default.plymouth default.plymouth /usr/share/plymouth/themes/loader/loader.plymouth 10000
+    sudo cp -r hexa_retro /usr/share/plymouth/themes/
+    sudo update-alternatives --install /usr/share/plymouth/themes/default.plymouth default.plymouth /usr/share/plymouth/themes/hexa_retro/hexa_retro.plymouth 10000
     sudo update-alternatives --config default.plymouth
     sudo update-initramfs -u
     print_message "Splash loader Instalado correctamente" "$COLOR_SUCCESS" 3 "both"
@@ -1593,17 +1635,17 @@ swap() {
         print_message "Archivo de intercambio eliminado" "$COLOR_SUCCESS" 3
     fi
 
-    print_message "Creando un nuevo archivo de intercambio de $((SWAP_SIZE_MB / 1024))GB..." "$COLOR_TERNARY" 3
+    print_message "Creando un nuevo archivo de intercambio de $((SWAP_SIZE / 1024))GB..." "$COLOR_TERNARY" 3
 
-    sudo fallocate -l "${SWAP_SIZE_MB}M" "$SWAP_FILE"
+    sudo fallocate -l "${SWAP_SIZE}G" "$SWAP_FILE"
     sudo chmod 600 "$SWAP_FILE"
     sudo mkswap "$SWAP_FILE"
     sudo swapon "$SWAP_FILE"
+
     echo "$SWAP_FILE none swap sw 0 0" >>/etc/fstab
 
-    print_message "Memoria SWAP ampliada a $((SWAP_SIZE_MB / 1024))GB" "$COLOR_SUCCESS" 3 "both"
+    print_message "Memoria SWAP ampliada a $((SWAP_SIZE / 1024))GB" "$COLOR_SUCCESS" 3 "both"
 }
-
 
 ### Llamadas a apis
 
@@ -1628,7 +1670,7 @@ do_api_call() {
 
     if [ ! -z "$params" ]; then
         command+="$params "
-    fi  
+    fi
 
     command+="--location \"$url\" "
 
@@ -1648,7 +1690,7 @@ load_structures() {
     local path=$1
     local system="$2"
     local token=$(get_token)
-    
+
     cd "$path"
     do_api_call \
         "$token" \
@@ -1673,11 +1715,10 @@ load_linages() {
         "-F \"nodes=@nodes.csv\" -F \"rels=@rels.csv\""
 }
 
-
 ### Arranque de Truedat (TMUX y Screen)
 
 start_containers() {
-    
+
     print_semiheader "Arrancando contenedores..."
 
     cd $DEV_PATH
@@ -1686,13 +1727,13 @@ start_containers() {
         docker-compose up -d "${container}"
     done
 
-    if "$USE_KONG" = true ; then
+    if "$USE_KONG" = true; then
         docker-compose up -d 'kong'
     fi
 }
 
 stop_docker() {
-    
+
     print_semiheader "Apagando contenedores..."
     cd "$DEV_PATH"
 
@@ -1700,7 +1741,7 @@ stop_docker() {
         exec_command "                    docker stop '${container}'"
     done
 
-    if "$USE_KONG" = true ; then
+    if "$USE_KONG" = true; then
         exec_command "            docker stop 'kong'"
     fi
 }
@@ -1798,7 +1839,7 @@ start_truedat() {
 }
 
 kill_truedat() {
-    
+
     print_semiheader "Matando procesos 'mix' (elixir)"
     exec_command "pkill -9 mix"
 
@@ -1813,7 +1854,6 @@ kill_truedat() {
     exec_command "tmux kill-server"
 
 }
-
 
 ### Gestion de Kong
 
@@ -1903,16 +1943,16 @@ kong_routes() {
             local DATA='{ "name": "'${SERVICE}'", "host": "'${DOCKER_LOCALHOST}'", "port": '$PORT' }'
 
             print_message_with_animation "Creando rutas para el servicio: $SERVICE (puerto: $PORT)" "$COLOR_SECONDARY" 2
-            
+
             if [ -n "${SERVICE_ID}" ]; then
-                ROUTE_IDS=$(do_api_call ""  "${KONG_ADMIN_URL}/services/${SERVICE}/routes" | jq -r '.data[].id')
+                ROUTE_IDS=$(do_api_call "" "${KONG_ADMIN_URL}/services/${SERVICE}/routes" | jq -r '.data[].id')
 
                 if [ -n "${ROUTE_IDS}" ]; then
                     for ROUTE_ID in ${ROUTE_IDS}; do
-                        do_api_call ""  "${KONG_ADMIN_URL}/routes/${ROUTE_ID}" "DELETE"
+                        do_api_call "" "${KONG_ADMIN_URL}/routes/${ROUTE_ID}" "DELETE"
                     done
                 fi
-                do_api_call ""  "${KONG_ADMIN_URL}/services/${SERVICE_ID}" "DELETE"
+                do_api_call "" "${KONG_ADMIN_URL}/services/${SERVICE_ID}" "DELETE"
 
             fi
 
@@ -1944,17 +1984,17 @@ activate_kong() {
     print_message "Se va a actualizar el archivo $TD_WEB_DEV_CONFIG para que apunte a Kong" "$COLOR_SECONDARY" 3
     print_message "Se van a actualizar las rutas de Kong" "$COLOR_SECONDARY" 3
 
-    if print_question "Se va a activar Kong" = 0; then   
+    if print_question "Se va a activar Kong" = 0; then
         sed -i 's/USE_KONG=false/USE_KONG=true/' "$PATH_GLOBAL_CONFIG"
 
         source $PATH_GLOBAL_CONFIG
 
         cd $BACK_PATH
-        
-        clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/kong-setup.git $BACK_PATH/kong-setup    
+
+        clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/kong-setup.git $BACK_PATH/kong-setup
 
         for container in "${CONTAINERS_SETUP[@]}"; do
-             docker-compose up -d "${container}"
+            docker-compose up -d "${container}"
         done
 
         # target: "https://test.truedat.io:443",       -> Se utilizarán los servicios del entorno test
@@ -1990,7 +2030,7 @@ activate_kong() {
     fi
 }
 
-deactivate_kong() {    
+deactivate_kong() {
     print_semiheader "Deshabilitación de Kong"
     print_message "A continuación, se van a explicar los pasos que se van a seguir si sigues con este proceso" "$COLOR_PRIMARY" 2 "before"
     print_message "Se va a actualizar el archivo de configuracion para reflejar que se debe utilizar Kong a partir de ahora" "$COLOR_SECONDARY" 3
@@ -2003,7 +2043,7 @@ deactivate_kong() {
 
     print_message "Se va a actualizar el archivo $TD_WEB_DEV_CONFIG para que se encargue de enrutar td-web" "$COLOR_SECONDARY" 3
 
-    if print_question "Se va a desactivar Kong" = 0; then   
+    if print_question "Se va a desactivar Kong" = 0; then
         sed -i 's/USE_KONG=true/USE_KONG=false/' "$PATH_GLOBAL_CONFIG"
         source $PATH_GLOBAL_CONFIG
 
@@ -2190,7 +2230,7 @@ deactivate_kong() {
 }
 
 config_kong() {
-    
+
     print_semiheader "Kong"
     print_message "¿Quién quieres que enrute, Kong(k) o td-web(w)? (k/w)" "$COLOR_PRIMARY" 1
     read -r install_kong
@@ -2203,259 +2243,268 @@ config_kong() {
         elif [ "$router" == "w" ]; then
             deactivate_kong
         fi
-    fi 
+    fi
 }
-
 
 ###################################################################################################
 ###### Menus principales
 
-main_menu(){    
-    local option=$(print_menu "${MAIN_MENU_OPTIONS[@]}")
+main_menu() {
+    local option=$(print_menu "main_menu_help" "${MAIN_MENU_OPTIONS[@]}")
 
     option=$(extract_menu_option "$option")
 
     case "$option" in
-        1) 
-            configure_menu 
-            ;;
+    1)
+        configure_menu
+        ;;
 
-        2) 
-            principal_actions_menu
-            ;;
+    2)
+        principal_actions_menu
+        ;;
 
-        3) 
-            secondary_actions_menu
-            ;;
+    3)
+        secondary_actions_menu
+        ;;
 
-        4) 
-            help
-            ;; 
+    4)
+        help
+        ;;
 
+    0)
+        clear
+        tput reset
+        exit 0
+        ;;
+    esac
+}
+
+configure_menu() {
+
+    local option=$(print_menu "configure_menu_help" "${CONFIGURE_MENU_OPTIONS[@]}")
+
+    option=$(extract_menu_option "$option")
+
+    case "$option" in
+    1)
+        preinstallation
+        ;;
+
+    2)
+        install_zsh
+        ;;
+
+    3)
+        configuration_menu
+        ;;
+
+    4)
+        splash_loader
+        ;;
+
+    5)
+        swap
+        ;;
+
+    6)
+        animation_menu
+        ;;
+
+    7)
+        echo "PENDIENTE"
+        ;;
+
+    8)
+        echo "PENDIENTE"
+        ;;
+
+    9)
+        preinstallation
+        install_zsh
+        splash_loader
+        swap
+        ;;
+
+    0)
+        main_menu
+        ;;
+    esac
+}
+
+configuration_menu() {
+    local option=$(print_menu "configuration_menu_help" "${CONFIGURATION_MENU_OPTIONS[@]}")
+
+    option=$(extract_menu_option "$option")
+
+    case "$option" in
+    1)
+        zsh_config
+        ;;
+
+    2)
+        bash_config
+        ;;
+
+    3)
+        fix_google_login
+        ;;
+
+    4)
+        tmux_config
+        ;;
+
+    5)
+        tlp_config
+        ;;
+    6)  
+        grub_config
+        ;;
+
+    7)
+        zsh_config
+        bash_config
+        tmux_config
+        tlp_config
+        ;;
+
+    0)
+        configure_menu
+        ;;
+    esac
+}
+
+animation_menu() {
+    local option=$(print_menu "animation_menu_help" "${ANIMATION_MENU_OPTIONS[@]}")
+
+    option=$(extract_menu_option "$option")
+
+    case "$option" in
+    0)
+        configure_menu
+        ;;
+
+    *)
+        sed -i "s/^SELECTED_ANIMATION=.*/SELECTED_ANIMATION=$option/" "$PATH_GLOBAL_CONFIG"
+        ;;
+    esac
+}
+
+principal_actions_menu() {
+    local option=$(print_menu "principal_actions_menu_help" "${PRINCIPAL_ACTIONS_MENU_OPTIONS[@]}")
+
+    option=$(extract_menu_option "$option")
+
+    case "$option" in
+    1)
+        start_menu
+        ;;
+
+    2)
+        kill_truedat
+        ;;
+
+    3)
+        ddbb_menu
+        ;;
+
+    4)
+        repo_menu
+        ;;
+
+    0)
+        main_menu
+        ;;
+    esac
+}
+
+start_menu() {
+    local option=$(print_menu "start_menu_help" "${START_MENU_OPTIONS[@]}")
+
+    option=$(extract_menu_option "$option")
+
+    case "$option" in
+    1)
+        trus -s
+        ;;
+
+    2)
+        trus -sc
+        ;;
+
+    3)
+        trus -ss
+        ;;
+
+    4)
+        trus -sf
+        ;;
+
+    0)
+        principal_actions_menu
+        ;;
+    esac
+}
+
+secondary_actions_menu() {
+    local option=$(print_menu "secondary_actions_menu_help" "${SECONDARY_ACTIONS_MENU_OPTIONS[@]}")
+
+    option=$(extract_menu_option "$option")
+
+    case "$option" in
+    1)
+        trus --reindex
+        ;;
+
+    2)
+        trus --create-ssh
+        ;;
+
+    3)
+        kong_menu
+        ;;
+
+    4)
+        trus --link-modules
+        ;;
+
+    5)
+        trus --rest
+        ;;
+
+    6)
+        trus --load-structures
+        ;;
+
+    7)
+        trus --load-linage
+        ;;
+
+    8)
+        trus --attach
+        ;;
+
+    9)
+        trus --detach
+        ;;
+
+    0)
+        main_menu
+        ;;
+    esac
+}
+
+local_backup_menu() {
+    local backups=("0 - Volver" $(find "$DDBB_BASE_BACKUP_PATH" -mindepth 1 -type d) "Otro...")
+
+    local option=$(print_menu "local_backup_help" "${backups[@]}")
+    option=$(extract_menu_option "$option")
+
+    case "$option" in
         0)
-            clear
-            tput reset
-            exit 0
-            ;;
-    esac
-}
-
-configure_menu(){
-
-    local option=$(print_menu "${CONFIGURE_MENU_OPTIONS[@]}")
-
-    option=$(extract_menu_option "$option")
-
-    case "$option" in
-        1) 
-            preinstallation
-            ;;
-
-        2) 
-            install_zsh
-            ;;
-
-        3) 
-            configuration_menu
-            ;;
-
-        4) 
-            splash_loader
-            ;;
-
-        5) 
-            swap
-            ;;
-
-        6) 
-            animation_menu
-            ;;
-
-        7) 
-            echo "PENDIENTE"
-            ;;
-
-        8) 
-            echo "PENDIENTE"
-            ;;
-
-        9) 
-            echo "PENDIENTE"
-            ;;
-
-         0)
-            main_menu
-            ;;
-    esac
-}
-
-configuration_menu(){
-    local option=$(print_menu "${CONFIGURATION_MENU_OPTIONS[@]}")
-
-    option=$(extract_menu_option "$option")
-
-    case "$option" in
-        1) 
-            zsh_config
-            ;;
-
-        2) 
-            bash_config
-            ;;
-
-        3)  
-            tmux_config
-            ;;
-
-        4)  
-            tlp_config
-            ;;
-
-        5) 
-            zsh_config
-            bash_config
-            tmux_config
-            tlp_config
-            ;;
-        
-        0)
-            configure_menu
-            ;;
-    esac
-}
-
-animation_menu(){
-    local option=$(print_menu "${ANIMATION_MENU_OPTIONS[@]}")
-
-    option=$(extract_menu_option "$option")
-
-    case "$option" in
-        0)
-            configuration_menu
-            ;;
-        
-        *)
-            sed -i "s/^SELECTED_ANIMATION=.*/SELECTED_ANIMATION=$option/" "$PATH_GLOBAL_CONFIG"            
-            ;;
-    esac
-}
-
-principal_actions_menu(){
-    
-    local option=$(print_menu "${PRINCIPAL_ACTIONS_MENU_OPTIONS[@]}")
-
-    option=$(extract_menu_option "$option")
-
-    case "$option" in
-        1) 
-            start_menu
-            ;;
-
-        2) 
-            kill_truedat
-            ;;
-
-        3) 
             ddbb_menu
             ;;
 
-        4) repo_menu
-            ;; 
-
-        0)
-            main_menu
-            ;;
-    esac
-}
-
-start_menu(){
-    local option=$(print_menu "${START_MENU_OPTIONS[@]}")
-
-    option=$(extract_menu_option "$option")
-
-    case "$option" in
-        1) 
-            trus -s
-            ;;
-
-        2) 
-            trus -sc
-            ;;
-
-        3) 
-            trus -ss
-            ;;
-
-        4) 
-            trus -sf
-            ;; 
-
-        0)
-            principal_actions_menu
-            ;;
-    esac
-}
- 
-secondary_actions_menu(){
-    local option=$(print_menu "${SECONDARY_ACTIONS_MENU_OPTIONS[@]}")
-
-    option=$(extract_menu_option "$option")
-
-    case "$option" in
-        1) 
-            trus --reindex
-            ;;
-
-        2) 
-            trus --create-ssh
-            ;;
-
-        3) 
-            kong_menu
-            ;;
-
-        4) 
-            trus --link-modules
-            ;;
-
-        5) 
-            trus --rest
-            ;;
-
-        6) 
-            trus --load-structures
-            ;;
-
-        7) 
-            trus --load-linage
-            ;;
-
-        8) 
-            trus --attach
-            ;;
-
-        9) 
-            trus --detach
-            ;;  
-
-        
-        0)
-            main_menu
-            ;;
-    esac
-}
-
-local_backup_menu(){
-    local backups=("0 - Volver" $(find "$DDBB_BASE_BACKUP_PATH" -mindepth 2 -type d) "Otro...")
-    
-    local option=$(print_menu "${backups[@]}")
-
-    case "$option" in
-        0)
-            ddbb_menu
-            ;;
-
-        "Otro")
+        "Otro...")
             trus -d -lu
             ;;
 
@@ -2465,136 +2514,186 @@ local_backup_menu(){
     esac
 }
 
-clean_local_backup_menu(){ 
-    local backups=("0 - Volver" $(find "$DDBB_BASE_BACKUP_PATH" -mindepth 2 -type d) "Borrar todo")
-    
-    local option=$(print_menu "${backups[@]}")
+clean_local_backup_menu() {
+    local backups=("0 - Volver" $(find "$DDBB_BASE_BACKUP_PATH" -mindepth 1 -type d) "Borrar todo")
+
+    local option=$(print_menu "clean_local_backup_help" "${backups[@]}")
+    option=$(extract_menu_option "$option")
 
     case "$option" in
         0)
             ddbb_menu
             ;;
 
-        "Borrar todo")
-            if print_question "Se van a borrar todos los backups de $DDBB_BASE_BACKUP_PATH" = 0; then   
+        "Borrar")
+            if print_question "Se van a borrar todos los backups de $DDBB_BASE_BACKUP_PATH" = 0; then
                 local files=${DDBB_BASE_BACKUP_PATH}"/*"
-                
+
                 for FILENAME in $files; do
                     print_message_with_animation "Borrando backup -> $FILENAME"
                     rm -fr $FILENAME
                     print_message "Backup $FILENAME Borrado" "$COLOR_SUCCESS" 1 "before"
-                    
+
                 done
 
-                print_message "Backups borrados" "$COLOR_SUCCESS" 1
-            fi            
+                print_centered_message "Backups borrados" "$COLOR_SUCCESS" "both"
+            fi
             ;;
 
         "*")
             if print_question "Se van a borrar el backup $option" = 0; then
                 rm -fr $option
-            fi            
-            ;; 
+            fi
+            ;;
     esac
 }
 
-ddbb_menu(){    
-    local option=$(print_menu "${DDBB_MENU_OPTIONS[@]}")
+ddbb_menu() {
+    local option=$(print_menu "ddbb_menu_help" "${DDBB_MENU_OPTIONS[@]}")
 
     option=$(extract_menu_option "$option")
 
     case "$option" in
-        1) 
-            trus -d -d
-            ;;
+    1)
+        trus -d -d
+        ;;
 
-        2) 
-            trus -d -du
-            ;;
+    2)
+        trus -d -du
+        ;;
 
-        3) 
-            local_backup_menu
-            ;;
+    3)
+        local_backup_menu
+        ;;
 
-        4) 
-            trus -d -lu
-            ;;
+    4)
+        trus -d -lu
+        ;;
 
-        5) 
-            clean_local_backup_menu
-            ;; 
+    5)
+        clean_local_backup_menu
+        ;;
 
-        0)
+    6)
+        trus -d -rc
+        ;;
+
+    0) 
+        main_menu
+        ;;
     esac
 }
 
-repo_menu(){    
-    local option=$(print_menu "${REPO_MENU_OPTIONS[@]}")
+repo_menu() {
+    local option=$(print_menu "repo_menu_help" "${REPO_MENU_OPTIONS[@]}")
 
     option=$(extract_menu_option "$option")
 
     case "$option" in
-       "--back")
-        trus --update-repos --back
-        ;;
-
-    "--front")
-        trus --update-repos --front
-        ;;
-
-    "--libs")
-        trus --update-repos --libs
-        ;;
-
-    "--all")
-        trus --update-repos --all
-        ;;
-
-        0)
-    esac
-}
-
-kong_menu(){    
-    local option=$(print_menu "${KONG_MENU_OPTIONS[@]}")
-
-    option=$(extract_menu_option "$option")
-
-    case "$option" in
-        1) 
-            kong_routes
+        
+        1)
+            trus --update-repos --all
             ;;
-
+            
         2)
-            config_kong
-            ;; 
-
-        0)
-            secondary_menu
+            trus --update-repos --back
             ;;
+
+        3)
+            trus --update-repos --front
+            ;;
+
+        4)
+            trus --update-repos --libs
+            ;;
+
+        1)
+            trus --update-repos --all
+            ;;
+
+        0) ;;
+    esac
+}
+
+kong_menu() {
+    local option=$(print_menu "kong_menu_help" "${KONG_MENU_OPTIONS[@]}")
+
+    option=$(extract_menu_option "$option")
+
+    case "$option" in
+    1)
+        kong_routes
+        ;;
+
+    2)
+        config_kong
+        ;;
+
+    0)
+        secondary_menu
+        ;;
     esac
 }
 
 
+#########################################
+### Ayudas
 
+main_menu_help() {
+    local option=$1
+
+    case "$option" in
+    1)
+        print_message "Configurar" "$COLOR_PRIMARY"
+        print_message "Aqui se puede instalar los paquetes necesarios para truedat, generar diferentes archivos de configuracón, personalizar TrUs y el equipo, etc"  "$COLOR_SECONDARY"
+        ;;
+    2)
+        print_message "Acciones principales" "$COLOR_PRIMARY"
+        print_message "Aqui se realizan las acciones importantes: Arrancar y matar Truedat, actualizar repos, bajar backups de bdd, etc"  "$COLOR_SECONDARY"
+        ;;
+    3)
+        print_message "Actiones secundarias" "$COLOR_PRIMARY"
+        print_message "Aqui se realizan otras acciones, no tan importantes, pero necesarias: Reindexar Elastic, Crear claves ssh, configurar el uso de Kong en el equipo, linkar paquetes web, etc"  "$COLOR_SECONDARY"
+        ;;
+    4)
+        print_message "Ayuda" "$COLOR_PRIMARY"
+        print_message "Aqui se muestra toda la ayuda de todas las opciones disponibles en Trus (incluidos parámetros para realizar acciones desde script)" "$COLOR_SECONDARY"
+        ;;
+    *)
+    
+        print_semiheader "Opciones Menú Principal"
+        print_message "Configurar" "$COLOR_PRIMARY" 1
+        --print_message "Aqui se puede instalar los paquetes necesarios para truedat, generar diferentes archivos de configuracón, personalizar TrUs y el equipo, etc"  "$COLOR_SECONDARY" 2
+
+        print_message "Acciones principales" "$COLOR_PRIMARY" 1
+        print_message "Aqui se realizan las acciones importantes: Arrancar y matar Truedat, actualizar repos, bajar backups de bdd, etc"  "$COLOR_SECONDARY" 2
+
+        print_message "Actiones secundarias" "$COLOR_PRIMARY" 1
+        print_message "Aqui se realizan otras acciones, no tan importantes, pero necesarias: Reindexar Elastic, Crear claves ssh, configurar el uso de Kong en el equipo, linkar paquetes web, etc"  "$COLOR_SECONDARY" 2
+
+        print_message "Ayuda" "$COLOR_PRIMARY" 1
+        print_message "Aqui se muestra toda la ayuda de todas las opciones disponibles en Trus (incluidos parámetros para realizar acciones desde script)" "$COLOR_SECONDARY" 2
+
+    esac
+}
 
 
 #########################################
 ### Acciones Principales
 
-install() {     
+install() {
     print_message "Guia de instalación: https://confluence.bluetab.net/pages/viewpage.action?pageId=136022683" "$COLOR_QUATERNARY" 5 "both"
 
     if [ ! -e "/tmp/truedat_installation" ]; then
-        
 
         if [ -f "$SSH_PUBLIC_FILE" ]; then
             if [ ! -e "$AWSCONFIG" ]; then
                 print_message "ATENCIÓN, SE VA A SOLICITAR LA CONFIGURACIÓN DE AWS 2 VECES" "$COLOR_WARNING" 2 "before"
                 print_message "Una para el perfil predeterminado y otra para el de truedat" "$COLOR_WARNING" 2 "both"
                 print_message "Estos datos te los debe dar tu responsable" "$COLOR_SECONDARY" 2 "both"
-                
+
                 aws configure
-                aws configure --profile truedat    
+                aws configure --profile truedat
             fi
 
             aws ecr get-login-password --profile truedat --region eu-west-1 | docker login --username AWS --password-stdin 576759405678.dkr.ecr.eu-west-1.amazonaws.com
@@ -2636,36 +2735,33 @@ install() {
                         echo "##################"
                     } > /etc/hosts'
 
-
             touch "/tmp/truedat_installation"
             print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3 "both"
-            
-            
 
             if print_question "Si deseas reinstalarlo, puedes hacerlo borrando el archivo '/temp/truedat_installation'" = 0; then
                 rm "/tmp/truedat_installation"
-            fi            
+            fi
         else
             print_message "- Claves SSH (NO CREADAS): Tienes que tener creada una clave SSH (el script chequea que la clave se llame 'truedat') en la carpeta ~/.ssh" "$COLOR_ERROR" 3 "before"
             print_message "RECUERDA que tiene que estar registrada en el equipo y en Gitlab. Si no, debes crearla con 'trus -cr' y registarla en la web'" "$COLOR_WARNING" 3 "after"
         fi
     else
         print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3 "both"
-        
+
         if print_question "Si deseas reinstalarlo, puedes hacerlo borrando el archivo '/temp/truedat_installation'" = 0; then
             rm "/tmp/truedat_installation"
             print_message "Archivo '/tmp/truedat_installation' eliminado correctamente" "$COLOR_PRIMARY" 3 "both"
-        fi            
+        fi
     fi
 }
 
-clone_truedat_project(){
+clone_truedat_project() {
     mkdir -p $WORKSPACE_PATH
     mkdir -p $TRUEDAT_ROOT_PATH
     mkdir -p $BACK_PATH
     mkdir -p $BACK_PATH/logs
-    mkdir -p $FRONT_PATH    
-    
+    mkdir -p $FRONT_PATH
+
     clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-ai.git $BACK_PATH/td-ai
     clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-audit.git $BACK_PATH/td-audit
     clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-auth.git $BACK_PATH/td-auth
@@ -2677,7 +2773,7 @@ clone_truedat_project(){
     clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-i18n.git $BACK_PATH/td-i18n
     clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-lm.git $BACK_PATH/td-lm
     clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/td-se.git $BACK_PATH/td-se
-    
+
     clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/td-helm.git $BACK_PATH/td-helm
     clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/clients/demo/k8s.git $BACK_PATH/k8s
 
@@ -2685,15 +2781,15 @@ clone_truedat_project(){
     clone_if_not_exists git@github.com:Bluetab/td-cache.git $BACK_PATH/td-cache
     clone_if_not_exists git@github.com:Bluetab/td-core.git $BACK_PATH/td-core
     clone_if_not_exists git@github.com:Bluetab/td-cluster.git $BACK_PATH/td-cluster
-    
+
     clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/front-end/td-web-modules.git $FRONT_PATH/td-web-modules
     clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/front-end/td-web $FRONT_PATH/td-web
 
     clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/true-dev.git $DEV_PATH
-    
+
 }
 
-param_router(){
+param_router() {
     local param1=$1
     local param2=$2
     local param3=$3
@@ -2702,10 +2798,10 @@ param_router(){
 
     if ! [ -e "$TRUS_PATH" ]; then
         preinstallation
-    elif [ -z "$param1" ]; then       
+    elif [ -z "$param1" ]; then
         print_logo
         sleep 0.5
-        print_header   
+        print_header
         main_menu
     else
         params=()
@@ -2798,11 +2894,9 @@ param_router(){
     fi
 }
 
-
 ###################################################################################################
 ###### Lógica inicial
 ###################################################################################################
-
 
 clear
 set_terminal_config
@@ -2820,7 +2914,6 @@ print_message "- hacer los helps" "$color_secondary" 2
 print_message "- configurar animacion" "$color_secondary" 2
 print_message "- funciones de ayuda" "$color_secondary" 2
 
-
 print_message "cosas nuevas" "$color_primary" 1
 print_message "- informe pidi (script victor)" "$color_secondary" 2
 print_message "- multi yarn test" "$color_secondary" 2
@@ -2829,11 +2922,10 @@ print_message "- añadir submenu al reindexado de elastic, para seleccionar qué
 print_message "- añadir submenu al arranque de todo/servicios de truedat, para seleccionar qué servicios se quiere arrancar" "$color_secondary" 2
 print_message "- añadir submenu a la actualizacion de repos para seleccionar qué actualizar" "$color_secondary" 2
 print_message "- añadir submenu a la descarga de bdd de test para seleccionar qué actualizar" "$color_secondary" 2 "after"
-print_message 
+print_message
 
 # seq 10 -1 1 | while read i; do echo -ne "cuenta atrás: $i\r"; sleep 1; done; echo -ne "¡tiempo!\n"
 
 param_router $1 $2 $3 $4 $5
-
 
 # RNTDELL001174.BLUETAB.NET

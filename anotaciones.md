@@ -632,3 +632,13 @@ kubectl --context "${CONTEXT}" exec "${PSQL}" -- pg_dump -d "td_dd" -U "pgadmin"
 
 
 kubectl --context "arn:aws:eks:eu-west-1:576759405678:cluster/truedat" logs -f dd-d999f499b-p977q
+
+para arrancar linux si grub arranca en consola y hay que hacerlo a mano
+
+set root=(hd0,gpt2)
+linux /boot/vmlinuz-5.15.0-60-generic root=/dev/nvme0n1p2
+initrd /boot/initrd.img-5.15.0-60-generic
+boot
+
+sudo update-grub
+sudo grub-install /dev/nvme0n1
