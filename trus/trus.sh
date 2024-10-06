@@ -14,7 +14,7 @@ trap stop_animation SIGINT
 DATE_NOW=$(date +"%Y-%m-%d_%H-%M-%S")
 HEADER_MESSAGE="Truedat Utils (TrUs)"
 DESCRIPTION_MESSAGE=""
-SWAP_FILE='/swapfile'
+SWAP_FILE=/swapfile
 SWAP_SIZE=$(free --giga | awk '/^Mem:/ {print int($2)}')
 USER_HOME=$(eval echo ~"$SUDO_USER")
 TRUS_DIRECTORY=$USER_HOME/.trus
@@ -22,7 +22,7 @@ TRUS_PATH=$TRUS_DIRECTORY/trus.sh
 TRUS_LINK_PATH=/usr/local/bin/trus
 AWS_TEST_CONTEXT="test-truedat-eks"
 TMUX_SESION="truedat"
-APT_INSTALLATION_PACKAGES=("redis-tools" "screen" "tmux" "unzip" "curl" "vim" "build-essential" "git" "libssl-dev" "automake" "autoconf" "libncurses5" "libncurses5-dev" "docker.io" "postgresql-client-14" "jq" "gedit" "xclip" "xdotool" "x11-utils" "winehq-stable" "gdebi-core" "libvulkan1" "libvulkan1:i386" "fonts-powerline" "stress" "bluez" "bluez-tools" "tlp" "lm-sensors" "psensor" "xsltproc" "fop" "xmllint" "bc" "wmctrl" "fzf")
+APT_INSTALLATION_PACKAGES=("redis-tools" "screen" "tmux" "unzip" "curl" "vim" "build-essential" "git" "libssl-dev" "automake" "autoconf" "libncurses5" "libncurses5-dev" "docker.io" "postgresql-client-14" "jq" "gedit" "xclip" "xdotool" "x11-utils" "winehq-stable" "gdebi-core" "libvulkan1" "libvulkan1:i386" "fonts-powerline" "stress" "bluez" "bluez-tools" "tlp" "lm-sensors" "psensor" "xsltproc" "fop" "xmllint" "bc" "wmctrl" "fzf" "sl" "google-chrome-stable" "code")
 SNAP_INSTALLATION_PACKAGES=("dbeaver-ce" "discord" "vivaldi")
 TRUS_CONFIG="$USER_HOME/trus.config"
 
@@ -137,12 +137,13 @@ DOCKER_LOCALHOST="172.17.0.1"
 KONG_ADMIN_URL="localhost:8001"
 KONG_ROUTES_SERVICES=("health" "td_audit" "td_auth" "td_bg" "td_dd" "td_qx" "td_dq" "td_lm" "td_qe" "td_se" "td_df" "td_ie" "td_cx" "td_i18n" "td_ai")
 
+
 ###################################################################################################
 ###### Herramientas
 ### General
 
 check_sudo() {
-    message=$1
+    local message=$1
     if [ "$EUID" -ne 0 ]; then
         print_centered_message "$message" "$COLOR_ERROR"
         exit 1
@@ -172,7 +173,6 @@ pad_message() {
     local max_size=${4:-"-1"}
 
     local message_length=${#message}
-
     if [ $max_size -eq -1 ]; then
         IFS=' ' read -r total_length filled_space <<<"$(message_size "$message")"
     else
@@ -180,23 +180,13 @@ pad_message() {
     fi
 
     case "$position" in
-    "left")
-        local padding_left=$(generate_separator $filled_space "$separator")
-        echo "${padding_left}${message}"
+        "left")  echo "$(generate_separator $filled_space "$separator")$message" ;;
+        "right") echo "$message$(generate_separator $filled_space "$separator")" ;;
+        "center")
+            filled_space=$((filled_space / 2))
+            echo "$(generate_separator $filled_space "$separator")$message$(generate_separator $filled_space "$separator")"
         ;;
-    "right")
-        local padding_right=$(generate_separator $filled_space "$separator")
-        echo "${message}${padding_right}"
-        ;;
-    "center")
-        filled_space=$((filled_space / 2))
-        local padding=$(generate_separator $filled_space "$separator")
-
-        echo "${padding}${message}${padding}"
-        ;;
-    *)
-        echo "Posición no reconocida. Usa 'left', 'right' o 'center'."
-        ;;
+        *) echo "Posición no reconocida. Usa 'left', 'right' o 'center'." ;;
     esac
 }
 
@@ -204,7 +194,7 @@ message_size() {
     local message=$1
 
     local total_length=$(tput cols)
-    local filled_space=$(((longitud_total - ${#message})))
+    local filled_space=$(((total_length - ${#message})))
 
     echo "$total_length $filled_space"
 }
@@ -213,15 +203,9 @@ message_size() {
 
 get_color() {
     local COLOR=${1:-$COLOR_PRIMARY}
-
-    R=$((16#${COLOR:0:2}))
-    G=$((16#${COLOR:2:2}))
-    B=$((16#${COLOR:4:2}))
-
-    BACK_R=$((16#${COLOR_BACKRGROUND:0:2}))
-    BACK_G=$((16#${COLOR_BACKRGROUND:2:2}))
-    BACK_B=$((16#${COLOR_BACKRGROUND:4:2}))
-
+    local R=$((16#${COLOR:0:2}))
+    local G=$((16#${COLOR:2:2}))
+    local B=$((16#${COLOR:4:2}))
     echo -e "\e[1;38;2;${R};${G};${B}m"
 }
 
@@ -299,8 +283,14 @@ set_terminal_config() {
 
 exec_command() {
     local command=$1
-    eval "$command $REDIRECT"
+    local error_message
+    if ! error_message=$(eval "$command" 2>&1); then
+        print_message "Error ejecutando el comando: $command" "$COLOR_ERROR" 2 "before"
+        print_message "Detalles del error: $error_message" "$COLOR_ERROR" 2 "after"
+        exit 1
+    fi
 }
+
 
 ###### Mensajes
 ### Base
@@ -315,23 +305,17 @@ print_message() {
     local transformed_no_color=$(get_color "$NO_COLOR")
 
     stop_animation
-
     message="$(get_tabs $tabs)$message"
 
     if [ -z "$SIMPLE_ECHO" ]; then
         message=$transformed_color$message$transformed_no_color
-
-        if [ "$new_line_before_or_after" = "after" ]; then
-            message="$message\n\n"
-        elif [ "$new_line_before_or_after" = "before" ]; then
-            message="\n$message\n"
-        elif [ "$new_line_before_or_after" = "both" ]; then
-            message="\n$message\n\n"
-        elif [ "$new_line_before_or_after" = "normal" ]; then
-            message="$message\n"
-        fi
+        case "$new_line_before_or_after" in
+            "after") message="$message\n\n" ;;
+            "before") message="\n$message\n" ;;
+            "both") message="\n$message\n\n" ;;
+            "normal") message="$message\n" ;;
+        esac
     fi
-
     echo -ne "$message"
 }
 
@@ -517,14 +501,22 @@ print_logo() {
     sleep 1
 }
 
-### Animaciones. Original aqui: https://github.com/Silejonu/bash_loading_animations
+update_config(){
+	local option=$1
+	local value=$2
+	sed -i "s/^$option=.*/$option='$value'/" "$TRUS_CONFIG"
+	source $TRUS_CONFIG
+}
 
+### Animaciones. Original aqui: https://github.com/Silejonu/bash_loading_animations
 set_active_animation() {
     local selected=${1:-$SELECTED_ANIMATION}
 
     list_name="TERMINAL_ANIMATION_$selected"
     eval "active_animation=(\"\${$list_name[@]}\")"
     sed -i "s/^SELECTED_ANIMATION=.*/SELECTED_ANIMATION='$selected'/" "$TRUS_CONFIG"
+    
+    update_config "SELECTED_ANIMATION" "$selected"   
 }
 
 play_animation() {
@@ -566,6 +558,7 @@ print_message_with_animation() {
         print_message "$message" "$color" "$tabs"
     fi
 }
+
 
 ### Git
 
@@ -688,6 +681,7 @@ update_repositories() {
     print_centered_message "REPOSITORIOS $updated_option ACTUALIZADOS" "$COLOR_SUCCESS" "both"
 }
 
+
 ### Compilaciones
 
 compile_web() {
@@ -700,11 +694,12 @@ compile_elixir() {
     local create_ddbb=${1:-""}
 
     print_message_with_animation "Actualizando dependencias Elixir..." "$COLOR_SECONDARY" 3
+	exec_command "mix local.hex --force"
     exec_command "yes | mix deps.get"
     print_message "Actualizando dependencias Elixir (HECHO)" "$COLOR_SUCCESS" 3
 
     print_message_with_animation "Compilando Elixir..." "$COLOR_SECONDARY" 3
-    exec_command "mix compile"
+    exec_command "mix compile --force"
     print_message "Compilando Elixir (HECHO)" "$COLOR_SUCCESS" 3
 
     if [ ! "$create_ddbb" = "" ]; then
@@ -737,10 +732,13 @@ ddbb() {
         recreate_local_ddbb
     fi    
 
-    if { [ -d "$backup_path" ] && [ "$backup_path" != "" ] && [[ "$path_backup" == "$DDBB_BASE_BACKUP_PATH"* ]] && [ "$options" = "-du" ] || [ "$options" = "--download-update" ] || [ "$options" = "-lu" ] || [ "$options" = "--local-update" ]; }; then
-        update_ddbb_from_backup "$backup_path"
+    if [ -d "$backup_path" ] && [ -n "$backup_path" ]; then        
+        if [[ "$options" == "-du" || "$options" == "--download-update" || "$options" == "-lu" || "$options" == "--local-update" ]]; then
+            update_ddbb_from_backup "$backup_path"        
+        fi
     fi
 }
+
 
 recreate_local_ddbb(){
     if print_question "Esta acción BORRARÁ las bases de datos y las creará de nuevo VACÍAS" = 0; then
@@ -822,7 +820,7 @@ download_test_backup() {
     print_message "Descarga de backup de test terminada" "$COLOR_SUCCESS" 3 "both"
 }
 
--() {
+create_empty_ddbb() {
     local SERVICE_DBNAME=$1
 
     print_message_with_animation " Borrado de bdd $SERVICE_DBNAME" "$COLOR_SECONDARY" 2
@@ -839,8 +837,7 @@ download_test_backup() {
 }
 
 update_ddbb() {
-    local FILENAME=("$@")
-    
+    local FILENAME=("$@")    
 
     for FILENAME in "${sql_files[@]}"; do
         SERVICE_DBNAME=$(basename "$FILENAME" ".sql")
@@ -928,7 +925,8 @@ remove_all_redis() {
 
 remove_all_index() {
     if print_question "¿Quieres borrar todos los datos de ElasticSearch antes de reindexar?" = 0; then
-        do_api_call "" "http://localhost:9200/_all" "DELETE" "--fail"
+        #do_api_call "" "http://localhost:9200/_all" "DELETE" "--fail"
+        do_api_call "" "" "http://localhost:9200/_all" "DELETE" "--fail"
         print_message "✳ Borrado de ElasticSearch completado ✳" "$COLOR_SUCCESS" 1 "both"
     fi
 }
@@ -1117,10 +1115,10 @@ grub_config() {
             echo 'GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"	# Parametros que se le dan al kernel para que haga cosas en el arranque. 'quiet' es para que no muestre mensajes, 'splash' para que muestre la splash screen'
             echo 'GRUB_CMDLINE_LINUX=""				        # Similar al anterior, pero es para pasar parametros a las entradas que muestra grub'
             echo ''
-            echo 'GRUB_TERMINAL_OUTPUT="gfxterm"              # Para forzar que pinte colores. Por defecto => console'
-            echo 'GRUB_COLOR_NORMAL="black/yellow"            # Colores grub(letra/fondo)'
-            echo 'GRUB_COLOR_HIGHLIGHT="black/yellow"           # Colores opcion selecionada (letra/fondo)'
-            echo 'GRUB_GFXMODE=auto                           # Resolucion de grub'
+            echo 'GRUB_TERMINAL="console"'
+            echo 'GRUB_COLOR_NORMAL="yellow/black"          # Colores grub(letra/fondo)'
+            echo 'GRUB_COLOR_HIGHLIGHT="yellow/black"       # Colores opcion selecionada (letra/fondo)'
+            echo 'GRUB_GFXMODE=1024x768                        # Resolucion de grub'
             echo ''
             echo 'GRUB_DISABLE_OS_PROBER=true			        # Desactivar para que registre particiones con otros SO (como Windows)'
             echo '#GRUB_DISABLE_LINUX_UUID=true			    # Si se habilita, evitas mandar a grub el UUID al kernel, por lo que habria que pasarle el nombre del dispositivo donde esta el SO (como /(dev/nvme0p1n1 o como se llame la unidad ssd)'
@@ -1311,7 +1309,7 @@ trus_config() {
     touch $TRUS_CONFIG
 
     {
-        echo 'HIDE_OUTPUT=true'
+        echo 'HIDE_OUTPUT=false'
         echo 'USE_KONG=false'
         echo 'SELECTED_ANIMATION="BUBBLE"'
         echo 'SIMPLE_ECHO=""'
@@ -1363,50 +1361,127 @@ install_trus() {
     print_centered_message "Truedat Utils (TrUs) instalado con éxito" "$COLOR_SUCCESS"
 }
 
+add_gpg_key() {
+    local key_url=$1
+    local key_file=$2
+
+    # Eliminar clave si ya existe
+    if [ -f "$key_file" ]; then
+        sudo rm -f "$key_file"
+    fi
+
+    # Descargar y agregar la clave
+    wget -qO- "$key_url" | gpg --dearmor | sudo tee "$key_file" > /dev/null
+}
+
 add_origins() {
-    print_semiheader "Instalación de origenes de software"
+    print_semiheader "Instalación de orígenes de software"
 
-    #postgres
-    print_message_with_animation "Añadiendo origen de Postgres" "$COLOR_TERNARY" 2
-    exec_command "wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -"
-    eval "echo 'deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main' | sudo tee /etc/apt/sources.list.d/pgdg.list$REDIRECT"
-    print_message "Origen de Postgres añadido" "$COLOR_SUCCESS" 3
+    # Función para añadir claves GPG y evitar conflictos
+    add_gpg_key() {
+        local key_url=$1
+        local key_file=$2
 
-    # wine
-    print_message_with_animation "Instalando Wine" "$COLOR_TERNARY" 2
-    exec_command "sudo dpkg --add-architecture i386"
-    exec_command "wget -q -O- https://dl.winehq.org/wine-builds/winehq.key | sudo apt-key add -"
-    exec_command "sudo apt-add-repository -y 'deb https://dl.winehq.org/wine-builds/ubuntu/ jammy main'"
-    print_message "Wine instalado" "$COLOR_SUCCESS" 3
+        # Eliminar clave si ya existe
+        if [ -f "$key_file" ]; then
+            sudo rm -f "$key_file"
+        fi
 
-    # para añadir soporte vulkan, que ayuda con temas de temperatura
-    print_message_with_animation "Instalando soporte Vulkan" "$COLOR_TERNARY" 2
-    exec_command "sudo add-apt-repository -y ppa:graphics-drivers/ppa"
-    print_message "Vulkan instalado" "$COLOR_SUCCESS" 3
+        # Descargar y agregar la clave
+        wget -qO- "$key_url" | gpg --dearmor | sudo tee "$key_file" > /dev/null
+    }
+
+    # Postgres
+    if ! grep -q 'pgdg.list' /etc/apt/sources.list.d/pgdg.list; then
+        print_message_with_animation "Añadiendo origen de Postgres" "$COLOR_TERNARY" 2
+        add_gpg_key "https://www.postgresql.org/media/keys/ACCC4CF8.asc" "/usr/share/keyrings/postgresql-archive-keyring.gpg"
+        exec_command "sudo sh -c 'echo \"deb [signed-by=/usr/share/keyrings/postgresql-archive-keyring.gpg] http://apt.postgresql.org/pub/repos/apt/ \$(lsb_release -cs)-pgdg main\" > /etc/apt/sources.list.d/pgdg.list'"
+        print_message "Origen de Postgres añadido" "$COLOR_SUCCESS" 3
+    else
+        print_message "El origen de Postgres ya está presente" "$COLOR_WARNING" 3
+    fi
+
+    # Wine
+    if ! grep -q 'winehq.list' /etc/apt/sources.list.d/winehq.list; then
+        print_message_with_animation "Instalando Wine" "$COLOR_TERNARY" 2
+        exec_command "sudo dpkg --add-architecture i386"
+        add_gpg_key "https://dl.winehq.org/wine-builds/winehq.key" "/usr/share/keyrings/winehq-archive-keyring.gpg"
+        exec_command "sudo sh -c 'echo \"deb [signed-by=/usr/share/keyrings/winehq-archive-keyring.gpg] https://dl.winehq.org/wine-builds/ubuntu/ \$(lsb_release -cs) main\" > /etc/apt/sources.list.d/winehq.list'"
+        print_message "Origen de Wine añadido" "$COLOR_SUCCESS" 3
+    else
+        print_message "El origen de Wine ya está presente" "$COLOR_WARNING" 3
+    fi
+
+    # Chrome
+    if ! grep -q 'dl.google.com/linux/chrome' /etc/apt/sources.list; then
+        print_message_with_animation "Añadiendo origen de Google Chrome" "$COLOR_TERNARY" 2
+        add_gpg_key "https://dl.google.com/linux/linux_signing_key.pub" "/usr/share/keyrings/google-chrome.gpg"
+        exec_command "sudo sh -c 'echo \"deb [signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main\" > /etc/apt/sources.list.d/google-chrome.list'"
+        print_message "Origen de Google Chrome añadido" "$COLOR_SUCCESS" 3
+    else
+        print_message "El origen de Google Chrome ya está presente" "$COLOR_WARNING" 3
+    fi
+
+    # Vulkan
+    if ! grep -q 'graphics-drivers/ppa' /etc/apt/sources.list; then
+        print_message_with_animation "Instalando soporte Vulkan" "$COLOR_TERNARY" 2
+        exec_command "sudo add-apt-repository -y ppa:graphics-drivers/ppa"
+        add_gpg_key "https://keyserver.ubuntu.com/pks/lookup?op=get&search=FCAE110B1118213C" "/usr/share/keyrings/graphics-drivers-archive-keyring.gpg"
+        exec_command "sudo sh -c 'echo \"deb [signed-by=/usr/share/keyrings/graphics-drivers-archive-keyring.gpg] http://ppa.launchpad.net/graphics-drivers/ppa/ubuntu/ \$(lsb_release -cs) main debug\" > /etc/apt/sources.list.d/graphics-drivers.list'"
+        print_message "Origen de Vulkan añadido" "$COLOR_SUCCESS" 3
+    else
+        print_message "El origen de Vulkan ya está presente" "$COLOR_WARNING" 3
+    fi
+
+    # VSCode
+    if ! grep -q 'vscode.list' /etc/apt/sources.list.d/vscode.list; then
+        print_message_with_animation "Añadiendo origen de VSCode" "$COLOR_TERNARY" 2
+        add_gpg_key "https://packages.microsoft.com/keys/microsoft.asc" "/etc/apt/keyrings/packages.microsoft.gpg"
+        exec_command "sudo sh -c 'echo \"deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main\" > /etc/apt/sources.list.d/vscode.list'"
+        print_message "Origen de VSCode añadido" "$COLOR_SUCCESS" 3
+    else
+        print_message "El origen de VSCode ya está presente" "$COLOR_WARNING" 3
+    fi
+
+    # Actualizar las listas de paquetes
+    exec_command "sudo apt update"
 }
 
 preinstallation() {
+	print_centered_message "Preparando el entorno de Truedat/TrUs" 
+		
     if [ ! -e "/tmp/trus_install_first_part" ]; then
-        Se va a realizar la primera parte de la instalación de dependencias para TrUs y Truedat
-        En una parte de la instalacion, se ofrecerá instalar zsh y oh my zsh. 
-        Si se decide instalarlo, cuando esté ya disponible zsh, escribir "exit" para salir de dicho terminal, 
-        ya que la instalación se ha lanzado desde bash y en ese contexto, zsh es un proceso lanzado mas, no la terminal por defecto.
+    
+		print_message "La instalación consta de 2 partes:" "$COLOR_PRIMARY" 2
+		print_message "- 1º Instalacion de origenes y paquetes" "$COLOR_SECONDARY" 3
+		print_message "- 2º Configuración" "$COLOR_SECONDARY" 3
+		
+		print_message "Para ello, hay que lanzar primero el script 'trus.sh' y luego el comando 'trus' en ese orden, desde la terminal" "$COLOR_PRIMARY" 2
+        print_message "Se va a realizar la primera parte de la instalación de dependencias para TrUs y Truedat" "$COLOR_PRIMARY" 2
+        print_message "En una parte de la instalacion, se ofrecerá instalar zsh y oh my zsh. " "$COLOR_PRIMARY" 2
+        print_message "Si se decide instalarlo, cuando esté ya disponible zsh, escribir "exit" para salir de dicho terminal y terminar con la instalación" "$COLOR_PRIMARY" 2
+        print_message "ya que la instalación se ha lanzado desde bash y en ese contexto, zsh es un proceso lanzado mas, no la terminal por defecto." "$COLOR_PRIMARY" 2 "after"
         
-        install_trus
-
+        exec_command "sudo locale-gen es_ES.UTF-8"
+		exec_command "sudo update-locale"
+        exec_command "export LANG=es_ES.UTF-8"
+		exec_command "export LC_ALL=es_ES.UTF-8"
+		
         add_origins
 
         print_message_with_animation "Actualizando sistema" "$COLOR_TERNARY" 2
         exec_command "sudo apt -qq update"
         exec_command "sudo apt -qq upgrade -y"
+        exec_command "sudo apt -qq install -y --install-recommends apt-transport-https"
         print_message "Sistema actualizado" "$COLOR_SUCCESS" 3
 
         print_message_with_animation "Instalando Docker Compose" "$COLOR_TERNARY" 2
         sudo curl -L "https://github.com/docker/compose/releases/download/v2.16.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-
+        
         sudo chmod +x /usr/local/bin/docker-compose
         sudo groupadd docker
-        sudo usermod -aG docker '$USER'
+        sudo usermod -aG docker $USER
+        sudo chmod 666 /var/run/docker.sock
         print_message "Docker Compose instalado" "$COLOR_SUCCESS" 3
 
         for package in "${APT_INSTALLATION_PACKAGES[@]}"; do
@@ -1437,27 +1512,26 @@ preinstallation() {
         git config --global user.email "$user_email"
 
         install_asdf
-        instal_awscli
+        install_awscli
         install_kubectl
+        install_trus
         install_zsh
         
         touch "/tmp/trus_install_first_part"
-    elif [[ -e "/tmp/trus_install_first_part" ]] && [[ -e "/tmp/trus_install_second_part" ]]; then
+    elif [[ -e "/tmp/trus_install_first_part" ]] && [[ ! -e "/tmp/trus_install_second_part" ]]; then
         configure_asdf
         configurations
         touch "/tmp/trus_install_second_part"
+        update_config "HIDE_OUTPUT" "true"
     fi
 }
 
 install_docker() {
-    aws ecr get-login-password --profile truedat --region eu-west-1 | docker login --username AWS --password-stdin 576759405678.dkr.ecr.eu-west-1.amazonaws.com
-
     cd $DEV_PATH
 
     ip=$(ip -4 addr show docker0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
     echo SERVICES_HOST="$ip" >local_ip.env
-    sudo chmod 666 /var/run/docker.sock
-
+    
     start_containers
 
     print_message "Contenedores instalados y arrancados" "$COLOR_SECONDARY" 1 "before"
@@ -1490,10 +1564,10 @@ install_asdf() {
     print_message "ASDF instalado" "$COLOR_SUCCESS" 3
 }
 
-instal_awscli() {
+install_awscli() {
     mkdir $AWS_PATH
     cd $AWS_PATH
-    do_api_call "" "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" "" "-o 'awscliv2.zip'"
+	curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
     unzip awscliv2.zip
     cd aws
     sudo ./install
@@ -1629,18 +1703,18 @@ swap() {
     if [ -e "$SWAP_FILE" ]; then
         print_message_with_animation "Ya existe un archivo de intercambio. Eliminando..." "$COLOR_TERNARY" 3
 
-        sudo swapoff "$SWAP_FILE"
-        sudo rm "$SWAP_FILE"
+        sudo swapoff $SWAP_FILE
+        sudo rm $SWAP_FILE
 
         print_message "Archivo de intercambio eliminado" "$COLOR_SUCCESS" 3
     fi
 
     print_message "Creando un nuevo archivo de intercambio de $((SWAP_SIZE / 1024))GB..." "$COLOR_TERNARY" 3
 
-    sudo fallocate -l "${SWAP_SIZE}G" "$SWAP_FILE"
-    sudo chmod 600 "$SWAP_FILE"
-    sudo mkswap "$SWAP_FILE"
-    sudo swapon "$SWAP_FILE"
+    sudo fallocate -l "${SWAP_SIZE}G" $SWAP_FILE
+    sudo chmod 600 $SWAP_FILE
+    sudo mkswap $SWAP_FILE
+    sudo swapon $SWAP_FILE
 
     echo "$SWAP_FILE none swap sw 0 0" >>/etc/fstab
 
@@ -1650,40 +1724,102 @@ swap() {
 ### Llamadas a apis
 
 do_api_call() {
-    local token="${1:-""}"
-    local url="$2"
-    local rest_method="${3:-""}"
-    local params="${4:-""}"
+    local token_type="${1:-"Bearer"}"
+    local token="${2:-""}"
+    local url="$3"
+    local rest_method="${4:-"GET"}"
+    local params="${5:-""}"
+    local content_type="${6:-"application/json"}"
+    local extra_headers="${7:-""}"
+    local output_format="${8:-""}
+"
+
+    # Validación de URL
+    if [ -z "$url" ]; then
+        echo "Error: No se ha proporcionado una URL." >&2
+        return 1
+    fi
 
     local command="curl --silent --globoff --fail "
 
+    # Añadir el token si existe
     if [ ! -z "$token" ]; then
-        command+="'header: Bearer ${token}' "
+        command+="--header 'Authorization: $token_type ${token}' "
     fi
 
+    # Añadir método REST y content-type si es POST, PUT o PATCH
     if [ ! -z "$rest_method" ]; then
         command+="--request $rest_method "
         if [[ "$rest_method" == "POST" || "$rest_method" == "PUT" || "$rest_method" == "PATCH" ]]; then
-            command+="--header \"Content-Type: application/json\" "
+            command+="--header 'Content-Type: ${content_type}' "
         fi
     fi
 
-    if [ ! -z "$params" ]; then
-        command+="$params "
+    # Añadir encabezados adicionales si se especifican
+    if [ ! -z "$extra_headers" ]; then
+        command+=" $extra_headers "
     fi
 
-    command+="--location \"$url\" "
+    # Añadir parámetros adicionales si existen
+    if [ ! -z "$params" ]; then
+        if [[ "$rest_method" == "POST" || "$rest_method" == "PUT" || "$rest_method" == "PATCH" ]]; then
+            command+="--data '$params' "
+        else
+            command+="$params "
+        fi
+    fi
 
-    exec_command "$command"
+    # Añadir la URL al comando
+    command+="--location \"$url\""
+
+    # Mostrar tiempo de ejecución
+    start_time=$(date +%s)
+    response=$(eval "$command" 2>&1)
+    status=$?
+    end_time=$(date +%s)
+    execution_time=$((end_time - start_time))
+
+    if [ $status -ne 0 ]; then
+        echo "Error en la llamada API: $response" >&2
+        return $status
+    fi
+
+    echo "Llamada API completada en $execution_time segundos"
+
+    # Formatear la salida si es JSON
+    if [ "$output_format" == "json" ]; then
+        echo "$response" | jq .
+    else
+        echo "$response"
+    fi
+}
+
+do_api_call_with_login_token(){
+    local url="$1"
+    local rest_method="$2"
+    local params="$3"
+    local content_type="$4"
+    local extra_headers="$5"
+    local output_format="$6"
+    
+    local token_type="bearer"
+    local token=${get_token}
+ 
+    do_api_call \ 
+	    $token_type \ 
+	    $token  \
+	    $url  \
+	    $rest_method \ 
+	    $params  \
+	    $content_type \ 
+	    $extra_headers  \
+	    $output_format
+ 
 }
 
 get_token() {
-    local response=$(do_api_call \
-        "" \
-        "localhost:8080/api/sessions/" \
-        "" \
-        "--data '{\"access_method\": \"alternative_login\",\"user\": {\"user_name\": \"admin\",\"password\": \"patata\"}}'")
-    echo "$(echo "$response" | jq -r '.token')"
+    local token=$(do_api_call "" "json" "localhost:8080/api/sessions/" "POST" "--data '{\"access_method\": \"alternative_login\",\"user\": {\"user_name\": \"admin\",\"password\": \"patata\"}}'" ".token")
+    echo "$token" 
 }
 
 load_structures() {
@@ -1939,31 +2075,34 @@ kong_routes() {
 
         for SERVICE in ${KONG_SERVICES[@]}; do
             local PORT=$(get_service_port "$SERVICE")
-            local SERVICE_ID=$(do_api_call "${KONG_ADMIN_URL}/services/${SERVICE}" | jq -r '.id // empty')
+            #local SERVICE_ID=$(do_api_call "${KONG_ADMIN_URL}/services/${SERVICE}" | jq -r '.id // empty')
+            local SERVICE_ID=$(do_api_call "" "json" "${KONG_ADMIN_URL}/services/${SERVICE}" "GET" "" ".id // empty")
             local DATA='{ "name": "'${SERVICE}'", "host": "'${DOCKER_LOCALHOST}'", "port": '$PORT' }'
 
             print_message_with_animation "Creando rutas para el servicio: $SERVICE (puerto: $PORT)" "$COLOR_SECONDARY" 2
 
             if [ -n "${SERVICE_ID}" ]; then
-                ROUTE_IDS=$(do_api_call "" "${KONG_ADMIN_URL}/services/${SERVICE}/routes" | jq -r '.data[].id')
-
+                #ROUTE_IDS=$(do_api_call "" "${KONG_ADMIN_URL}/services/${SERVICE}/routes" | jq -r '.data[].id')
+		ROUTE_IDS=$(do_api_call "" "json" "${KONG_ADMIN_URL}/services/${SERVICE}/routes" "GET" "" ".data[].id")
                 if [ -n "${ROUTE_IDS}" ]; then
                     for ROUTE_ID in ${ROUTE_IDS}; do
-                        do_api_call "" "${KONG_ADMIN_URL}/routes/${ROUTE_ID}" "DELETE"
+                        #do_api_call "" "${KONG_ADMIN_URL}/routes/${ROUTE_ID}" "DELETE"
+                        do_api_call "" "" "${KONG_ADMIN_URL}/routes/${ROUTE_ID}" "DELETE"
                     done
                 fi
-                do_api_call "" "${KONG_ADMIN_URL}/services/${SERVICE_ID}" "DELETE"
-
+                #do_api_call "" "${KONG_ADMIN_URL}/services/${SERVICE_ID}" "DELETE"
+		do_api_call "" "" "${KONG_ADMIN_URL}/services/${SERVICE_ID}" "DELETE"
             fi
 
-            local API_ID=$(do_api_call "" "${KONG_ADMIN_URL}/services" "POST" "-d '$DATA'") | jq -r '.id'
-
+             #local API_ID=$(do_api_call "" "${KONG_ADMIN_URL}/services" "POST" "-d '$DATA'") | jq -r '.id'
+	    local API_ID=$(do_api_call "" "json" "${KONG_ADMIN_URL}/services" "POST" "-d '$DATA'" ".id")
             exec_command "sed -e \"s/%API_ID%/${API_ID}/\" ${SERVICE}.json | curl --silent -H \"Content-Type: application/json\" -X POST \"${KONG_ADMIN_URL}/routes\" -d @- | jq -r '.id'"
 
             print_message "Rutas servicio: $SERVICE (puerto: $PORT) creadas con éxito" "$COLOR_SUCCESS" 2
         done
 
-        exec_command "do_api_call '${KONG_ADMIN_URL}/services/health/plugins' "POST" "--data 'name=request-termination' --data 'config.status_code=200' --data 'config.message=Kong is alive'"  | jq -r '.id'"
+        #exec_command "do_api_call '${KONG_ADMIN_URL}/services/health/plugins' "POST" "--data 'name=request-termination' --data 'config.status_code=200' --data 'config.message=Kong is alive'"  | jq -r '.id'"
+        exec_command "do_api_call '' 'json' '${KONG_ADMIN_URL}/services/health/plugins' 'POST' '--data 'name=request-termination' --data 'config.status_code=200' --data 'config.message=Kong is alive'' '.id'"
 
         print_message "Creacion de rutas finalizada" "$COLOR_SUCCESS" 2 "both"
 
@@ -2287,7 +2426,7 @@ configure_menu() {
 
     case "$option" in
     1)
-        preinstallation
+        install
         ;;
 
     2)
@@ -2696,7 +2835,9 @@ install() {
                 aws configure --profile truedat
             fi
 
-            aws ecr get-login-password --profile truedat --region eu-west-1 | docker login --username AWS --password-stdin 576759405678.dkr.ecr.eu-west-1.amazonaws.com
+			sudo chmod 666 /var/run/docker.sock
+    		aws ecr get-login-password --profile truedat --region eu-west-1 | docker login --username AWS --password-stdin 576759405678.dkr.ecr.eu-west-1.amazonaws.com    
+ 
             print_message "Configuración de aws (HECHO)" "$COLOR_SUCCESS" 3 "before"
 
             #Este eval está porque si se instala el entorno en el WSL de windows, el agente no se mantiene levantado
@@ -2714,7 +2855,7 @@ install() {
             update_repositories "-a" "yes"
             link_web_modules
             ddbb "-du"
-            install_docker
+			install_docker
             config_kong
 
             sudo sh -c '{
@@ -2796,9 +2937,8 @@ param_router() {
     local param4=$4
     local param5=$5
 
-    if ! [ -e "$TRUS_PATH" ]; then
-        preinstallation
-    elif [ -z "$param1" ]; then
+
+    if [ -z "$param1" ]; then
         print_logo
         sleep 0.5
         print_header
@@ -2900,8 +3040,10 @@ param_router() {
 
 clear
 set_terminal_config
-
+                        
 TRUS_ACTUAL_PATH=$(realpath "$0")
+preinstallation
+
 
 print_centered_message "tareas por completar" "$color_primary" "both"
 print_message "bugs" "$color_primary" 1
