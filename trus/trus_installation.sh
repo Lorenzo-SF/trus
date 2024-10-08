@@ -2,11 +2,11 @@
 
 source trus_tools
 
-install_applications(){
-	local manager="$1"
-	shift
-	local packages=("$@")
-	for package in "${packages[@]}"; do
+install_applications() {
+    local manager="$1"
+    shift
+    local packages=("$@")
+    for package in "${packages[@]}"; do
         print_message_with_animation "Instalando $package" "$COLOR_TERNARY" 2
         exec_command "sudo $manager $package"
         print_message "$package instalado" "$COLOR_SUCCESS" 3
@@ -14,38 +14,28 @@ install_applications(){
 }
 
 installation() {
-	print_semiheader "Preparando el entorno de Truedat/TrUs" 
-		
-    if [ ! -e "/tmp/trus_install" ]; then   
+    print_semiheader "Preparando el entorno de Truedat/TrUs"
+
+    if [ ! -e "/tmp/trus_install" ]; then
         print_message "La instalación consta de 2 partes:" "$COLOR_PRIMARY" 2
         print_message "- 1º Instalacion de origenes y paquetes" "$COLOR_SECONDARY" 3
         print_message "- 2º Configuración" "$COLOR_SECONDARY" 3
-        
+
         print_message "Para ello, hay que lanzar primero el script 'trus.sh' y luego el comando 'trus' en ese orden, desde la terminal" "$COLOR_PRIMARY" 2
         print_message "Se va a realizar la primera parte de la instalación de dependencias para TrUs y Truedat" "$COLOR_PRIMARY" 2
         print_message "En una parte de la instalacion, se ofrecerá instalar zsh y oh my zsh. " "$COLOR_PRIMARY" 2
         print_message "Si se decide instalarlo, cuando esté ya disponible zsh, escribir "exit" para salir de dicho terminal y terminar con la instalación" "$COLOR_PRIMARY" 2
         print_message "ya que la instalación se ha lanzado desde bash y en ese contexto, zsh es un proceso lanzado mas, no la terminal por defecto." "$COLOR_PRIMARY" 2 "after"
-        
-        print_semiheader "Actualizando sistema" 
-		print_message_with_animation "Actualizando..." "$COLOR_TERNARY" 2
+
+        print_semiheader "Actualizando sistema"
+        print_message_with_animation "Actualizando..." "$COLOR_TERNARY" 2
         exec_command "sudo apt -qq update"
         exec_command "sudo apt -qq upgrade -y"
-        exec_command "sudo apt -qq install -y --install-recommends apt-transport-https"
+        exec_command "sudo apt -qq install  -y --install-recommends apt-transport-https"
         print_message "Sistema actualizado" "$COLOR_SUCCESS" 3
 
         print_semiheader "Instalación paquetes de software"
-		install_applications "apt -qq install -y --install-recommends" "${APT_INSTALLATION_PACKAGES[@]}"
-
-		if [ ! -f /usr/local/bin/docker-compose ]; then
-	        print_message_with_animation "Instalando Docker Compose" "$COLOR_TERNARY" 2
-			sudo curl -L "https://github.com/docker/compose/releases/download/v2.16.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-			sudo chmod +x /usr/local/bin/docker-compose
-			sudo groupadd docker
-			sudo usermod -aG docker $USER
-			sudo chmod 666 /var/run/docker.sock
-	        print_message "Docker Compose instalado" "$COLOR_SUCCESS" 3
-		fi 
+        install_applications "apt -qq install -y --install-recommends" "${APT_INSTALLATION_PACKAGES[@]}"
 
         git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
         ~/.fzf/install
@@ -66,8 +56,8 @@ installation() {
         install_awscli
         install_kubectl
         install_zsh
-        
-        touch "/tmp/trus_install" 
+
+        touch "/tmp/trus_install"
         update_config "HIDE_OUTPUT" "true"
     fi
 }
@@ -77,7 +67,11 @@ install_docker() {
 
     ip=$(ip -4 addr show docker0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
     echo SERVICES_HOST="$ip" >local_ip.env
-    
+    exec_command "sudo curl -L 'https://github.com/docker/compose/releases/download/v2.16.0/docker-compose-$(uname -s)-$(uname -m)' -o /usr/local/bin/docker-compose"
+    exec_command "sudo chmod +x /usr/local/bin/docker-compose"
+    exec_command "sudo groupadd docker"
+    exec_command "sudo usermod -aG docker $USER"
+    exec_command "sudo chmod 666 /var/run/docker.sock"
     start_containers
 
     print_message "Contenedores instalados y arrancados" "$COLOR_SECONDARY" 1 "before"
@@ -108,7 +102,7 @@ install_asdf() {
     print_message_with_animation "Instalando ASDF" "$COLOR_TERNARY" 2
     exec_command "git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.14.1"
     sudo rm -f ASDF_LINK_PATH && sudo ln -s $ASDF_PATH $ASDF_LINK_PATH
-    
+
     asdf plugin add erlang https://github.com/asdf-vm/asdf-erlang.git
     asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git
     asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
@@ -138,7 +132,7 @@ install_asdf() {
 install_awscli() {
     mkdir $AWS_PATH
     cd $AWS_PATH
-	curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
     unzip awscliv2.zip
     cd aws
     sudo ./install
@@ -291,7 +285,6 @@ swap() {
 }
 
 clone_truedat_project() {
-    mkdir -p $WORKSPACE_PATH
     mkdir -p $TRUEDAT_ROOT_PATH
     mkdir -p $BACK_PATH
     mkdir -p $BACK_PATH/logs
@@ -338,8 +331,12 @@ install() {
                 aws configure --profile truedat
             fi
 
-    		aws ecr get-login-password --profile truedat --region eu-west-1 | docker login --username AWS --password-stdin 576759405678.dkr.ecr.eu-west-1.amazonaws.com    
- 
+            aws ecr get-login-password --profile truedat --region eu-west-1 | docker login --username AWS --password-stdin 576759405678.dkr.ecr.eu-west-1.amazonaws.com
+
+            print_message_with_animation "Instalando Docker Compose" "$COLOR_TERNARY" 2
+            install_docker
+
+
             #Este eval está porque si se instala el entorno en el WSL de windows, el agente no se mantiene levantado
             #En linux no es necesario pero no molesta
             eval "$(ssh-agent -s)"
@@ -350,12 +347,6 @@ install() {
             cd $DEV_PATH
             sudo sysctl -w vm.max_map_count=262144
             sudo cp elastic-search/999-map-count.conf /etc/sysctl.d/
-
-            update_repositories "-a" "yes"
-            link_web_modules
-            ddbb "-du"
-			install_docker
-            config_kong
 
             sudo sh -c '{
                         echo "##################"
@@ -374,7 +365,11 @@ install() {
                         echo "# Añadido por trus"
                         echo "##################"
                     } > /etc/hosts'
-
+            
+            update_repositories "-a" "yes"
+            link_web_modules
+            ddbb "-du"
+            config_kong
             touch "/tmp/truedat_installation"
             print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3 "both"
 
@@ -396,7 +391,6 @@ install() {
 }
 
 #kong
-
 
 get_service_port() {
     local SERVICE_NAME=$1
@@ -488,7 +482,7 @@ kong_routes() {
 
             if [ -n "${SERVICE_ID}" ]; then
                 #ROUTE_IDS=$(do_api_call "" "${KONG_ADMIN_URL}/services/${SERVICE}/routes" | jq -r '.data[].id')
-		ROUTE_IDS=$(do_api_call "" "json" "${KONG_ADMIN_URL}/services/${SERVICE}/routes" "GET" "" ".data[].id")
+                ROUTE_IDS=$(do_api_call "" "json" "${KONG_ADMIN_URL}/services/${SERVICE}/routes" "GET" "" ".data[].id")
                 if [ -n "${ROUTE_IDS}" ]; then
                     for ROUTE_ID in ${ROUTE_IDS}; do
                         #do_api_call "" "${KONG_ADMIN_URL}/routes/${ROUTE_ID}" "DELETE"
@@ -496,11 +490,11 @@ kong_routes() {
                     done
                 fi
                 #do_api_call "" "${KONG_ADMIN_URL}/services/${SERVICE_ID}" "DELETE"
-		do_api_call "" "" "${KONG_ADMIN_URL}/services/${SERVICE_ID}" "DELETE"
+                do_api_call "" "" "${KONG_ADMIN_URL}/services/${SERVICE_ID}" "DELETE"
             fi
 
-             #local API_ID=$(do_api_call "" "${KONG_ADMIN_URL}/services" "POST" "-d '$DATA'") | jq -r '.id'
-	    local API_ID=$(do_api_call "" "json" "${KONG_ADMIN_URL}/services" "POST" "-d '$DATA'" ".id")
+            #local API_ID=$(do_api_call "" "${KONG_ADMIN_URL}/services" "POST" "-d '$DATA'") | jq -r '.id'
+            local API_ID=$(do_api_call "" "json" "${KONG_ADMIN_URL}/services" "POST" "-d '$DATA'" ".id")
             exec_command "sed -e \"s/%API_ID%/${API_ID}/\" ${SERVICE}.json | curl --silent -H \"Content-Type: application/json\" -X POST \"${KONG_ADMIN_URL}/routes\" -d @- | jq -r '.id'"
 
             print_message "Rutas servicio: $SERVICE (puerto: $PORT) creadas con éxito" "$COLOR_SUCCESS" 2

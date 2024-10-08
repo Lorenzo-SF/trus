@@ -254,13 +254,14 @@ print_separator() {
 print_header() {
     clear
     sleep 0.11
+    update_config 'GRADIENT_2' ''
 
     local USER_DATA="Usuario: $(echo "$(getent passwd $USER)" | cut -d ':' -f 5 | cut -d ',' -f 1) ($USER)"
     local EQUIPO="Equipo: $(hostname)"
-    local empty_line="                                     "
-
-    local logo=($empty_line
-        "  &           &&&&&&&&&           &  $(print_separator "$empty_line" "y")"
+    
+    local empty_space="                                         "
+    local logo=(""
+        "  &           &&&&&&&&&           &  $(print_separator "$empty_space" "-" "y")"
         "   &&&  &&&&&           &&&&&  &&&   "
         "     &&&&&&&&&&       &&&&&&&&&&     "
         "     &&&*****&&&&& &&&&&*****&&&      _________   ______     __  __    ______       "
@@ -272,7 +273,7 @@ print_header() {
         "  &&&&         &&&&&&&&&&&     &&&&         \__\/    \_\/ \_\/  \_____\/  \_____\/  $DESCRIPTION_MESSAGE"
         "   &&&&&  &&&&&&&&&&         &&&&&   "
         "    &&&&&&&&&&&            &&&&&&    "
-        "      &&&&&&&           &&&&&&       $(print_separator "$empty_line" "y")"
+        "      &&&&&&&           &&&&&&       $(print_separator "$empty_space" "-" "y")"
         "         &&&&&&&&   &&&&&&&&         "
         "             &&&&&&&&&&&             "
         "                 &&                  ")
@@ -305,7 +306,9 @@ print_semiheader() {
 }
 
 print_logo() {
-     clear
+    clear
+
+    update_config 'GRADIENT_2' "$GRADIENT_2_AUX"
 
     local logo=("" "" ""
         "              &&             &&&&&&&&&&&&&&&&&&&&              &&               "
@@ -351,24 +354,6 @@ print_logo() {
     print_message_with_gradient "$(printf "%s\n" "${centered_logo[@]}")"
 
     sleep 1
-}
-
-update_config(){
-	local option=$1
-	local value=$2
-	sed -i "s/^$option=.*/$option='$value'/" "$TRUS_CONFIG"
-	source $TRUS_CONFIG
-}
-
-### Animaciones. Original aqui: https://github.com/Silejonu/bash_loading_animations
-set_active_animation() {
-    local selected=${1:-$SELECTED_ANIMATION}
-
-    list_name="TERMINAL_ANIMATION_$selected"
-    eval "active_animation=(\"\${$list_name[@]}\")"
-    sed -i "s/^SELECTED_ANIMATION=.*/SELECTED_ANIMATION='$selected'/" "$TRUS_CONFIG"
-    
-    update_config "SELECTED_ANIMATION" "$selected"   
 }
 
 play_animation() {
@@ -473,6 +458,29 @@ update_libraries() {
         checkout "main"
         update_git
         compile_elixir
+
+        cd ..
+    done
+
+    for REPO in "${LEGACY_REPOS[@]}"; do
+        print_message "Actualizando ${REPO}" "$COLOR_TERNARY" 2 "before"
+
+        cd "$BACK_PATH/$REPO"
+
+        checkout "master"
+        update_git
+        
+
+        cd ..
+    done
+
+    for REPO in "${NON_ELIXIR_LIBRARIES[@]}"; do
+        print_message "Actualizando ${REPO}" "$COLOR_TERNARY" 2 "before"
+
+        cd "$BACK_PATH/$REPO"
+
+        checkout "main"
+        update_git
 
         cd ..
     done
@@ -905,5 +913,127 @@ tlp_config() {
 
     exec_command "sudo tlp start"
     exec_command "sudo systemctl enable tlp.service"
+}
+ 
+ 
+### Animaciones. Original aqui: https://github.com/Silejonu/bash_loading_animations
+set_active_animation() {
+    local selected=${1:-$SELECTED_ANIMATION}
+
+    list_name="TERMINAL_ANIMATION_$selected"
+    eval "active_animation=(\"\${$list_name[@]}\")"
+    sed -i "s/^SELECTED_ANIMATION=.*/SELECTED_ANIMATION='$selected'/" "$TRUS_CONFIG"
+    
+    update_config "SELECTED_ANIMATION" "$selected"   
+}
+
+update_config(){
+	local option=$1
+	local value=$2
+	sed -i "s/^$option=.*/$option='$value'/" "$TRUS_CONFIG"
+	source $TRUS_CONFIG
+}
+
+declare propiedadesConfigurables=("COLOR_PRIMARY" "COLOR_SECONDARY" "COLOR_TERNARY" "COLOR_QUATERNARY" "COLOR_SUCCESS" "COLOR_WARNING" "COLOR_ERROR" "COLOR_BACKRGROUND" "GRADIENT_1" "GRADIENT_2" "GRADIENT_3" "GRADIENT_4" "GRADIENT_5" "GRADIENT_6")
+
+declare -A textosPropiedadesConfigurables=(
+    [COLOR_PRIMARY]="Color principal"
+    [COLOR_SECONDARY]="Color secundario"
+    [COLOR_TERNARY]="Color Terciario"
+    [COLOR_QUATERNARY]="Color cuaternario"
+    [COLOR_SUCCESS]="Color Success"
+    [COLOR_WARNING]="Color Advertencia"
+    [COLOR_ERROR]="Color Error"
+    [COLOR_BACKRGROUND]="Color fondo"
+    [GRADIENT_1]="Gradiente posicion 1"
+    [GRADIENT_2]="Gradiente posicion 2"
+    [GRADIENT_3]="Gradiente posicion 3"
+    [GRADIENT_4]="Gradiente posicion 4"
+    [GRADIENT_5]="Gradiente posicion 5"
+    [GRADIENT_6]="Gradiente posicion 6"
+)
+
+declare -A relacionPropiedadesConfigurables=(
+    ['Color principal']="COLOR_PRIMARY"
+    ['Color secundario']="COLOR_SECONDARY"
+    ['Color Terciario']="COLOR_TERNARY"
+    ['Color cuaternario']="COLOR_QUATERNARY"
+    ['Color Success']="COLOR_SUCCESS"
+    ['Color Advertencia']="COLOR_WARNING"
+    ['Color Error']="COLOR_ERROR"
+    ['Color fondo']="COLOR_BACKRGROUND"
+    ['Gradiente posicion 1']="GRADIENT_1"
+    ['Gradiente posicion 2']="GRADIENT_2"
+    ['Gradiente posicion 3']="GRADIENT_3"
+    ['Gradiente posicion 4']="GRADIENT_4"
+    ['Gradiente posicion 5']="GRADIENT_5"
+    ['Gradiente posicion 6']="GRADIENT_6"
+)
+
+get_example_color(){
+    local campo_seleccionado=${relacionPropiedadesConfigurables[$1]}
+    
+    case $campo_seleccionado in        
+        "COLOR_PRIMARY") print_message "Ejemplo color" "$COLOR_PRIMARY";;
+        "COLOR_SECONDARY") print_message "Ejemplo color" "$COLOR_SECONDARY";;
+        "COLOR_TERNARY") print_message "Ejemplo color" "$COLOR_TERNARY";;
+        "COLOR_QUATERNARY") print_message "Ejemplo color" "$COLOR_QUATERNARY";;
+        "COLOR_SUCCESS") print_message "Ejemplo color" "$COLOR_SUCCESS";;
+        "COLOR_WARNING") print_message "Ejemplo color" "$COLOR_WARNING";;
+        "COLOR_ERROR") print_message "Ejemplo color" "$COLOR_ERROR";;
+        "COLOR_BACKRGROUND") print_message "Ejemplo color" "$COLOR_BACKRGROUND";;
+        "GRADIENT_1") print_message "Ejemplo color" "$GRADIENT_1";;
+        "GRADIENT_2") print_message "Ejemplo color" "$GRADIENT_2";;
+        "GRADIENT_3") print_message "Ejemplo color" "$GRADIENT_3";;
+        "GRADIENT_4") print_message "Ejemplo color" "$GRADIENT_4";;
+        "GRADIENT_5") print_message "Ejemplo color" "$GRADIENT_5";;
+        "GRADIENT_6") print_message "Ejemplo color" "$GRADIENT_6";;
+    esac
+}
+
+config_colours_menu() {
+    local opciones_menu=("0 - Volver")  
+    for campo in "${propiedadesConfigurables[@]}"; do
+        opciones_menu+=("${textosPropiedadesConfigurables[$campo]}")
+    done
+
+    local texto_seleccionado
+    texto_seleccionado=$(print_menu "get_example_color" "${opciones_menu[@]}")
+
+    if [ "$texto_seleccionado" = "0 - Volver" ]; then
+        configure_menu
+        return
+    fi
+
+    local campo_seleccionado=${relacionPropiedadesConfigurables[$texto_seleccionado]}
+
+    if [ -z "$campo_seleccionado" ]; then
+        print_message "Error: No se encontró el campo correspondiente." "$COLOR_ERROR" 1
+        return 1
+    fi
+
+    print_semiheader "Actualizando color: $texto_seleccionado"
+    print_message "- Valor actual: $(eval "$campo_seleccionado")" "$COLOR_PRIMARY" 2 "after"
+    print_message "Formato admitido de colores:"
+    
+    printf "%-22s %-22s %-25s %-25s\n" "Hex" "RGB/RGBA" "HSL/HSLA" "HSV/HSVA"
+    print_separator "" "-" "y"
+
+    # Imprimir las filas de la tabla
+    printf "%-22s %-22s %-25s %-25s\n" "#000" "rgb (255, 0, 0)" "hsl(0, 100%, 50%)" "hsv(0, 100%, 100%)"
+    printf "%-22s %-22s %-25s %-25s\n" "000" "rgb 255 0 0" "hsla(0, 100%, 50%, .5)" "hsva(0, 100%, 100%, .5)"
+    printf "%-22s %-22s %-25s %-25s\n" "#369C" "rgba (255, 0, 0, .5)" "hsl(0, 100%, 50%)" "hsv (0 100% 100%)"
+    printf "%-22s %-22s %-25s %-25s\n" "369C" "" "hsl 0 1.0 0.5" "hsv 0 1 1"
+    printf "%-22s %-22s %-25s %-25s\n" "#f0f0f6" "" "" ""
+    printf "%-22s %-22s %-25s %-25s\n" "f0f0f6" "" "" ""
+    printf "%-22s %-22s %-25s %-25s\n" "#f0f0f688" "" "" ""
+    printf "%-22s %-22s %-25s %-25s\n" "f0f0f688" "" "" ""   
+    
+    print_message "  Introduce el nuevo valor (vacío, deja el valor anterior):" "$COLOR_PRIMARY" 2 "before"
+    read nuevo_valor
+    
+    if [[ $nuevo_valor =~ ^#?[0-9A-Fa-f]{6}$ ]]; then
+        update_config "$campo_seleccionado" "$nuevo_valor"
+    fi
 }
  

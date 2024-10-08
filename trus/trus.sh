@@ -2,7 +2,9 @@
 
 USER_HOME=$(eval echo ~"$SUDO_USER")
 TRUS_BASE_PATH=$USER_HOME/.trus
-TRUS_CONFIG="$TRUS_BASE_PATH/trus.config"
+TRUS_DEFAULT_CONFIG="$TRUS_BASE_PATH/trus.default.config"
+TRUS_CONFIG="$USER_HOME/trus.config"
+
 LINK_BASE_PATH=/usr/local/bin
 
 TRUS_CONFIGURATIONS_PATH=$TRUS_BASE_PATH/trus_configurations.sh 
@@ -284,7 +286,6 @@ main_menu() {
 }
 
 configure_menu() {
-
     local option=$(print_menu "configure_menu_help" "${CONFIGURE_MENU_OPTIONS[@]}")
 
     option=$(extract_menu_option "$option")
@@ -315,11 +316,7 @@ configure_menu() {
         ;;
 
     7)
-        echo "PENDIENTE"
-        ;;
-
-    8)
-        echo "PENDIENTE"
+        config_colours_menu
         ;;
 
     0)
@@ -681,12 +678,14 @@ install_trus() {
     rm -f "$TRUS_BASE_PATH"/*
 
     cp -r "$PWD"/* "$TRUS_BASE_PATH"
+    cp $TRUS_DEFAULT_CONFIG trus.config
 
     sudo rm -f $TRUS_LINK_PATH && sudo ln -s $TRUS_PATH $TRUS_LINK_PATH
     sudo rm -f $TRUS_LINK_DDBB_PATH && sudo ln -s $TRUS_DDBB_PATH $TRUS_LINK_DDBB_PATH
     sudo rm -f $TRUS_LINK_INSTALLATION_PATH && sudo ln -s $TRUS_INSTALLATION_PATH $TRUS_LINK_INSTALLATION_PATH
     sudo rm -f $TRUS_LINK_TOOLS_PATH && sudo ln -s $TRUS_TOOLS_PATH $TRUS_LINK_TOOLS_PATH
         
+    source $TRUS_DEFAULT_CONFIG
     source $TRUS_CONFIG
     source trus_tools
     source trus_ddbb
@@ -810,6 +809,7 @@ TRUS_ACTUAL_PATH=$(realpath "$0")
 if [ ! -e "$TRUS_PATH" ]; then
     install_trus
 else
+    source $TRUS_DEFAULT_CONFIG
     source $TRUS_CONFIG
     source trus_tools
     source trus_ddbb
