@@ -2,7 +2,6 @@
 
 source trus_tools
 
-
 ddbb() {
     local options=$1
     local backup_path=""

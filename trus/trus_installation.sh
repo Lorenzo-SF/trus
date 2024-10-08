@@ -95,13 +95,14 @@ set_elixir_versions() {
 }
 
 install_asdf() {
-    if [ -e "$ASDF_PATH" ]; then
-        rm -fr $ASDF_PATH
+    if [ -e "$ASDF_ROOT_PATH" ]; then
+        rm -fr $ASDF_ROOT_PATH
     fi
-
+    
     print_message_with_animation "Instalando ASDF" "$COLOR_TERNARY" 2
     exec_command "git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.14.1"
-    sudo rm -f ASDF_LINK_PATH && sudo ln -s $ASDF_PATH $ASDF_LINK_PATH
+
+    sudo rm -f $ASDF_LINK_PATH && sudo ln -s $ASDF_PATH $ASDF_LINK_PATH
 
     asdf plugin add erlang https://github.com/asdf-vm/asdf-erlang.git
     asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git

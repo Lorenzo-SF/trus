@@ -340,7 +340,7 @@ configuration_menu() {
         ;;
 
     3)
-        fix_google_login
+        bash_config "y"
         ;;
 
     4)
@@ -350,13 +350,10 @@ configuration_menu() {
     5)
         tlp_config
         ;;
-    6)  
-        grub_config
-        ;;
-
-    7)
+ 
+    6)
         zsh_config
-        bash_config
+        bash_config "y"
         tmux_config
         tlp_config
         ;;

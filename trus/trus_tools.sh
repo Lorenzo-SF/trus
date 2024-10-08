@@ -117,11 +117,8 @@ set_terminal_config() {
     source $TRUS_CONFIG
 
     if [ "$SIMPLE_ECHO" = "" ]; then
-        local background_color_test=${1:-"$COLOR_BACKRGROUND"}
-        local foreground_color_test=${2:-"$NO_COLOR"}
-
-        echo -ne "\e]11;#${COLOR_BACKRGROUND}\e\\"
-        echo -ne "\e]10;#${COLOR_PRIMARY}\e\\"
+        echo -ne "\e[1m\e]11;#${COLOR_BACKRGROUND}\e\\"
+        echo -ne "\e[1m\e]10;#${NO_COLOR}\e\\"
         set_active_animation
     fi
 
@@ -240,15 +237,19 @@ print_message_with_gradient() {
 print_separator() {
     local message=${1:-""}
     local separator=${2:-"-"}
-    local full_line=$3
+    local size_line=$3
     IFS=' ' read -r total_length filled_space <<<"$(message_size "$message")"
 
-    if [ -z "$full_line" ]; then
-        echo $(pad_message "" "left" "-" $((filled_space / 4)))
+    local separator_lenght
 
-    else
-        echo $(pad_message "" "left" "-" $filled_space)
-    fi
+    case "$size_line" in
+        "full") separator_lenght=$filled_space;;
+        "half") separator_lenght=$((filled_space/2));;
+        "quarter") separator_lenght=$((filled_space/4));;
+        "") separator_lenght=$((filled_space/8));;
+    esac
+
+    print_message "$(pad_message "" "left" "-" $separator_lenght)"
 }
 
 print_header() {
@@ -261,7 +262,7 @@ print_header() {
     
     local empty_space="                                         "
     local logo=(""
-        "  &           &&&&&&&&&           &  $(print_separator "$empty_space" "-" "y")"
+        "  &           &&&&&&&&&           &  $(print_separator "$empty_space" "-" "full")"
         "   &&&  &&&&&           &&&&&  &&&   "
         "     &&&&&&&&&&       &&&&&&&&&&     "
         "     &&&*****&&&&& &&&&&*****&&&      _________   ______     __  __    ______       "
@@ -273,7 +274,7 @@ print_header() {
         "  &&&&         &&&&&&&&&&&     &&&&         \__\/    \_\/ \_\/  \_____\/  \_____\/  $DESCRIPTION_MESSAGE"
         "   &&&&&  &&&&&&&&&&         &&&&&   "
         "    &&&&&&&&&&&            &&&&&&    "
-        "      &&&&&&&           &&&&&&       $(print_separator "$empty_space" "-" "y")"
+        "      &&&&&&&           &&&&&&       $(print_separator "$empty_space" "-" "full")"
         "         &&&&&&&&   &&&&&&&&         "
         "             &&&&&&&&&&&             "
         "                 &&                  ")
@@ -299,10 +300,10 @@ print_semiheader() {
     local message=$1
 
     if [ -z "$SIMPLE_ECHO" ]; then
-        print_separator
+        print_separator "" "-" "quarter"
     fi
 
-    print_message "$message\n"
+    print_message "---- $message\n"
 }
 
 print_logo() {
@@ -353,7 +354,7 @@ print_logo() {
 
     print_message_with_gradient "$(printf "%s\n" "${centered_logo[@]}")"
 
-    sleep 1
+    sleep 0.5
 }
 
 play_animation() {
@@ -706,53 +707,23 @@ get_token() {
 ## Configurations
 
 create_configurations() {
-    bash_config
+    bash_config "y"
     zsh_config
     tmux_config
     tlp_config
-    grub_config
 }
-
-grub_config() {
-    sudo sh -c "
-        {
-            echo "##################"
-            echo "# Añadido por trus"
-            echo "##################"
-            
-            echo 'GRUB_DEFAULT=0                              # Para decir qué opcion tiene por defecto (para que se seleccione automaticamente despues del timeout)'
-            echo 'GRUB_TIMEOUT_STYLE=menu 			        # "hidden" para que vaya del tiron'
-            echo 'GRUB_TIMEOUT=5					            # Tiempo de espera para elegir, si no, saltará la opcion seleccionada por defecto'
-            echo 'GRUB_DISTRIBUTOR='echo Cacafuti'		    # Nombre de la distribucion, antes era => lsb_release -i -s 2> /dev/null || echo Debian'
-            echo 'GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"	# Parametros que se le dan al kernel para que haga cosas en el arranque. 'quiet' es para que no muestre mensajes, 'splash' para que muestre la splash screen'
-            echo 'GRUB_CMDLINE_LINUX=""				        # Similar al anterior, pero es para pasar parametros a las entradas que muestra grub'
-            echo ''
-            echo 'GRUB_TERMINAL="console"'
-            echo 'GRUB_COLOR_NORMAL="yellow/black"          # Colores grub(letra/fondo)'
-            echo 'GRUB_COLOR_HIGHLIGHT="yellow/black"       # Colores opcion selecionada (letra/fondo)'
-            echo 'GRUB_GFXMODE=1024x768                        # Resolucion de grub'
-            echo ''
-            echo 'GRUB_DISABLE_OS_PROBER=true			        # Desactivar para que registre particiones con otros SO (como Windows)'
-            echo '#GRUB_DISABLE_LINUX_UUID=true			    # Si se habilita, evitas mandar a grub el UUID al kernel, por lo que habria que pasarle el nombre del dispositivo donde esta el SO (como /(dev/nvme0p1n1 o como se llame la unidad ssd)'
-            echo '#GRUB_DISABLE_RECOVERY='true'			    # Si se habilita, quitas las entradas de recuperacion de los SO en grub. Queda mas limpio pero si se jode algo no puedes entrar    '
-            
-            echo "##################"
-            echo "# Añadido por trus"
-            echo "##################"
-        } > /etc/default/grub"
-
-    sudo update-grub
-
-}
-
-fix_google_login() {
-    if ! grep -q "LD_PRELOAD=/lib/x86_64-linux-gnu/libnss_sss.so.2" "$BASH_PATH_CONFIG"; then
-        echo 'export LD_PRELOAD=/lib/x86_64-linux-gnu/libnss_sss.so.2' >>"$BASH_PATH_CONFIG"
-    fi
-}
-
+ 
 bash_config() {
+    local google_fix=${1:-""}
     print_semiheader "Prompt de Bash"
+    
+    local fix=''
+    local fix_message=""
+    if [ ! -z "$google_fix" ]; then
+        fix='export LD_PRELOAD=/lib/x86_64-linux-gnu/libnss_sss.so.2'    
+        fix_message="(fix login de Google incluido)"
+    fi
+
 
     if  ! grep -q 'export COLORTERM=truecolor' "$BASH_PATH_CONFIG" ||
         ! grep -q 'shorten_path() {' "$BASH_PATH_CONFIG" ||
@@ -762,6 +733,26 @@ bash_config() {
         {
             echo 'export COLORTERM=truecolor'
             echo '. "$HOME/.asdf/completions/asdf.bash"'
+            echo ''
+            echo '# Fix Bluetab Google Login'
+            echo "$fix"
+            echo ''
+            echo 'alias ai='cd ~/workspace/truedat/back/td-ai''
+            echo 'alias audit='cd ~/workspace/truedat/back/td-audit''
+            echo 'alias auth='cd ~/workspace/truedat/back/td-auth''
+            echo 'alias bg='cd ~/workspace/truedat/back/td-bg''
+            echo 'alias dd='cd ~/workspace/truedat/back/td-dd''
+            echo 'alias df='cd ~/workspace/truedat/back/td-df''
+            echo 'alias i18n='cd ~/workspace/truedat/back/td-i18n''
+            echo 'alias ie='cd ~/workspace/truedat/back/td-ie''
+            echo 'alias lm='cd ~/workspace/truedat/back/td-lm''
+            echo 'alias qx='cd ~/workspace/truedat/back/td-qx''
+            echo 'alias se='cd ~/workspace/truedat/back/td-se''
+            echo 'alias helm='cd ~/workspace/truedat/back//td-helm''
+            echo 'alias k8s='cd ~/workspace/truedat/back//k8s''
+            echo 'alias web='cd ~/workspace/truedat/front/td-web''
+            echo 'alias webmodules='cd ~/workspace/truedat/front/td-web-modules''
+            echo 'alias trudev='cd ~/workspace/truedat/true-dev''
             echo ''
             echo 'shorten_path() {'
             echo '    full_path=$(pwd)'
@@ -797,49 +788,46 @@ bash_config() {
         } >> $BASH_PATH_CONFIG
     fi
 
-    print_message "Prompt de Bash actualizado" "$COLOR_SUCCESS" 3 "both"
+    print_message "Prompt de Bash actualizado $fix_message" "$COLOR_SUCCESS" 2 "after"
 }
 
 zsh_config() {
     print_semiheader "ZSH"
 
     {
-        echo '# If you come from bash you might have to change your $PATH.'
-        echo '# export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH'
-        echo 'ZSH_THEME="agnoster"'
+        echo 'ZSH_THEME="suvash" # set by `omz`'
         echo ''
         echo 'export ZSH="$HOME/.oh-my-zsh"'
         echo 'export COLORTERM=truecolor'
         echo 'source $ZSH/oh-my-zsh.sh'
         echo ''
-        echo 'zstyle ':omz:update' mode auto      # update automatically without asking'
-        echo 'zstyle ':omz:update' frequency 1'
+        echo 'zstyle :omz:update mode auto # update automatically without asking'
+        echo 'zstyle :omz:update frequency 1'
         echo 'HIST_STAMPS="dd/mm/yyyy"'
-        echo ''
         echo ''
         echo '# configuration'
         echo 'export MANPATH="/usr/local/man:$MANPATH"'
         echo 'export LANG=en_US.UTF-8'
-        echo 'EDITOR='code''
+        echo 'EDITOR=code'
         echo 'export ARCHFLAGS="-arch $(uname -m)"'
         echo 'plugins=(git elixir asdf fzf git-prompt zsh-autosuggestions zsh-syntax-highlighting zsh-completions)'
         echo ''
-        echo "alias ai='cd $BACK_PATH/td-ai'"
-        echo "alias audit='cd $BACK_PATH/td-audit'"
-        echo "alias auth='cd $BACK_PATH/td-auth'"
-        echo "alias bg='cd $BACK_PATH/td-bg'"
-        echo "alias dd='cd $BACK_PATH/td-dd'"
-        echo "alias df='cd $BACK_PATH/td-df'"
-        echo "alias i18n='cd $BACK_PATH/td-i18n'"
-        echo "alias ie='cd $BACK_PATH/td-ie'"
-        echo "alias lm='cd $BACK_PATH/td-lm'"
-        echo "alias qx='cd $BACK_PATH/td-qx'"
-        echo "alias se='cd $BACK_PATH/td-se'"
-        echo "alias helm='cd $BACK_PATH//td-helm'"
-        echo "alias k8s='cd $BACK_PATH//k8s'"
-        echo "alias web='cd $FRONT_PATH/td-web'"
-        echo "alias webmodules='cd $FRONT_PATH/td-web-modules'"
-        echo "alias trudev='cd $DEV_PATH'"
+        echo 'alias ai='cd ~/workspace/truedat/back/td-ai''
+        echo 'alias audit='cd ~/workspace/truedat/back/td-audit''
+        echo 'alias auth='cd ~/workspace/truedat/back/td-auth''
+        echo 'alias bg='cd ~/workspace/truedat/back/td-bg''
+        echo 'alias dd='cd ~/workspace/truedat/back/td-dd''
+        echo 'alias df='cd ~/workspace/truedat/back/td-df''
+        echo 'alias i18n='cd ~/workspace/truedat/back/td-i18n''
+        echo 'alias ie='cd ~/workspace/truedat/back/td-ie''
+        echo 'alias lm='cd ~/workspace/truedat/back/td-lm''
+        echo 'alias qx='cd ~/workspace/truedat/back/td-qx''
+        echo 'alias se='cd ~/workspace/truedat/back/td-se''
+        echo 'alias helm='cd ~/workspace/truedat/back//td-helm''
+        echo 'alias k8s='cd ~/workspace/truedat/back//k8s''
+        echo 'alias web='cd ~/workspace/truedat/front/td-web''
+        echo 'alias webmodules='cd ~/workspace/truedat/front/td-web-modules''
+        echo 'alias trudev='cd ~/workspace/truedat/true-dev''
         echo 'alias format="mix format && mix credo --strict"'
         echo ''
         echo 'local -A schars'
@@ -852,12 +840,9 @@ zsh_config() {
         echo '# prompt bigfade'
         echo ''
         echo '# PROMPT="%B%F{208}$schars[333]$schars[262]$schars[261]$schars[260]%B%~/$schars[260]$schars[261]$schars[262]$schars[333]%b%F{208}%b%f%k "'
-        echo ''
-        # echo '[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh'
-        echo ''
     } >$ZSH_PATH_CONFIG
 
-    print_message "Archivo de configuración creado con éxito" "$COLOR_SUCCESS" 3
+    print_message "Archivo de configuración creado con éxito" "$COLOR_SUCCESS" 2 "after"
 }
 
 tmux_config() {
@@ -877,7 +862,7 @@ tmux_config() {
         echo 'bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "xclip -in -selection clipboard"'
     } >$TMUX_PATH_CONFIG
 
-    print_message "Archivo de configuración creado con éxito" "$COLOR_SUCCESS" 3
+    print_message "Archivo de configuración creado con éxito" "$COLOR_SUCCESS" 2 "after"
 }
 
 tlp_config() {
@@ -909,10 +894,13 @@ tlp_config() {
             echo 'RUNTIME_PM_ON_BAT=auto'
         } > $TLP_PATH_CONFIG"
 
-    print_message "Archivo de configuración creado con éxito" "$COLOR_SUCCESS" 3
+    print_message "Archivo de configuración creado con éxito" "$COLOR_SUCCESS" 2 "after"
 
+    print_message_with_animation "Lanzando TLP para hacer efectiva la nueva configuración" "$COLOR_SUCCESS" 1
     exec_command "sudo tlp start"
     exec_command "sudo systemctl enable tlp.service"
+    print_message "TLP lanzado con éxito" "$COLOR_SUCCESS" 2 "after"
+
 }
  
  
@@ -1017,9 +1005,8 @@ config_colours_menu() {
     print_message "Formato admitido de colores:"
     
     printf "%-22s %-22s %-25s %-25s\n" "Hex" "RGB/RGBA" "HSL/HSLA" "HSV/HSVA"
-    print_separator "" "-" "y"
+    print_separator "" "-" "quarter"
 
-    # Imprimir las filas de la tabla
     printf "%-22s %-22s %-25s %-25s\n" "#000" "rgb (255, 0, 0)" "hsl(0, 100%, 50%)" "hsv(0, 100%, 100%)"
     printf "%-22s %-22s %-25s %-25s\n" "000" "rgb 255 0 0" "hsla(0, 100%, 50%, .5)" "hsva(0, 100%, 100%, .5)"
     printf "%-22s %-22s %-25s %-25s\n" "#369C" "rgba (255, 0, 0, .5)" "hsl(0, 100%, 50%)" "hsv (0 100% 100%)"
