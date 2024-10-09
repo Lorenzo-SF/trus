@@ -1200,6 +1200,12 @@ go_out_session() {
     tmux detach-client
 }
 
+
+
+###################################################################################################
+###### Llamadas API
+############################################################################################
+
 load_structures() {
     local path=$1
     local system="$2"
@@ -1228,10 +1234,6 @@ load_linages() {
         "PUT" \
         "-F \"nodes=@nodes.csv\" -F \"rels=@rels.csv\""
 }
-
-###################################################################################################
-###### Llamadas API
-############################################################################################
 
 do_api_call() {
     local token_type="${1:-"Bearer"}"
@@ -2378,10 +2380,7 @@ kill_truedat() {
     pkill -9 -f yarn
 
     print_semiheader "Matando sesiones TMUX"
-    pkill -9 -f tmux
-
-    print_semiheader "Matando a mis hermanos, solo puede quedar uno... y ni eso"
-    pkill -9 -f trus
+    exec_command "tmux kill-server"
 }
 
 
