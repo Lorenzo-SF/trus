@@ -1185,26 +1185,8 @@ remove_all_redis() {
 }
 
 ###################################################################################################
-###### TMUX y Screen
-###################################################################################################
-
-go_to_session() {
-    local session_name=$1
-
-    clear
-
-    tmux attach-session -t "$session_name"
-}
-
-go_out_session() {
-    tmux detach-client
-}
-
-
-
-###################################################################################################
 ###### Llamadas API
-############################################################################################
+###################################################################################################
 
 load_structures() {
     local path=$1
@@ -1426,8 +1408,6 @@ zsh_config() {
     print_semiheader "ZSH"
 
     {
-        echo 'ZSH_THEME="suvash" # set by `omz`'
-        echo ''
         echo 'export ZSH="$HOME/.oh-my-zsh"'
         echo '. "$HOME/.asdf/asdf.sh"'
         echo 'export COLORTERM=truecolor'
@@ -1442,36 +1422,62 @@ zsh_config() {
         echo 'export LANG=en_US.UTF-8'
         echo 'EDITOR=code'
         echo 'export ARCHFLAGS="-arch $(uname -m)"'
-        echo 'plugins=(git elixir asdf fzf git-prompt zsh-autosuggestions zsh-syntax-highlighting zsh-completions)'
-        echo ''
-        echo 'alias ai='cd ~/workspace/truedat/back/td-ai''
-        echo 'alias audit='cd ~/workspace/truedat/back/td-audit''
-        echo 'alias auth='cd ~/workspace/truedat/back/td-auth''
-        echo 'alias bg='cd ~/workspace/truedat/back/td-bg''
-        echo 'alias dd='cd ~/workspace/truedat/back/td-dd''
-        echo 'alias df='cd ~/workspace/truedat/back/td-df''
-        echo 'alias i18n='cd ~/workspace/truedat/back/td-i18n''
-        echo 'alias ie='cd ~/workspace/truedat/back/td-ie''
-        echo 'alias lm='cd ~/workspace/truedat/back/td-lm''
-        echo 'alias qx='cd ~/workspace/truedat/back/td-qx''
-        echo 'alias se='cd ~/workspace/truedat/back/td-se''
-        echo 'alias helm='cd ~/workspace/truedat/back/td-helm''
-        echo 'alias k8s='cd ~/workspace/truedat/back/k8s''
-        echo 'alias web='cd ~/workspace/truedat/front/td-web''
-        echo 'alias webmodules='cd ~/workspace/truedat/front/td-web-modules''
-        echo 'alias trudev='cd ~/workspace/truedat/true-dev''
+        echo 'plugins=(git elixir asdf fzf zsh-autosuggestions zsh-syntax-highlighting zsh-completions)'
+        echo '#git-prompt'
+        echo 'alias ai="cd ~/workspace/truedat/back/td-ai"'
+        echo 'alias audit="cd ~/workspace/truedat/back/td-audit"'
+        echo 'alias auth="cd ~/workspace/truedat/back/td-auth"'
+        echo 'alias bg="cd ~/workspace/truedat/back/td-bg"'
+        echo 'alias dd="cd ~/workspace/truedat/back/td-dd"'
+        echo 'alias df="cd ~/workspace/truedat/back/td-df"'
+        echo 'alias i18n="cd ~/workspace/truedat/back/td-i18n"'
+        echo 'alias ie="cd ~/workspace/truedat/back/td-ie"'
+        echo 'alias lm="cd ~/workspace/truedat/back/td-lm"'
+        echo 'alias qx="cd ~/workspace/truedat/back/td-qx"'
+        echo 'alias se="cd ~/workspace/truedat/back/td-se"'
+        echo 'alias helm="cd ~/workspace/truedat/back/td-helm"'
+        echo 'alias k8s="cd ~/workspace/truedat/back/k8s"'
+        echo 'alias web="cd ~/workspace/truedat/front/td-web"'
+        echo 'alias webmodules="cd ~/workspace/truedat/front/td-web-modules"'
+        echo 'alias trudev="cd ~/workspace/truedat/true-dev"'
         echo 'alias format="mix format && mix credo --strict"'
         echo ''
+        echo 'shorten_path() {'
+        echo 'full_path=$(pwd)'
+        echo '    '
+        echo 'IFS='/' read -r -A path_parts <<< "$full_path"'
+        echo ''
+        echo 'if (( ${#path_parts[@]} > 3 )); then'
+        echo 'echo ".../${path_parts[-3]}/${path_parts[-2]}/${path_parts[-1]}"'
+        echo 'else'
+        echo 'echo "$full_path"'
+        echo 'fi'
+        echo '}'
+        echo ''
+        echo 'git_branch_status() {'
+        echo 'branch=$(git branch --show-current 2>/dev/null)'
+        echo 'if [[ -n "$branch" ]]; then'
+        echo 'if git diff --quiet 2>/dev/null; then'
+        echo 'print "${NEWLINE}%B%F{208}├ %F{green}%K{black}($branch)%k"  '
+        echo 'else'
+        echo 'print "${NEWLINE}%B%F{208}├ %F{yellow}%K{black}($branch)%k"  '
+        echo 'fi'
+        echo 'else'
+        echo 'echo ""  '
+        echo 'fi'
+        echo '}'
+        echo ''
+        echo 'NEWLINE=$'\n''
+        echo ''
         echo 'local -A schars'
-        echo 'setopt PROMPT_SUBST'
-        echo 'autoload -U compinit && compinit'
-        echo 'autoload -Uz prompt_special_chars && prompt_special_chars'
+        echo 'autoload -Uz prompt_special_chars'
+        echo 'prompt_special_chars'
         echo ''
-        echo '# otro estilo del prompt'
-        echo '# autoload -Uz promptinit && promptinit'
-        echo '# prompt bigfade'
+        echo 'PROMPT="%B%F{208}┌ [$(shorten_path)] $(git_branch_status)%f${NEWLINE}%B%F{208}└> %f%k"'
         echo ''
-        echo '# PROMPT="%B%F{208}$schars[333]$schars[262]$schars[261]$schars[260]%B%~/$schars[260]$schars[261]$schars[262]$schars[333]%b%F{208}%b%f%k "'
+        echo 'chpwd() {'
+        echo 'PROMPT="${NEWLINE}%B%F{208}┌ [$(shorten_path)]$(git_branch_status)%f${NEWLINE}%B%F{208}└> %f%k"   '
+        echo '}'
     } >$ZSH_PATH_CONFIG
 
     print_message "Archivo de configuración creado con éxito" "$COLOR_SUCCESS" 2 "after"
@@ -2374,15 +2380,29 @@ kill_truedat() {
     pkill -9 -f mix
 
     print_semiheader "Matando sesiones Screen"
-    pkill -9 -f screen
+    for session in $(screen -ls | awk '/\t/ {print $1}'); do
+        screen -S "$TMUX_SESION" -X quit
+    done
+    screen -wipe
+
+    print_semiheader "Matando sesiones TMUX"
+    tmux kill-session -t "$TMUX_SESION"
 
     print_semiheader "Matando front"
     pkill -9 -f yarn
-
-    print_semiheader "Matando sesiones TMUX"
-    exec_command "tmux kill-server"
 }
 
+go_to_session() {
+    local session_name=$1
+
+    clear
+
+    tmux attach-session -t "$session_name"
+}
+
+go_out_session() {
+    tmux detach-client
+}
 
 ###################################################################################################
 ###### Otras operaciones importantes
