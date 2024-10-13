@@ -1017,14 +1017,14 @@ update_ddbb() {
         print_message "-->  Actualizando $SERVICE_DBNAME" "$COLOR_SECONDARY" 1 "before"
         create_empty_ddbb "$SERVICE_DBNAME"
 
-        print_message_with_animation " Volcado de datos del backup de test" "$COLOR_SECONDARY" 2
+        print_message_with_animation " Volcado de datos del backup de test" "$COLOR_SECONDARY"
         exec_command "PGPASSWORD=postgres psql -d \"${SERVICE_DBNAME}\" -U postgres  -h localhost < \"${FILENAME}\""
         
         print_message " Volcado de datos del backup de test (HECHO)" "$COLOR_SUCCESS" 2
 
-        print_message_with_animation " Aplicando migraciones" "$COLOR_SECONDARY" 3
+        print_message_with_animation " Aplicando migraciones" "$COLOR_SECONDARY" 2
         exec_command "mix ecto.migrate"
-        print_message " Aplicando migraciones (HECHO)" "$COLOR_SUCCESS" 3 "after"
+        print_message " Aplicando migraciones (HECHO)" "$COLOR_SUCCESS" 2 "after"   
     done
 }
 
@@ -1735,7 +1735,7 @@ install_asdf() {
     asdf install yarn latest
     
     asdf global erlang 25.3
-    asdf global elixir 1.13.4
+    asdf global elixir 1.14.5-otp-25
     asdf global nodejs 18.20.3
     asdf global yarn latest
 
