@@ -3013,7 +3013,13 @@ param_router() {
 
 TRUS_ACTUAL_PATH=$(realpath "$0")
 
-if [ ! -e "$TRUS_PATH" ]; then
+
+SCRIPT_PATH=$(readlink -f "$0")
+SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
+ORIGINAL_SCRIPT="$0"
+ 
+
+if [[ ! -e "$TRUS_PATH" || "$SCRIPT_PATH" == "$ORIGINAL_SCRIPT" ]]; then
     install_trus
     preinstallation
 elif [ "$1" = "--help" ]; then
