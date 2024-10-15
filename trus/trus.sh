@@ -1584,69 +1584,25 @@ install_trus() {
     print_centered_message "Truedat Utils (TrUs) instalado con éxito" "$COLOR_SUCCESS"
 }
 
-add_repository() {
-    local key_url=$1
-    local key_path=$2
-    local repo_entry=$3
-
-    if curl -fsSL "$key_url" | gpg --dearmor | sudo tee "$key_path" > /dev/null; then
-        print_message "Clave GPG añadida: $key_path" "$COLOR_SECONDARY" 1
-    else
-        print_message "Error añadiendo clave GPG desde: $key_url" "$COLOR_SECONDARY" 1
-        exit 1
-    fi
-
-    if ! grep -q "^deb .*$repo_entry" /etc/apt/sources.list.d/*; then
-        print_message "$repo_entry" | sudo tee /etc/apt/sources.list.d/$(basename "$key_path" .gpg).list > /dev/null "$COLOR_SECONDARY" 1
-        print_message "Repositorio añadido: $repo_entry" "$COLOR_SECONDARY" 1
-    else
-        print_message "Repositorio ya existe: $repo_entry" "$COLOR_SECONDARY" 1
-    fi
-}
-
+ 
 preinstallation() {
     print_semiheader "Preparando el entorno de Truedat/TrUs"
 
     if [ ! -e "/tmp/trus_install" ]; then
         print_message "Arquitectura detectada: $ARCHITECTURE" "$COLOR_PRIMARY" "both"
 
-        chrome_key_url="https://dl.google.com/linux/linux_signing_key.pub"
-        chrome_key_path="/usr/share/keyrings/google-chrome-archive-keyring.gpg"
-        chrome_repo_entry="deb [arch=$ARCHITECTURE signed-by=$chrome_key_path] http://dl.google.com/linux/chrome/deb/ stable main"
 
-        add_repository "$chrome_key_url" "$chrome_key_path" "$chrome_repo_entry"
+        print_message "En una parte de la instalacion, se ofrecerá instalar zsh y oh my zsh. " "$COLOR_PRIMARY" 2
+        print_message "Si se decide instalarlo, cuando esté ya disponible zsh, escribir "exit" para salir de dicho terminal y terminar con la instalación" "$COLOR_PRIMARY" 2
+        print_message "ya que la instalación se ha lanzado desde bash y en ese contexto, zsh es un proceso lanzado mas, no la terminal por defecto." "$COLOR_PRIMARY" 2 "after"
 
-        code_key_url="https://packages.microsoft.com/keys/microsoft.asc"
-        code_key_path="/usr/share/keyrings/vscode-archive-keyring.gpg"
-        code_repo_entry="deb [arch=$ARCHITECTURE signed-by=$code_key_path] https://packages.microsoft.com/repos/code stable main"
 
-        add_repository "$code_key_url" "$code_key_path" "$code_repo_entry"
-
-        sudo apt update
-
-        if [[ "$ARCHITECTURE" == "amd64" ]]; then
-            sudo apt install -y google-chrome-stable code
-        elif [[ "$ARCHITECTURE" == "arm64" ]]; then
-            sudo apt install -y google-chrome-beta code  # Chrome Beta es el disponible en ARM64
-        fi
-
-        if [[ "$ARCHITECTURE" != "  " && "$ARCHITECTURE" != "arm64" ]]; then
-            print_centered message "Arquitectura no compatible: $ARCHITECTURE" "$COLOR_ERROR" "both"
-            exit 1
-        fi
-    
-    
         print_semiheader "Actualizando sistema"
         print_message_with_animation "Actualizando..." "$COLOR_TERNARY" 2
         exec_command "sudo apt -qq update"
         exec_command "sudo apt -qq upgrade -y"
         exec_command "sudo apt -qq install  -y --install-recommends apt-transport-https"
         print_message "Sistema actualizado" "$COLOR_SUCCESS" 3
-
-
-        print_message "En una parte de la instalacion, se ofrecerá instalar zsh y oh my zsh. " "$COLOR_PRIMARY" 2
-        print_message "Si se decide instalarlo, cuando esté ya disponible zsh, escribir "exit" para salir de dicho terminal y terminar con la instalación" "$COLOR_PRIMARY" 2
-        print_message "ya que la instalación se ha lanzado desde bash y en ese contexto, zsh es un proceso lanzado mas, no la terminal por defecto." "$COLOR_PRIMARY" 2 "after"
 
 
         print_semiheader "Instalación paquetes de software"
@@ -1679,7 +1635,7 @@ preinstallation() {
 
         source ~/.bashrc
         source ~/.zshrc
-        
+
         install_asdf
 
         touch "/tmp/trus_install"
