@@ -1403,6 +1403,7 @@ bash_config() {
     fi
 
     print_message "Prompt de Bash actualizado $fix_message" "$COLOR_SUCCESS" 2 "after"
+    print_message "Cierra la terminal y vuelvela a abrir para que surgan efecto los cambios" "$COLOR_PRIMARY" 2 "after"
 }
 
 zsh_config() {
@@ -1443,6 +1444,10 @@ zsh_config() {
         echo 'alias trudev="cd ~/workspace/truedat/true-dev"'
         echo 'alias format="mix format && mix credo --strict"'
         echo ''
+        echo ''
+        echo ''
+        echo 'NEWLINE=$'\''\n'\'''
+        echo ''
         echo 'shorten_path() {'
         echo '    full_path=$(pwd)'
         echo '    '
@@ -1468,7 +1473,6 @@ zsh_config() {
         echo '    fi'
         echo '}'
         echo ''
-        echo 'NEWLINE=$'\n''
         echo ''
         echo 'local -A schars'
         echo 'autoload -Uz prompt_special_chars'
@@ -1481,7 +1485,9 @@ zsh_config() {
         echo '}'
     } >$ZSH_PATH_CONFIG
 
-    print_message "Archivo de configuración creado con éxito" "$COLOR_SUCCESS" 2 "after"
+    print_message "Archivo de configuración creado con éxito." "$COLOR_SUCCESS" 2 "after"
+    print_message "Cierra la terminal y vuelvela a abrir para que surgan efecto los cambios" "$COLOR_PRIMARY" 2 "after"
+    
 }
 
 tmux_config() {
@@ -1587,10 +1593,9 @@ install_trus() {
  
 preinstallation() {
     print_semiheader "Preparando el entorno de Truedat/TrUs"
-
-    if [ ! -e "/tmp/trus_install" ]; then
+  
+    if [ ! -e "/tmp/trus_install" ] || ( [ -e "/tmp/trus_install" ] && print_question "Se ha detectado que ya se ha realizado la preinstalación con anterioridad" == 0 ); then
         print_message "Arquitectura detectada: $ARCHITECTURE" "$COLOR_PRIMARY" "both"
-
 
         print_message "En una parte de la instalacion, se ofrecerá instalar zsh y oh my zsh. " "$COLOR_PRIMARY" 2
         print_message "Si se decide instalarlo, cuando esté ya disponible zsh, escribir "exit" para salir de dicho terminal y terminar con la instalación" "$COLOR_PRIMARY" 2
@@ -1656,7 +1661,7 @@ install_truedat() {
 
             print_message_with_animation "Instalando Docker Compose" "$COLOR_TERNARY" 2
 
-            install_docker
+            install_containers
             
             clone_truedat_project
 
@@ -1688,10 +1693,6 @@ install_truedat() {
             config_kong
             touch "/tmp/truedat_installation"
             print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" 3 "both"
-
-            if print_question "Si deseas reinstalarlo, puedes hacerlo borrando el archivo '/temp/truedat_installation'" = 0; then
-                rm "/tmp/truedat_installation"
-            fi
         else
             print_message "- Claves SSH (NO CREADAS): Tienes que tener creada una clave SSH (el script chequea que la clave se llame 'truedat') en la carpeta ~/.ssh" "$COLOR_ERROR" 3 "before"
             print_message "RECUERDA que tiene que estar registrada en el equipo y en Gitlab. Si no, debes crearla con 'trus -cr' y registarla en la web'" "$COLOR_WARNING" 3 "after"
@@ -1706,7 +1707,7 @@ install_truedat() {
     fi
 }
 
-install_docker() {    
+install_containers() {    
     if [ ! -e "/usr/local/bin/docker-compose" ]; then        
         cd $DEV_PATH
 
@@ -2985,6 +2986,10 @@ param_router() {
             start_containers
             ;;
 
+        "--stop-containers")
+            stop_docker
+            ;;
+
         "-ss" | "--start-services")
             shift
             header="$param1"
@@ -2996,7 +3001,7 @@ param_router() {
         "-sf" | "--start-front")
             start_front "$param1"
             ;;
-
+        
         "-ls" | "--load-structures")
             load_structures "$param2" "$param3"
             ;;
@@ -3041,8 +3046,8 @@ TRUS_ACTUAL_PATH=$(realpath "$0")
 SCRIPT_PATH=$(readlink -f "$0")
 SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
 ORIGINAL_SCRIPT="$0"
- 
-if [[ ! -e "$TRUS_PATH" || "$SCRIPT_PATH" != "$ORIGINAL_SCRIPT" ]]; then
+
+if [[ "$ORIGINAL_SCRIPT" != "/usr/local/bin/trus" ]]; then
     install_trus
     preinstallation
 elif [ "$1" = "--help" ]; then    
@@ -3069,26 +3074,26 @@ fi
 
 
 
-# print_centered_message "tareas por completar" "$color_primary" "both"
-# print_message "bugs" "$color_primary" 1
-# print_message "- revisar error de 'ruta/*' sale en algunas ocasiones al actualizar la bdd" "$color_secondary" 2
-# print_message "- revisar error del linkado de paquetes de yarn que no va" "$color_secondary" 2
-# print_message "- revisar error cuando se pregunta por  algo de s/n que antes pinta un error de get_color" "$color_secondary" 2
+# # print_centered_message "tareas por completar" "$color_primary" "both"
+# # print_message "bugs" "$color_primary" 1
+# # print_message "- revisar error de 'ruta/*' sale en algunas ocasiones al actualizar la bdd" "$color_secondary" 2
+# # print_message "- revisar error del linkado de paquetes de yarn que no va" "$color_secondary" 2
+# # print_message "- revisar error cuando se pregunta por  algo de s/n que antes pinta un error de get_color" "$color_secondary" 2
 
-# print_message "cosas que antes habia y ahora no" "$color_primary" 1
-# print_message "- hacer los helps" "$color_secondary" 2
-# print_message "- configurar animacion" "$color_secondary" 2
-# print_message "- funciones de ayuda" "$color_secondary" 2
+# # print_message "cosas que antes habia y ahora no" "$color_primary" 1
+# # print_message "- hacer los helps" "$color_secondary" 2
+# # print_message "- configurar animacion" "$color_secondary" 2
+# # print_message "- funciones de ayuda" "$color_secondary" 2
 
-# print_message "cosas nuevas" "$color_primary" 1
-# print_message "- informe pidi (script victor)" "$color_secondary" 2
-# print_message "- multi yarn test" "$color_secondary" 2
-# print_message "- configurar colores de trus" "$color_secondary" 2
-# print_message "- añadir submenu al reindexado de elastic, para seleccionar qué indices se quiere reindexar" "$color_secondary" 2
-# print_message "- añadir submenu al arranque de todo/servicios de truedat, para seleccionar qué servicios se quiere arrancar" "$color_secondary" 2
-# print_message "- añadir submenu a la actualizacion de repos para seleccionar qué actualizar" "$color_secondary" 2
-# print_message "- añadir submenu a la descarga de bdd de test para seleccionar qué actualizar" "$color_secondary" 2 "after"
-# print_message
+# # print_message "cosas nuevas" "$color_primary" 1
+# # print_message "- informe pidi (script victor)" "$color_secondary" 2
+# # print_message "- multi yarn test" "$color_secondary" 2
+# # print_message "- configurar colores de trus" "$color_secondary" 2
+# # print_message "- añadir submenu al reindexado de elastic, para seleccionar qué indices se quiere reindexar" "$color_secondary" 2
+# # print_message "- añadir submenu al arranque de todo/servicios de truedat, para seleccionar qué servicios se quiere arrancar" "$color_secondary" 2
+# # print_message "- añadir submenu a la actualizacion de repos para seleccionar qué actualizar" "$color_secondary" 2
+# # print_message "- añadir submenu a la descarga de bdd de test para seleccionar qué actualizar" "$color_secondary" 2 "after"
+# # print_message
 
 
 
