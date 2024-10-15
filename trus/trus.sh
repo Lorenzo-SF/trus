@@ -1634,7 +1634,6 @@ preinstallation() {
         install_zsh
 
         source ~/.bashrc
-        source ~/.zshrc
 
         install_asdf
 
