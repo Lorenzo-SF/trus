@@ -1730,7 +1730,7 @@ install_docker() {
         fi
         
         exec_command "sudo chmod 666 /var/run/docker.sock"
-        
+
         start_containers
 
         print_message "Contenedores instalados y arrancados" "$COLOR_SUCCESS" 1 "both"
@@ -3046,17 +3046,27 @@ if [[ ! -e "$TRUS_PATH" || "$SCRIPT_PATH" != "$ORIGINAL_SCRIPT" ]]; then
     install_trus
     preinstallation
 elif [ "$1" = "--help" ]; then    
-    source $TRUS_DEFAULT_CONFIG
-    source $TRUS_CONFIG
+    if [[ -f "$TRUS_DEFAULT_CONFIG" && -f "$TRUS_CONFIG" ]]; then
+        source $TRUS_DEFAULT_CONFIG
+        source $TRUS_CONFIG
+    else
+        echo "Error: Archivos de configuración no encontrados."
+        exit 1
+    fi
     help "$2" "$3" "$4"
 else    
-    source $TRUS_DEFAULT_CONFIG
-    source $TRUS_CONFIG
+    if [[ -f "$TRUS_DEFAULT_CONFIG" && -f "$TRUS_CONFIG" ]]; then
+        source $TRUS_DEFAULT_CONFIG
+        source $TRUS_CONFIG
+    else
+        echo "Error: Archivos de configuración no encontrados."
+        exit 1
+    fi
  
     set_terminal_config
-
     param_router $1 $2 $3 $4 $5
 fi
+
 
 
 # print_centered_message "tareas por completar" "$color_primary" "both"
