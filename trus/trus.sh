@@ -1753,8 +1753,8 @@ install_asdf() {
     # Meto esto aqui porque aunque no es de ASDF, depende de que ASDF instale NodeJs
     # https://github.com/aurora-0025/gradient-terminal?tab=readme-ov-file
     npm install -g gradient-terminal
-    npm install tinygradient
-    npm install ansi-regex
+    npm install -g tinygradient
+    npm install -g ansi-regex
     print_centered_message "Instalando plugins y librerias de ASDF (HECHO)" "$COLOR_SUCCESS"
 }
 
