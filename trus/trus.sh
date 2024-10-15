@@ -1714,11 +1714,23 @@ install_docker() {
 
         ip=$(ip -4 addr show docker0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
         echo SERVICES_HOST="$ip" >local_ip.env
-        exec_command "sudo curl -L 'https://github.com/docker/compose/releases/download/v2.16.0/docker-compose-$(uname -s)-$(uname -m)' -o /usr/local/bin/docker-compose"
+        
+        if [ ! -f /usr/local/bin/docker-compose ]; then
+            exec_command "sudo curl -L 'https://github.com/docker/compose/releases/download/v2.16.0/docker-compose-$(uname -s)-$(uname -m)' -o /usr/local/bin/docker-compose"
+        fi
+
         exec_command "sudo chmod +x /usr/local/bin/docker-compose"
-        exec_command "sudo groupadd docker"
-        exec_command "sudo usermod -aG docker $USER"
+
+        if ! getent group docker > /dev/null 2>&1; then
+            exec_command "sudo groupadd docker"
+        fi
+
+        if ! groups $USER | grep -q "\bdocker\b"; then
+            exec_command "sudo usermod -aG docker $USER"
+        fi
+        
         exec_command "sudo chmod 666 /var/run/docker.sock"
+        
         start_containers
 
         print_message "Contenedores instalados y arrancados" "$COLOR_SUCCESS" 1 "both"
