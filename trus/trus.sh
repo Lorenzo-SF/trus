@@ -344,7 +344,7 @@ print_message() {
     case "$color" in
         "$COLOR_SECONDARY") tabs=1;;
         "$COLOR_TERNARY") tabs=2;;
-        "$COLOR_QUATERNARY") tabs=3;;
+        "$COLOR_QUATERNARY" | "$COLOR_SUCCESS" | "$COLOR_ERROR" | "$COLOR_WARNING") tabs=3;;
         *) tabs=0;;
     esac
 
@@ -598,7 +598,16 @@ stop_animation() {
 print_message_with_animation() {
     local message=${1:-""}
     local color=${2:-"${COLOR_PRIMARY}"}
-    local tabs=${3:-0}
+    
+    local tabs=0
+
+    case "$color" in
+        "$COLOR_SECONDARY") tabs=1;;
+        "$COLOR_TERNARY") tabs=2;;
+        "$COLOR_QUATERNARY") tabs=3;;
+        *) tabs=0;;
+    esac
+
 
     if [ -z "$SIMPLE_ECHO" ]; then
         stop_animation
