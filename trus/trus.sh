@@ -282,48 +282,60 @@ get_example_color(){
 }
 
 config_colours_menu() {
-    local opciones_menu=("0 - Volver")  
+    local opciones_menu=("0 - Volver" "1 - Visualizar ejemplo de configuracion actual")  
     for campo in "${propiedadesConfigurables[@]}"; do
         opciones_menu+=("${textosPropiedadesConfigurables[$campo]}")
     done
 
-    local texto_seleccionado
-    texto_seleccionado=$(print_menu "get_example_color" "${opciones_menu[@]}")
+    local texto_seleccionado=$(print_menu "get_example_color" "${opciones_menu[@]}")
 
-    if [ "$texto_seleccionado" = "0 - Volver" ]; then
-        configure_menu
-        return
-    fi
+    option=$(extract_menu_option "$texto_seleccionado")
+    case "$option" in
+        0)
+            configure_menu
+            ;;
 
-    local campo_seleccionado=${relacionPropiedadesConfigurables[$texto_seleccionado]}
+        1)            
+            print_test_messages
 
-    if [ -z "$campo_seleccionado" ]; then
-            print_message "Error: No se encontró el campo correspondiente." "$COLOR_ERROR"
-        return 1
-    fi
-
-    print_semiheader "Actualizando color: $texto_seleccionado"
-    print_message "- Valor actual: ${!campo_seleccionado}" "$COLOR_PRIMARY" "after"
-    print_message "Formato admitido de colores:"
+            if print_question "¿Quieres volver al menu de configuración de colores?" = 0; then
+                print_header
+                config_colours_menu  
+            fi
+            ;;
     
-    printf "%-22s %-22s %-25s %-25s\n" "Hex" "RGB/RGBA" "HSL/HSLA" "HSV/HSVA"
-    print_separator "" "-" "quarter"
+        *)
+            local campo_seleccionado=${relacionPropiedadesConfigurables[$texto_seleccionado]}
 
-    printf "%-22s %-22s %-25s %-25s\n" "#000" "rgb (255, 0, 0)" "hsl(0, 100%, 50%)" "hsv(0, 100%, 100%)"
-    printf "%-22s %-22s %-25s %-25s\n" "000" "rgb 255 0 0" "hsla(0, 100%, 50%, .5)" "hsva(0, 100%, 100%, .5)"
-    printf "%-22s %-22s %-25s %-25s\n" "#369C" "rgba (255, 0, 0, .5)" "hsl(0, 100%, 50%)" "hsv (0 100% 100%)"
-    printf "%-22s %-22s %-25s %-25s\n" "369C" "" "hsl 0 1.0 0.5" "hsv 0 1 1"
-    printf "%-22s %-22s %-25s %-25s\n" "#f0f0f6" "" "" ""
-    printf "%-22s %-22s %-25s %-25s\n" "f0f0f6" "" "" ""
-    printf "%-22s %-22s %-25s %-25s\n" "#f0f0f688" "" "" ""
-    printf "%-22s %-22s %-25s %-25s\n" "f0f0f688" "" "" ""   
-    
-    print_message "  Introduce el nuevo valor (vacío, deja el valor anterior):" "$COLOR_PRIMARY" "before"
-    read nuevo_valor
-    
-    if [[ $nuevo_valor =~ ^#?[0-9A-Fa-f]{6}$ ]]; then
-        update_config "$campo_seleccionado" "$nuevo_valor"
-    fi
+            if [ -z "$campo_seleccionado" ]; then
+                    print_message "Error: No se encontró el campo correspondiente." "$COLOR_ERROR"
+                return 1
+            fi
+
+            print_semiheader "Actualizando color: $texto_seleccionado"
+            print_message "- Valor actual: ${!campo_seleccionado}" "$COLOR_PRIMARY" "after"
+            print_message "Formato admitido de colores:"
+            
+            printf "%-22s %-22s %-25s %-25s\n" "Hex" "RGB/RGBA" "HSL/HSLA" "HSV/HSVA"
+            print_separator "" "-" "quarter"
+
+            printf "%-22s %-22s %-25s %-25s\n" "#000" "rgb (255, 0, 0)" "hsl(0, 100%, 50%)" "hsv(0, 100%, 100%)"
+            printf "%-22s %-22s %-25s %-25s\n" "000" "rgb 255 0 0" "hsla(0, 100%, 50%, .5)" "hsva(0, 100%, 100%, .5)"
+            printf "%-22s %-22s %-25s %-25s\n" "#369C" "rgba (255, 0, 0, .5)" "hsl(0, 100%, 50%)" "hsv (0 100% 100%)"
+            printf "%-22s %-22s %-25s %-25s\n" "369C" "" "hsl 0 1.0 0.5" "hsv 0 1 1"
+            printf "%-22s %-22s %-25s %-25s\n" "#f0f0f6" "" "" ""
+            printf "%-22s %-22s %-25s %-25s\n" "f0f0f6" "" "" ""
+            printf "%-22s %-22s %-25s %-25s\n" "#f0f0f688" "" "" ""
+            printf "%-22s %-22s %-25s %-25s\n" "f0f0f688" "" "" ""   
+            
+            print_message "  Introduce el nuevo valor (vacío, deja el valor anterior):" "$COLOR_PRIMARY" "before"
+            read nuevo_valor
+            
+            if [[ $nuevo_valor =~ ^#?[0-9A-Fa-f]{6}$ ]]; then
+                update_config "$campo_seleccionado" "$nuevo_valor"
+            fi
+            ;;
+    esac
 }
  
 
@@ -335,6 +347,7 @@ print_message() {
     local message=${1:-""}
     local color=${2:-"$NO_COLOR"}
     local new_line_before_or_after=${3:-"normal"}
+    local centered=${4:-""}
 
     local transformed_color=$(get_color "$color")
     local transformed_no_color=$(get_color "$NO_COLOR")
@@ -344,12 +357,16 @@ print_message() {
     case "$color" in
         "$COLOR_PRIMARY") tabs=1;;
         "$COLOR_SECONDARY") tabs=2;;
-        "$COLOR_TERNARY") tabs=3;;
-        "$COLOR_QUATERNARY" | "$COLOR_SUCCESS" | "$COLOR_ERROR" | "$COLOR_WARNING") tabs=4;;
+        "$COLOR_TERNARY" | "$COLOR_SUCCESS" | "$COLOR_ERROR" | "$COLOR_WARNING") tabs=3;;
+        "$COLOR_QUATERNARY") tabs=4;;
         *) tabs=0;;
     esac
 
     message="$(get_tabs $tabs)$message"
+
+    if [ ! -z "$centered" ]; then
+        message="$(pad_message "$message")"
+    fi
 
     if [ -z "$SIMPLE_ECHO" ]; then
         message=$transformed_color$message$transformed_no_color
@@ -360,6 +377,7 @@ print_message() {
             "normal") message="$message\n" ;;
         esac
     fi
+
     echo -ne "$message"
 }
 
@@ -368,7 +386,7 @@ print_question() {
     local question=${1:-""}
     local response=1
 
-    print_centered_message "$question" "$COLOR_WARNING"
+    print_message "$question" "$COLOR_WARNING" "" "centered"
 
     if [ -n "$BASH_VERSION" ]; then
         read -p "¿Deseas hacerlo ahora? (S/N): " user_input
@@ -420,18 +438,9 @@ extract_menu_option() {
     echo "$first_value"
 }
 
+
 ##############################
 ###  Especiales
-
-print_centered_message() {
-    local message=$1
-    local color=$2
-    local new_line_before_or_after=${3:-"both"}
-
-    if [ -z "$SIMPLE_ECHO" ]; then
-            print_message "$(pad_message "$message")" "$color" "$new_line_before_or_after"
-    fi
-}
 
 print_message_with_gradient() {
     local message=$1
@@ -563,6 +572,41 @@ print_logo() {
     sleep 0.5
 }
 
+print_test_animations(){
+    print_message_with_animation "Esto es un mensaje de prueba con la animación seleccionada actualmente $SELECTED_ANIMATION"
+    
+    if print_question "¿Quieres visualizar todas las animaciones disponibles?" = 0; then
+        print_message "Se visualizarán ${#ANIMATIONS[@]} animaciones, de una en una ya que solo puede haber una activa a la vez"
+        for index in "${!ANIMATIONS[@]}"; do
+            animation="${ANIMATIONS[$index]}"
+            num_animations=$((index + 1))
+            
+            set_active_animation "$animation"
+            print_message_with_animation "Ejemplo ${num_animations}: Esto es un mensaje de prueba con la animacion $animation" "$COLOR_SUCCESS"
+            sleep 1.5
+        done
+    fi    
+}
+
+print_test_messages(){
+    print_header
+    print_semiheader "Esto es un semiheader de prueba"
+    print_message "Esto es un mensaje de prueba" "$NO_COLOR"
+    print_message "Esto es un mensaje de prueba con espacio ANTES" "$NO_COLOR" "before"
+    print_message "Esto es un mensaje de prueba con espacio DESPUES" "$NO_COLOR" "after"
+    print_message "Esto es un mensaje de prueba con espacio ANTES y DESPUES" "$NO_COLOR" "both"
+    print_message "Esto es un mensaje de prueba CENTRADO" "$NO_COLOR" "" "centered"
+    print_message "Esto es un mensaje de prueba del color NO_COLOR" "$NO_COLOR"
+    print_message "Esto es un mensaje de prueba del color COLOR_PRIMARY" "$COLOR_PRIMARY"
+    print_message "Esto es un mensaje de prueba del color COLOR_SECONDARY" "$COLOR_SECONDARY"
+    print_message "Esto es un mensaje de prueba del color COLOR_TERNARY" "$COLOR_TERNARY"
+    print_message "Esto es un mensaje de prueba del color COLOR_QUATERNARY" "$COLOR_QUATERNARY"
+    print_message "Esto es un mensaje de prueba del color COLOR_SUCCESS" "$COLOR_SUCCESS"
+    print_message "Esto es un mensaje de prueba del color COLOR_WARNING" "$COLOR_WARNING"
+    print_message "Esto es un mensaje de prueba del color COLOR_ERROR" "$COLOR_ERROR"
+    print_message_with_gradient "Esto es un mensaje de prueba con GRADIENTE"
+}
+
 ##############################
 ### Animaciones. Original aqui: https://github.com/Silejonu/bash_loading_animations
 
@@ -603,9 +647,10 @@ print_message_with_animation() {
     local tabs=0
 
     case "$color" in
-        "$COLOR_SECONDARY") tabs=1;;
-        "$COLOR_TERNARY") tabs=2;;
-        "$COLOR_QUATERNARY") tabs=3;;
+        "$COLOR_PRIMARY") tabs=1;;
+        "$COLOR_SECONDARY") tabs=2;;
+        "$COLOR_TERNARY" | "$COLOR_SUCCESS" | "$COLOR_ERROR" | "$COLOR_WARNING") tabs=3;;
+        "$COLOR_QUATERNARY") tabs=4;;
         *) tabs=0;;
     esac
 
@@ -1150,50 +1195,50 @@ reindex_one() {
 
     case "$service" in
     "dd")
-            print_message_with_animation " Reindexando :jobs" "$COLOR_TERNARY"
+        print_message_with_animation " Reindexando :jobs" "$COLOR_TERNARY"
         exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:jobs, :all)\""
-            print_message " Reindexando :jobs (HECHO)" "$COLOR_SUCCESS"
+        print_message " Reindexando :jobs (HECHO)" "$COLOR_SUCCESS"
 
-            print_message_with_animation " Reindexando :structures" "$COLOR_TERNARY"
+        print_message_with_animation " Reindexando :structures" "$COLOR_TERNARY"
         exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:structures, :all)\""
-            print_message " Reindexando :structures (HECHO)" "$COLOR_SUCCESS"
+        print_message " Reindexando :structures (HECHO)" "$COLOR_SUCCESS"
 
-            print_message_with_animation " Reindexando :grants" "$COLOR_TERNARY"
+        print_message_with_animation " Reindexando :grants" "$COLOR_TERNARY"
         exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:grants, :all)\""
-            print_message " Reindexando :grants (HECHO)" "$COLOR_SUCCESS"
+        print_message " Reindexando :grants (HECHO)" "$COLOR_SUCCESS"
 
-            print_message_with_animation " Reindexando :grant_requests" "$COLOR_TERNARY"
+        print_message_with_animation " Reindexando :grant_requests" "$COLOR_TERNARY"
         exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:grant_requests, :all)\""
-            print_message " Reindexando :grant_requests (HECHO)" "$COLOR_SUCCESS"
+        print_message " Reindexando :grant_requests (HECHO)" "$COLOR_SUCCESS"
 
-            print_message_with_animation " Reindexando :implementations" "$COLOR_TERNARY"
+        print_message_with_animation " Reindexando :implementations" "$COLOR_TERNARY"
         exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:implementations, :all)\""
-            print_message " Reindexando :implementations (HECHO)" "$COLOR_SUCCESS"
+        print_message " Reindexando :implementations (HECHO)" "$COLOR_SUCCESS"
 
-            print_message_with_animation " Reindexando :rules" "$COLOR_TERNARY"
+        print_message_with_animation " Reindexando :rules" "$COLOR_TERNARY"
         exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:rules, :all)\""
-            print_message " Reindexando :rules (HECHO)" "$COLOR_SUCCESS" "after"
+        print_message " Reindexando :rules (HECHO)" "$COLOR_SUCCESS" "after"
         ;;
 
     "bg")
-            print_message_with_animation " Reindexando :concepts" "$COLOR_TERNARY"
+        print_message_with_animation " Reindexando :concepts" "$COLOR_TERNARY"
         exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:concepts, :all)\""
-            print_message " Reindexando :concepts (HECHO)" "$COLOR_SUCCESS" "after"
+        print_message " Reindexando :concepts (HECHO)" "$COLOR_SUCCESS" "after"
         ;;
 
     "ie")
-            print_message_with_animation " Reindexando :ingests" "$COLOR_TERNARY"
+        print_message_with_animation " Reindexando :ingests" "$COLOR_TERNARY"
         exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:ingests, :all)\""
-            print_message " Reindexando :ingests (HECHO)" "$COLOR_SUCCESS" "after"
+        print_message " Reindexando :ingests (HECHO)" "$COLOR_SUCCESS" "after"
         ;;
 
     "qx")
-            print_message_with_animation " Reindexando :quality_controls" "$COLOR_TERNARY"
+        print_message_with_animation " Reindexando :quality_controls" "$COLOR_TERNARY"
         
-        print_centered_message "REINDEXADO DE QX DESACTIVADO" "$COLOR_ERROR" 
-        exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:quality_controls, :all)\""
+        print_message "REINDEXADO DE QX DESACTIVADO" "$COLOR_ERROR"  "" "centered"
+        # exec_command "mix run -e \"TdCore.Search.Indexer.reindex(:quality_controls, :all)\""
         
-            print_message " Reindexando :quality_controls (HECHO)" "$COLOR_SUCCESS" "both"
+        print_message " Reindexando :quality_controls (HECHO)" "$COLOR_SUCCESS" "both"
         ;;
     esac
 }
@@ -2300,7 +2345,7 @@ deactivate_kong() {
             echo '};'
         } >$TD_WEB_DEV_CONFIG
     else
-        print_centered_message "NO SE HAN REALIZADO MODIFICACIONES" "$COLOR_SUCCESS"
+        print_message "NO SE HAN REALIZADO MODIFICACIONES" "$COLOR_SUCCESS" "" "centered"        
     fi
 }
 
@@ -2532,7 +2577,7 @@ create_ssh() {
                     print_message "Clave registrada correctamente" "$COLOR_SUCCESS" "both"
                     print_message "Por favor, registra la siguiente clave en gitlab: $(cat $SSH_PUBLIC_FILE)" "$COLOR_PRIMARY" "after"
         else
-            print_centered_message "Hubo un problema al registrar la clave: $ssh_add_result" "$COLOR_ERROR"
+            print_message "Hubo un problema al registrar la clave: $ssh_add_result" "$COLOR_ERROR" "" "centered"
         fi
     fi
 }
@@ -2660,7 +2705,15 @@ animation_menu() {
     0)
         configure_menu
         ;;
+    1)
+        print_test_animations
 
+        if print_question "¿Quieres volver al menu de configuración de animaciones?" = 0; then
+            print_header 
+            animation_menu  
+        fi
+        
+        ;;
     *)
         sed -i "s/^SELECTED_ANIMATION=.*/SELECTED_ANIMATION=$option/" "$TRUS_CONFIG"
         ;;
@@ -2808,13 +2861,13 @@ clean_local_backup_menu() {
                 local files=${DDBB_BASE_BACKUP_PATH}"/*"
 
                 for FILENAME in $files; do
-                                    print_message_with_animation "Borrando backup -> $FILENAME" "$COLOR_TERNARY"
+                        print_message_with_animation "Borrando backup -> $FILENAME" "$COLOR_TERNARY"
                     rm -fr $FILENAME
-                                    print_message "Backup $FILENAME Borrado" "$COLOR_SUCCESS" "before"
+                        print_message "Backup $FILENAME Borrado" "$COLOR_SUCCESS"
 
                 done
 
-                print_centered_message "Backups borrados" "$COLOR_SUCCESS" "both"
+                print_message "Backups borrados" "$COLOR_SUCCESS" "both" "" "centered"
             fi
             ;;
 
