@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 ###################################################################################################
 ###### Variables minimas (necesarias para instalación de TrUs)
 ###################################################################################################
@@ -1400,16 +1399,7 @@ create_configurations() {
     tmux_config
     tlp_config
 }
-
-reload_shell_config(){
-    if [[ $SHELL == *"bash"* ]]; then
-        source ~/.bashrc
-    elif [[ $SHELL == *"zsh"* ]]; then
-        source ~/.zshrc
-    else
-        print_message "Shell desconocida: $SHELL" "$COLOR_ERROR"
-    fi
-}
+ 
 
 bash_config() {
     local google_fix=${1:-""}
@@ -1423,71 +1413,78 @@ bash_config() {
     fi
 
 
-    if  ! grep -q 'export COLORTERM=truecolor' "$BASH_PATH_CONFIG" ||
-        ! grep -q 'shorten_path() {' "$BASH_PATH_CONFIG" ||
-        ! grep -q 'git_branch_status() {' "$BASH_PATH_CONFIG" ||
-        ! grep -q 'parse_git_branch() {' "$BASH_PATH_CONFIG" ||
-        ! grep -q 'PS1="${debian_chroot' "$BASH_PATH_CONFIG"; then
-        {
+    if  ! grep -q '## Config añadida por TrUs' "$BASH_PATH_CONFIG"; then
+        {            
+            echo ''
+            echo ''
+            echo '########################################################################'
+            echo '## Config añadida por TrUs'
+            echo '########################################################################'
+            echo ''
+            echo ''
             echo 'export COLORTERM=truecolor'
+            echo '. "$HOME/.asdf/asdf.sh"'
             echo '. "$HOME/.asdf/completions/asdf.bash"'
             echo ''
-            echo '# Fix Bluetab Google Login'
-            echo "$fix"
             echo ''
-            echo 'alias ai='cd ~/workspace/truedat/back/td-ai''
-            echo 'alias audit='cd ~/workspace/truedat/back/td-audit''
-            echo 'alias auth='cd ~/workspace/truedat/back/td-auth''
-            echo 'alias bg='cd ~/workspace/truedat/back/td-bg''
-            echo 'alias dd='cd ~/workspace/truedat/back/td-dd''
-            echo 'alias df='cd ~/workspace/truedat/back/td-df''
-            echo 'alias i18n='cd ~/workspace/truedat/back/td-i18n''
-            echo 'alias ie='cd ~/workspace/truedat/back/td-ie''
-            echo 'alias lm='cd ~/workspace/truedat/back/td-lm''
-            echo 'alias qx='cd ~/workspace/truedat/back/td-qx''
-            echo 'alias se='cd ~/workspace/truedat/back/td-se''
-            echo 'alias helm='cd ~/workspace/truedat/back/td-helm''
-            echo 'alias k8s='cd ~/workspace/truedat/back/k8s''
-            echo 'alias web='cd ~/workspace/truedat/front/td-web''
-            echo 'alias webmodules='cd ~/workspace/truedat/front/td-web-modules''
-            echo 'alias trudev='cd ~/workspace/truedat/true-dev''
+            echo '# Aliases'
+            echo 'alias ai="cd ~/workspace/truedat/back/td-ai"'
+            echo 'alias audit="cd ~/workspace/truedat/back/td-audit"'
+            echo 'alias auth="cd ~/workspace/truedat/back/td-auth"'
+            echo 'alias bg="cd ~/workspace/truedat/back/td-bg"'
+            echo 'alias dd="cd ~/workspace/truedat/back/td-dd"'
+            echo 'alias df="cd ~/workspace/truedat/back/td-df"'
+            echo 'alias i18n="cd ~/workspace/truedat/back/td-i18n"'
+            echo 'alias ie="cd ~/workspace/truedat/back/td-ie"'
+            echo 'alias lm="cd ~/workspace/truedat/back/td-lm"'
+            echo 'alias qx="cd ~/workspace/truedat/back/td-qx"'
+            echo 'alias se="cd ~/workspace/truedat/back/td-se"'
+            echo 'alias helm="cd ~/workspace/truedat/back/td-helm"'
+            echo 'alias k8s="cd ~/workspace/truedat/back/k8s"'
+            echo 'alias web="cd ~/workspace/truedat/front/td-web"'
+            echo 'alias webmodules="cd ~/workspace/truedat/front/td-web-modules"'
+            echo 'alias trudev="cd ~/workspace/truedat/true-dev"'
+            echo 'alias format="mix format && mix credo --strict"'
             echo ''
+            echo ''
+            echo '# Function to shorten path'
             echo 'shorten_path() {'
             echo '    full_path=$(pwd)'
-            echo '    echo "$full_path" | awk -F/ "{'
-            echo '        if (NF > 3) {'
-            echo '            print $(NF-2) "/" $(NF-1) "/" $NF;  '
-            echo '        } else {'
-            echo '            print $0;'
-            echo '        }'
-            echo '    }"'
+            echo ''
+            echo '    IFS=/ read -r -a path_parts <<< "$full_path"'
+            echo ''
+            echo '    if (( ${#path_parts[@]} > 3 )); then'
+            echo '        echo ".../${path_parts[-3]}/${path_parts[-2]}/${path_parts[-1]}"'
+            echo '    else'
+            echo '        echo "$full_path"'
+            echo '    fi'
             echo '}'
             echo ''
-            echo ''
+            echo '# Function to get git branch status'
             echo 'git_branch_status() {'
             echo '    branch=$(git branch --show-current 2>/dev/null)'
-            echo '    if [ -n "$branch" ]; then'
-            echo '        if git diff --quiet 2>/dev/null >&2; then'
-            echo '            echo -e "\033[97;48;5;75m($branch)"  '
+            echo '    if [[ -n "$branch" ]]; then'
+            echo '        if git diff --quiet 2>/dev/null; then'
+            echo '            echo -e "\033[97;48;5;75m($branch)"  # Green branch name'
             echo '        else'
-            echo '            echo -e "\033[30;48;5;214m($branch)"  '
-            echo ''
+            echo '            echo -e "\033[30;48;5;214m($branch) "  # Yellow branch name'
             echo '        fi'
             echo '    else'
             echo '        echo ""  '
             echo '    fi'
             echo '}'
             echo ''
-            echo 'if [ "`id -u`" -eq 0 ]; then'
+            echo '# Function to set prompt'
+            echo 'set_prompt() {'
             echo '    PS1="|\[\033[1;34m\]\t\[\033[m\]|\033[48;5;202m$(git_branch_status)\033[m|\[\033[1;38;5;202m\]$(shorten_path)\[\033[m\]> "'
-            echo 'else'
-            echo '    PS1="|\[\033[1;34m\]\t\[\033[m\]|\033[48;5;202m$(git_branch_status)\033[m|\[\033[1;38;5;202m\]$(shorten_path)\[\033[m\]> "'
-            echo 'fi'
+            echo '}'
+            echo ''
+            echo '# Set the prompt when the directory changes'
+            echo 'PROMPT_COMMAND=set_prompt'
+            echo ' '
         } >> $BASH_PATH_CONFIG
     fi
     
-    reload_shell_config
-
     print_message "Prompt de Bash actualizado $fix_message" "$COLOR_SUCCESS" "after"
     print_message "Cierra la terminal y vuelvela a abrir para que surgan efecto los cambios" "$COLOR_PRIMARY" "after"
 }
@@ -1496,6 +1493,8 @@ zsh_config() {
     print_semiheader "ZSH"
 
     {
+        echo ''
+        echo ''
         echo 'export ZSH="$HOME/.oh-my-zsh"'
         echo '. "$HOME/.asdf/asdf.sh"'
         echo 'export COLORTERM=truecolor'
@@ -1570,8 +1569,6 @@ zsh_config() {
         echo '    PROMPT="${NEWLINE}%B%F{208}┌ [$(shorten_path)]$(git_branch_status)%f${NEWLINE}%B%F{208}└> %f%k"   '
         echo '}'
     } >$ZSH_PATH_CONFIG
-
-    reload_shell_config
 
     print_message "Archivo de configuración creado con éxito." "$COLOR_SUCCESS" "after"
     print_message "Cierra la terminal y vuelvela a abrir para que surgan efecto los cambios" "$COLOR_PRIMARY" "after"    
@@ -1682,11 +1679,11 @@ preinstallation() {
     print_semiheader "Preparando el entorno de Truedat/TrUs"
   
     if [ ! -e "/tmp/trus_install" ] || ( [ -e "/tmp/trus_install" ] && print_question "Se ha detectado que ya se ha realizado la preinstalación con anterioridad" == 0 ); then
-            print_message "Arquitectura detectada: $ARCHITECTURE" "$COLOR_PRIMARY" "both"
+        print_message "Arquitectura detectada: $ARCHITECTURE" "$COLOR_PRIMARY" "both"
 
-            print_message "En una parte de la instalacion, se ofrecerá instalar zsh y oh my zsh. " "$COLOR_PRIMARY"
-            print_message "Si se decide instalarlo, cuando esté ya disponible zsh, escribir "exit" para salir de dicho terminal y terminar con la instalación" "$COLOR_PRIMARY"
-            print_message "ya que la instalación se ha lanzado desde bash y en ese contexto, zsh es un proceso lanzado mas, no la terminal por defecto." "$COLOR_PRIMARY" "after"
+        print_message "En una parte de la instalacion, se ofrecerá instalar zsh y oh my zsh. " "$COLOR_PRIMARY"
+        print_message "Si se decide instalarlo, cuando esté ya disponible zsh, escribir "exit" para salir de dicho terminal y terminar con la instalación" "$COLOR_PRIMARY"
+        print_message "ya que la instalación se ha lanzado desde bash y en ese contexto, zsh es un proceso lanzado mas, no la terminal por defecto." "$COLOR_PRIMARY" "after"
 
 
         print_semiheader "Actualizando sistema"
@@ -1708,14 +1705,13 @@ preinstallation() {
         git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
         ~/.fzf/install
 
-        local user_name=$(getent passwd $USER | cut -d ':' -f 5 | cut -d ',' -f 1)
-        local user_email=$(whoami)"@bluetab.net"
-            print_message "--- (GIT) Se ha configurado GIT con los siguientes datos" "$COLOR_PRIMARY" "before"
-            print_message "        - Nombre: $user_name" "$COLOR_SECONDARY"
-            print_message "        - Email: $user_email" "$COLOR_SECONDARY"
-            print_message "        Si deseas modificarlo, utiliza los siguientes comandos en la terminal:" "$COLOR_PRIMARY" "before"
-            print_message "        - Nombre: git config --global user.name "\<user_name\>"'" "$COLOR_SECONDARY"
-            print_message "        - Nombre: git config --global user.email "\<user_email\>"'" "$COLOR_SECONDARY"
+        
+        print_message "--- (GIT) Se ha configurado GIT con los siguientes datos" "$COLOR_PRIMARY" "before"
+        print_message "        - Nombre: $user_name" "$COLOR_SECONDARY"
+        print_message "        - Email: $user_email" "$COLOR_SECONDARY"
+        print_message "        Si deseas modificarlo, utiliza los siguientes comandos en la terminal:" "$COLOR_PRIMARY" "before"
+        print_message "        - Nombre: git config --global user.name "\<user_name\>"'" "$COLOR_SECONDARY"
+        print_message "        - Email: git config --global user.email "\<user_email\>"'" "$COLOR_SECONDARY"
 
         git config --global user.name "$user_name"
         git config --global user.email "$user_email"
@@ -2582,6 +2578,128 @@ create_ssh() {
     fi
 }
 
+validar_fecha() {
+    local fecha="$1"
+    if [[ "$fecha" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+        return 0
+    else
+        return 1 
+    fi
+}
+
+informe_pidi(){
+    print_header
+    print_semiheader "Generación de informe PiDi"
+    print_message "IMPORTANTE Formato de fecha a introducir: YYYY-MM-DD" "$COLOR_WARNING" "both" 
+    
+    while true; do
+        print_message "Por favor, introduce una fecha de inicio (por defecto: 2020-01-01)"
+        read informe_desde
+
+        if validar_fecha "$informe_desde"; then
+            break
+        else
+            print_message "La fecha introducida no es válida. Inténtalo de nuevo." "$COLOR_ERROR"
+        fi
+    done
+    
+    while true; do
+        print_message "Por favor, introduce una fecha de fin (por defecto: 2032-12-31)"
+        read informe_hasta
+
+        if validar_fecha "$informe_hasta"; then
+            break
+        else
+            print_message "La fecha introducida no es válida. Inténtalo de nuevo." "$COLOR_ERROR"
+        fi
+    done
+
+    generar_informe_pidi "$informe_desde" "$informe_hasta"
+
+    print_message "Informe generado con éxito" "$COLOR_SUCCESS"
+    print_message "Archivo generado: $PIDI_FILE" "$COLOR_QUATERNARY"
+}
+
+generar_informe_pidi(){
+    local desde=${1:-"2020-01-01"}
+    local hasta=${2:-"2032-12-31"}
+    local autor="$(git config --global user.email)"     
+    
+    if [ ! -e "$PIDI_PATH" ]; then
+        mkdir -p $PIDI_PATH
+    fi
+
+    touch "$PIDI_FILE"
+    local header="commit;author;commit line 1;commit line 2;commit line 3;commit line 4;commit line 5;" 
+    
+    for SERVICE in "${SERVICES[@]}"; do
+        {
+            echo ""
+            echo "Commits de $SERVICE"
+            echo ""
+        } >> "$PIDI_FILE"
+
+        cd "$BACK_PATH/$SERVICE"
+        echo "$header" >> "$PIDI_FILE"
+
+        git log --all --pretty=format:"%h - %an <%ae> - %s" \
+        --since="$desde" \
+        --until="$hasta" \
+        --regexp-ignore-case | \
+        grep -i "$autor" | \
+        sed 's/ - /;/g' \
+        >> "$PIDI_FILE"        
+    done
+    
+    for LIBRARY in "${LIBRARIES[@]}"; do
+        {
+            echo ""
+            echo "Commits de $LIBRARY"
+            echo ""
+        } >> "$PIDI_FILE"
+
+        cd "$BACK_PATH/$LIBRARY"
+        echo "$header" >> "$PIDI_FILE"
+
+        git log --all --pretty=format:"%h - %an <%ae> - %s" --regexp-ignore-case | \
+        grep -i "$autor" | \
+        sed 's/ - /;/g' \
+        >> "$PIDI_FILE"        
+    done
+
+
+    {
+        echo ""
+        echo "Commits de td-web"
+        echo ""
+    } >> "$PIDI_FILE"
+
+    cd "$FRONT_PATH/td-web"
+
+    echo "$header" >> "$PIDI_FILE"
+
+    git log --all --pretty=format:"%h - %an <%ae> - %s" --regexp-ignore-case | \
+    grep -i "$autor" | \
+    sed 's/ - /;/g' \
+    >> "$PIDI_FILE"        
+
+    {
+        echo ""
+        echo "Commits de td-web-modules"
+        echo ""
+    } >> "$PIDI_FILE"
+
+    cd "$FRONT_PATH/td-web-modules"
+
+    echo "$header" >> "$PIDI_FILE"
+
+    git log --all --pretty=format:"%h - %an <%ae> - %s" --regexp-ignore-case | \
+    grep -i "$autor" | \
+    sed 's/ - /;/g' \
+    >> "$PIDI_FILE"        
+    
+
+}
 
 ###################################################################################################
 ###### Menus principales
@@ -2816,6 +2934,10 @@ secondary_actions_menu() {
 
     9)
         trus --detach
+        ;;
+
+    10)
+        informe_pidi
         ;;
 
     0)
@@ -3136,11 +3258,7 @@ param_router() {
 TRUS_ACTUAL_PATH=$(realpath "$0")
 
 
-SCRIPT_PATH=$(readlink -f "$0")
-SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
-ORIGINAL_SCRIPT="$0"
-
-if [[ "$ORIGINAL_SCRIPT" != "/usr/local/bin/trus" ]]; then
+if [[ "$0" != "/usr/local/bin/trus" ]]; then
     install_trus
     preinstallation
 elif [ "$1" = "--help" ]; then    
@@ -3162,7 +3280,7 @@ else
     fi
  
     set_terminal_config
-    param_router $1 $2 $3 $4 $5
+    param_router $1 $2 $3 $4 $5    
 fi
 
 
