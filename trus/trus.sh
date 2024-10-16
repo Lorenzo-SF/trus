@@ -583,7 +583,7 @@ print_logo() {
 
 print_test_animations(){
     print_message_with_animation "Esto es un mensaje de prueba con la animación seleccionada actualmente $SELECTED_ANIMATION"
-    
+    local actual_animation=$SELECTED_ANIMATIONS
     if print_question "¿Quieres visualizar todas las animaciones disponibles?" = 0; then
         print_message "Se visualizarán ${#ANIMATIONS[@]} animaciones, de una en una ya que solo puede haber una activa a la vez"
         for index in "${!ANIMATIONS[@]}"; do
@@ -594,6 +594,8 @@ print_test_animations(){
             print_message_with_animation "Ejemplo ${num_animations}: Esto es un mensaje de prueba con la animacion $animation" "$COLOR_SUCCESS"
             sleep 1.5
         done
+
+        set_active_animation "$actual_animation"
     fi    
 }
 
