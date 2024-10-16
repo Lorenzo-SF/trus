@@ -122,6 +122,16 @@ exec_command() {
 }
 
 
+validar_fecha() {
+    local fecha="$1"
+    if [[ "$fecha" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+        return 0
+    else
+        return 1 
+    fi
+}
+
+
 ###################################################################################################
 ###### Personalizacion
 ###################################################################################################
@@ -2575,15 +2585,6 @@ create_ssh() {
         else
             print_message "Hubo un problema al registrar la clave: $ssh_add_result" "$COLOR_ERROR" "" "centered"
         fi
-    fi
-}
-
-validar_fecha() {
-    local fecha="$1"
-    if [[ "$fecha" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
-        return 0
-    else
-        return 1 
     fi
 }
 
