@@ -342,9 +342,10 @@ print_message() {
     stop_animation
 
     case "$color" in
-        "$COLOR_SECONDARY") tabs=1;;
-        "$COLOR_TERNARY") tabs=2;;
-        "$COLOR_QUATERNARY" | "$COLOR_SUCCESS" | "$COLOR_ERROR" | "$COLOR_WARNING") tabs=3;;
+        "$COLOR_PRIMARY") tabs=1;;
+        "$COLOR_SECONDARY") tabs=2;;
+        "$COLOR_TERNARY") tabs=3;;
+        "$COLOR_QUATERNARY" | "$COLOR_SUCCESS" | "$COLOR_ERROR" | "$COLOR_WARNING") tabs=4;;
         *) tabs=0;;
     esac
 
@@ -428,7 +429,7 @@ print_centered_message() {
     local new_line_before_or_after=${3:-"both"}
 
     if [ -z "$SIMPLE_ECHO" ]; then
-            print_message "$(pad_message "$message")" "$color" 0 "$new_line_before_or_after"
+            print_message "$(pad_message "$message")" "$color" "$new_line_before_or_after"
     fi
 }
 
@@ -1354,7 +1355,17 @@ create_configurations() {
     tmux_config
     tlp_config
 }
- 
+
+reload_shell_config(){
+    if [[ $SHELL == *"bash"* ]]; then
+        source ~/.bashrc
+    elif [[ $SHELL == *"zsh"* ]]; then
+        source ~/.zshrc
+    else
+        print_message "Shell desconocida: $SHELL" "$COLOR_ERROR"
+    fi
+}
+
 bash_config() {
     local google_fix=${1:-""}
     print_semiheader "Prompt de Bash"
@@ -1429,6 +1440,8 @@ bash_config() {
             echo 'fi'
         } >> $BASH_PATH_CONFIG
     fi
+    
+    reload_shell_config
 
     print_message "Prompt de Bash actualizado $fix_message" "$COLOR_SUCCESS" "after"
     print_message "Cierra la terminal y vuelvela a abrir para que surgan efecto los cambios" "$COLOR_PRIMARY" "after"
@@ -1513,9 +1526,10 @@ zsh_config() {
         echo '}'
     } >$ZSH_PATH_CONFIG
 
+    reload_shell_config
+
     print_message "Archivo de configuración creado con éxito." "$COLOR_SUCCESS" "after"
-    print_message "Cierra la terminal y vuelvela a abrir para que surgan efecto los cambios" "$COLOR_PRIMARY" "after"
-    
+    print_message "Cierra la terminal y vuelvela a abrir para que surgan efecto los cambios" "$COLOR_PRIMARY" "after"    
 }
 
 tmux_config() {
@@ -2046,9 +2060,9 @@ activate_kong() {
     print_message "Se van a actualizar las rutas de Kong" "$COLOR_SECONDARY"
 
     if print_question "Se va a activar Kong" = 0; then
-        sed -i 's/USE_KONG=false/USE_KONG=true/' "$PATH_GLOBAL_CONFIG"
+        sed -i 's/USE_KONG=false/USE_KONG=true/' "$TRUS_CONFIG"
 
-        source $PATH_GLOBAL_CONFIG
+        source $TRUS_CONFIG
 
         cd $BACK_PATH
 
@@ -2105,8 +2119,8 @@ deactivate_kong() {
     print_message "Se va a actualizar el archivo $TD_WEB_DEV_CONFIG para que se encargue de enrutar td-web" "$COLOR_SECONDARY"
 
     if print_question "Se va a desactivar Kong" = 0; then
-        sed -i 's/USE_KONG=true/USE_KONG=false/' "$PATH_GLOBAL_CONFIG"
-        source $PATH_GLOBAL_CONFIG
+        sed -i 's/USE_KONG=true/USE_KONG=false/' "$TRUS_CONFIG"
+        source $TRUS_CONFIG
 
         rm -f $BACK_PATH/kong_routes
 
