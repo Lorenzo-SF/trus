@@ -36,7 +36,7 @@ TRUS_LINK_PATH=$LINK_BASE_PATH/trus
 check_sudo() {
     local message=$1
     if [ "$EUID" -ne 0 ]; then
-        print_centered_message "$message" "$COLOR_ERROR"
+        print_message "$message" "$COLOR_ERROR" "" "centered"
         exit 1
     fi
 }
@@ -99,7 +99,7 @@ set_terminal_config() {
         set_active_animation
     fi
 
-    if [ "$HIDE_OUTPUT" = true ]; then
+    if [ ! -z "$HIDE_OUTPUT" ]; then
         REDIRECT=">/dev/null 2>&1"
     else
         REDIRECT=""
@@ -113,10 +113,13 @@ set_terminal_config() {
 exec_command() {
     local command=$1
     local error_message
-    if ! error_message=$(eval "$command" 2>&1); then
-            print_message "Error ejecutando el comando: $command" "$COLOR_ERROR" "before"
-            print_message "Path actual: ${pwd}" "$COLOR_WARNING"
-            print_message "Detalles del error: $error_message" "$COLOR_WARNING" "after"
+
+    command="$command $REDIRECT"
+
+    if ! error_message=$(eval "$command"); then
+        print_message "Error ejecutando el comando: $command" "$COLOR_ERROR" "before"
+        print_message "Path actual: ${pwd}" "$COLOR_WARNING"
+        print_message "Detalles del error: $error_message" "$COLOR_WARNING" "after"
         exit 1
     fi
 }
@@ -1099,17 +1102,16 @@ update_ddbb() {
         SERVICE_NAME=$(basename "$FILENAME" "_dev.sql" | sed 's/_dev//g; s/_/-/g')
 
         cd "$BACK_PATH"/"$SERVICE_NAME"
-
             print_message "-->  Actualizando $SERVICE_DBNAME" "$COLOR_SECONDARY" "before"
-        create_empty_ddbb "$SERVICE_DBNAME"
+            create_empty_ddbb "$SERVICE_DBNAME"
 
             print_message_with_animation " Volcado de datos del backup de test" "$COLOR_TERNARY"
-        exec_command "PGPASSWORD=postgres psql -d \"${SERVICE_DBNAME}\" -U postgres  -h localhost < \"${FILENAME}\""
+            exec_command "PGPASSWORD=postgres psql -d \"${SERVICE_DBNAME}\" -U postgres  -h localhost < \"${FILENAME}\""
         
             print_message " Volcado de datos del backup de test (HECHO)" "$COLOR_SUCCESS"
 
             print_message_with_animation " Aplicando migraciones" "$COLOR_TERNARY"
-        exec_command "mix ecto.migrate"
+            exec_command "mix ecto.migrate"
             print_message " Aplicando migraciones (HECHO)" "$COLOR_SUCCESS" "after"   
     done
 }
@@ -1544,16 +1546,25 @@ zsh_config() {
         echo ''
         echo ''
         echo 'NEWLINE=$'\''\n'\'''
+        echo "SEGMENT_SEPARATOR=\$'\ue0b0'"
+        echo ''
+        echo 'PROMPT_BACK_COLOR=208'
+        echo 'PROMPT_FONT_COLOR=0'
+        echo 'PROMPT_GIT_OK=10'
+        echo 'PROMPT_GIT_PENDING=11'
+        echo 'KEYBOARD_GIT_OK="4E9A06FF"'
+        echo 'KEYBOARD_GIT_PENDING="C4A000FF"'
+        echo 'KEYBOARD_GIT_RESET="FF8700FF"'
         echo ''
         echo 'shorten_path() {'
         echo '    full_path=$(pwd)'
         echo '    '
-        echo '    IFS='/' read -r -A path_parts <<< "$full_path"'
+        echo '    IFS=/ read -r -A path_parts <<< "$full_path"'
         echo ''
         echo '    if (( ${#path_parts[@]} > 3 )); then'
-        echo '        echo ".../${path_parts[-3]}/${path_parts[-2]}/${path_parts[-1]}"'
+        echo '        echo "%B%F{$PROMPT_BACK_COLOR}┌ %K{$PROMPT_BACK_COLOR}%F{$PROMPT_FONT_COLOR}.../${path_parts[-3]}/${path_parts[-2]}/${path_parts[-1]} %k%f%F{$PROMPT_BACK_COLOR}$SEGMENT_SEPARATOR%k%f"'
         echo '    else'
-        echo '        echo "$full_path"'
+        echo '        echo "%B%F{$PROMPT_BACK_COLOR}┌ %K{$PROMPT_BACK_COLOR}%F{$PROMPT_FONT_COLOR}$full_path %k%f%F{$PROMPT_BACK_COLOR}$SEGMENT_SEPARATOR%k%f"'
         echo '    fi'
         echo '}'
         echo ''
@@ -1561,25 +1572,32 @@ zsh_config() {
         echo '    branch=$(git branch --show-current 2>/dev/null)'
         echo '    if [[ -n "$branch" ]]; then'
         echo '        if git diff --quiet 2>/dev/null; then'
-        echo '            print "${NEWLINE}%B%F{208}├ %F{green}%K{black}($branch)%k"  '
+        echo '            print "${NEWLINE}%B%F{$PROMPT_BACK_COLOR}├ %K{$PROMPT_GIT_OK}%F{$PROMPT_FONT_COLOR}($branch) %k%f%F{$PROMPT_GIT_OK}$SEGMENT_SEPARATOR%k%f"'
+        echo '            echo "rgb $KEYBOARD_GIT_OK" > /tmp/ckbpipe000  '
         echo '        else'
-        echo '            print "${NEWLINE}%B%F{208}├ %F{yellow}%K{black}($branch)%k"  '
+        echo '            print "${NEWLINE}%B%F{$PROMPT_BACK_COLOR}├ %K{$PROMPT_GIT_PENDING}%F{$PROMPT_FONT_COLOR}($branch) ± %k%f%F{$PROMPT_GIT_PENDING}$SEGMENT_SEPARATOR%k%f" '
+        echo '            echo "rgb $KEYBOARD_GIT_PENDING" > /tmp/ckbpipe000'
         echo '        fi'
         echo '    else'
         echo '        echo ""  '
+        echo '        echo "rgb $KEYBOARD_GIT_RESET" > /tmp/ckbpipe000'
         echo '    fi'
         echo '}'
         echo ''
+        echo 'prompt_last_segment() {'
+        echo '    echo "%f${NEWLINE}%B%F{$PROMPT_BACK_COLOR}└> %f%k"'
+        echo '}'
         echo ''
         echo 'local -A schars'
         echo 'autoload -Uz prompt_special_chars'
         echo 'prompt_special_chars'
         echo ''
-        echo 'PROMPT="%B%F{208}┌ [$(shorten_path)] $(git_branch_status)%f${NEWLINE}%B%F{208}└> %f%k"'
+        echo 'PROMPT="${NEWLINE}$(shorten_path) $(git_branch_status) $(prompt_last_segment)"   '
         echo ''
         echo 'chpwd() {'
-        echo '    PROMPT="${NEWLINE}%B%F{208}┌ [$(shorten_path)]$(git_branch_status)%f${NEWLINE}%B%F{208}└> %f%k"   '
+        echo '    PROMPT="${NEWLINE}$(shorten_path) $(git_branch_status) $(prompt_last_segment)"   '
         echo '}'
+
     } >$ZSH_PATH_CONFIG
 
     print_message "Archivo de configuración creado con éxito." "$COLOR_SUCCESS" "after"
