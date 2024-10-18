@@ -110,16 +110,23 @@ set_terminal_config() {
 	fi
 }
 
+
 exec_command() {
     local command=$1
     local error_message
+    local output_message
 
     command="$command $REDIRECT"
 
-    if ! error_message=$(eval "$command"); then
+    if output_message=$(eval "$command" 2>&1); then
+        if [[ -n "$HIDE_MESSAGE" ]]; then
+            print_message "Comando ejecutado correctamente: $command" "$COLOR_SUCCESS" "before"
+            print_message "Salida del comando: $output_message" "$COLOR_INFO"
+        fi
+    else
         print_message "Error ejecutando el comando: $command" "$COLOR_ERROR" "before"
-        print_message "Path actual: ${pwd}" "$COLOR_WARNING"
-        print_message "Detalles del error: $error_message" "$COLOR_WARNING" "after"
+        print_message "Path actual: $(pwd)" "$COLOR_WARNING"
+        print_message "Detalles del error: $output_message" "$COLOR_WARNING" "after"
         exit 1
     fi
 }
@@ -705,13 +712,22 @@ update_git() {
     local change_branch=$1
     local branch=$2
 
-    if  [ $change_branch == "0" ]; then 
+    print_message_with_animation "Actualizando repositorio..." "$COLOR_SECONDARY"
+
+    if [ $change_branch == "0" ]; then 
         checkout "$branch"
+    else
+        exec_command "git stash"        
     fi
 
-    print_message_with_animation "Actualizando repositorio..." "$COLOR_TERNARY"
     exec_command "git fetch"
     exec_command "git pull origin $branch"
+    
+    if [ $change_branch == "1" ]; then 
+        exec_command "git stash"        
+    fi
+
+
     print_message "Actualizando repositorio (HECHO)" "$COLOR_SUCCESS"
 }
 
@@ -781,7 +797,7 @@ update_services() {
     for SERVICE in "${SERVICES[@]}"; do
         cd "$BACK_PATH/$SERVICE"
 
-            print_message "Actualizando $SERVICE" "$COLOR_SECONDARY" "before"
+        print_message "Actualizando $SERVICE" "$COLOR_PRIMARY" "before"
         
         update_git "$branch" "develop"
 
@@ -799,7 +815,7 @@ update_libraries() {
     print_semiheader "Actualizando librerias"
 
     for LIBRARY in "${LIBRARIES[@]}"; do
-            print_message "Actualizando ${LIBRARY}" "$COLOR_TERNARY" "before"
+        print_message "Actualizando ${LIBRARY}" "$COLOR_PRIMARY" "before"
 
         cd "$BACK_PATH/$LIBRARY"
 
@@ -810,7 +826,7 @@ update_libraries() {
     done
 
     for REPO in "${LEGACY_REPOS[@]}"; do
-            print_message "Actualizando ${REPO}" "$COLOR_TERNARY" "before"
+        print_message "Actualizando ${REPO}" "$COLOR_PRIMARY" "before"
 
         cd "$BACK_PATH/$REPO"
 
@@ -820,7 +836,7 @@ update_libraries() {
     done
 
     for REPO in "${NON_ELIXIR_LIBRARIES[@]}"; do
-            print_message "Actualizando ${REPO}" "$COLOR_TERNARY" "before"
+        print_message "Actualizando ${REPO}" "$COLOR_PRIMARY" "before"
 
         cd "$BACK_PATH/$REPO"
 
@@ -837,7 +853,7 @@ update_web() {
 
     print_semiheader "Actualizando frontal"
 
-    print_message "Actualizando td-web" "$COLOR_QUATERNARY" "before"
+    print_message "Actualizando td-web" "$COLOR_PRIMARY" "before"
 
     update_git "$branch""develop"
     compile_web
@@ -845,7 +861,7 @@ update_web() {
     cd ..
 
     cd "$FRONT_PATH/td-web-modules"
-    print_message "Actualizando td-web-modules" "$COLOR_QUATERNARY" "before"
+    print_message "Actualizando td-web-modules" "$COLOR_PRIMARY" "before"
 
     update_git "$branch" "main"
     compile_web
