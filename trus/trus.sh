@@ -279,7 +279,7 @@ declare -A relacionPropiedadesConfigurables=(
     ['Gradiente posicion 6']="GRADIENT_6"
 )
 
-get_example_color(){
+get_example_color() {
     local campo_seleccionado=${relacionPropiedadesConfigurables[$1]}
     
     case $campo_seleccionado in        
@@ -591,7 +591,7 @@ print_logo() {
     sleep 0.5
 }
 
-print_test_animations(){
+print_test_animations() {
     print_message_with_animation "Esto es un mensaje de prueba con la animación seleccionada actualmente $SELECTED_ANIMATION"
     local actual_animation=$SELECTED_ANIMATIONS
     if print_question "¿Quieres visualizar todas las animaciones disponibles?" = 0; then
@@ -609,7 +609,7 @@ print_test_animations(){
     fi    
 }
 
-print_test_messages(){
+print_test_messages() {
     print_header
     print_semiheader "Esto es un semiheader de prueba"
     print_message "Esto es un mensaje de prueba" "$NO_COLOR"
@@ -1010,7 +1010,7 @@ ddbb() {
     fi
 }
 
-recreate_local_ddbb(){
+recreate_local_ddbb() {
     if print_question "Esta acción BORRARÁ las bases de datos y las creará de nuevo VACÍAS" = 0; then
         start_containers
         for DATABASE in "${DATABASES[@]}"; do
@@ -1388,7 +1388,7 @@ get_token() {
     echo "$token" 
 }
 
-do_api_call_with_login_token(){
+do_api_call_with_login_token() {
     local url="$1"
     local rest_method="$2"
     local params="$3"
@@ -1678,14 +1678,14 @@ tlp_config() {
 
 }
 
-update_config(){
+update_config() {
     local option=$1
     local value=$2
     sed -i "s/^$option=.*/$option='$value'/" "$TRUS_CONFIG"
     source $TRUS_CONFIG
 }
 
-aws_configure(){
+aws_configure() {
     if [ ! -f "$AWS_CREDENTIALS_PATH" ] || ! grep -q "\[default\]" "$AWS_CREDENTIALS_PATH"; then
             print_message "ATENCIÓN, SE VA A SOLICITAR LOS DATOS DE ACCESO A AWS" "$COLOR_WARNING" "before"
         print_centered_message "perfil: 'default'"
@@ -2559,7 +2559,7 @@ go_out_session() {
 ###### Otras operaciones importantes
 ###################################################################################################
 
-help(){
+help() {
     local option=${1:-""}
     local suboption=${2:-""}
     
@@ -2624,7 +2624,7 @@ create_ssh() {
     fi
 }
 
-informe_pidi(){
+informe_pidi() {
     print_header
     print_semiheader "Generación de informe PiDi"
     print_message "IMPORTANTE Formato de fecha a introducir: YYYY-MM-DD" "$COLOR_WARNING" "both" 
@@ -2657,7 +2657,7 @@ informe_pidi(){
     print_message "Archivo generado: $PIDI_FILE" "$COLOR_QUATERNARY"
 }
 
-generar_informe_pidi(){
+generar_informe_pidi() {
     local desde=${1:-"2020-01-01"}
     local hasta=${2:-"2032-12-31"}
     local autor="$(git config --global user.email)"     
