@@ -1,9 +1,21 @@
 #!/bin/bash
 
 trap stop_animation SIGINT
-source ~/.config/user-dirs.dirs
-
+# APT_INSTALLATION_PACKAGES=("curl" "unzip" "vim" "jq" "screen" "tmux" "build-essential" "git" "libssl-dev" "automake" "autoconf" "gedit" "redis-tools" "libncurses6" "libncurses-dev" "docker.io" "postgresql-client" "xclip" "xdotool" "x11-utils" "wine-stable" "gdebi-core" "fonts-powerline" "xsltproc" "fop" "libxml2-utils" "bc" "wmctrl" "fzf" "sl" "neofetch")
 APT_INSTALLATION_PACKAGES=("curl" "zsh" "unzip" "vim" "jq" "screen" "tmux" "git" "gedit" "redis-tools" "libncurses6" "libncurses-dev" "docker.io" "postgresql-client" "xclip" "gdebi-core" "fonts-powerline" "xsltproc" "fop" "libxml2-utils" "wmctrl" "fzf" "sl" "neofetch")
+
+if [ -e "~/.config/user-dirs.dirs" ] ; then
+    source "~/.config/user-dirs.dirs"
+else
+    XDG_DESKTOP_DIR="$USER_HOME/Escritorio"
+    XDG_DOWNLOAD_DIR="$USER_HOME/Descargas"
+    XDG_TEMPLATES_DIR="$USER_HOME/Plantillas"
+    XDG_PUBLICSHARE_DIR="$USER_HOME/Público"
+    XDG_DOCUMENTS_DIR="$USER_HOME/Documentos"
+    XDG_MUSIC_DIR="$USER_HOME/Música"
+    XDG_PICTURES_DIR="$USER_HOME/Imágenes"
+    XDG_VIDEOS_DIR="$USER_HOME/Vídeos"
+fi
 
 DATE_NOW=$(date +"%Y-%m-%d_%H-%M-%S")
 HEADER_MESSAGE="Truedat Utils (TrUs)"
@@ -13,15 +25,6 @@ SWAP_SIZE=$(free --giga | awk '/^Mem:/ {print int($2)}')
 USER_HOME=$(eval echo ~"$SUDO_USER")
 LINK_BASE_PATH=/usr/local/bin
 TRUS_BASE_PATH=$USER_HOME/.trus
-
-XDG_DESKTOP_DIR="$USER_HOME/Escritorio"
-XDG_DOWNLOAD_DIR="$USER_HOME/Descargas"
-XDG_TEMPLATES_DIR="$USER_HOME/Plantillas"
-XDG_PUBLICSHARE_DIR="$USER_HOME/Público"
-XDG_DOCUMENTS_DIR="$USER_HOME/Documentos"
-XDG_MUSIC_DIR="$USER_HOME/Música"
-XDG_PICTURES_DIR="$USER_HOME/Imágenes"
-XDG_VIDEOS_DIR="$USER_HOME/Vídeos"
 
 
 
