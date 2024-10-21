@@ -1726,8 +1726,8 @@ preinstallation() {
   
     if [ ! -e "/tmp/trus_install" ] || ( [ -e "/tmp/trus_install" ] && print_question "Se ha detectado que ya se ha realizado la preinstalación con anterioridad" == 0 ); then
         print_message "Arquitectura detectada: $ARCHITECTURE" "$COLOR_PRIMARY" "both"
-APT_INSTALLATION_PACKAGES=("curl" "zsh" "unzip" "vim" "jq" "screen" "tmux" "git" "docker.io" "postgresql-client" "xclip" "gdebi-core" "fonts-powerline" "xsltproc" "fop" "libxml2-utils" "wmctrl" "fzf" "sl" "neofetch")
-
+        APT_INSTALLATION_PACKAGES=("curl" "zsh" "unzip" "vim" "jq" "screen" "tmux" "git" "postgresql-client" "xclip" "gdebi-core" "fonts-powerline" "xsltproc" "fop" "libxml2-utils" "wmctrl" "fzf" "sl" "neofetch")
+        install_containers
         print_message "En una parte de la instalacion, se ofrecerá instalar zsh y oh my zsh. " "$COLOR_PRIMARY"
         print_message "Si se decide instalarlo, cuando esté ya disponible zsh, escribir "exit" para salir de dicho terminal y terminar con la instalación" "$COLOR_PRIMARY"
         print_message "ya que la instalación se ha lanzado desde bash y en ese contexto, zsh es un proceso lanzado mas, no la terminal por defecto." "$COLOR_PRIMARY" "after"
