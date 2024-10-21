@@ -1736,7 +1736,6 @@ preinstallation() {
             print_message_with_animation "Actualizando..." "$COLOR_TERNARY"
         exec_command " apt -qq update"
         exec_command " apt -qq upgrade -y"
-        exec_command " apt -qq install  -y --install-recommends apt-transport-https"
             print_message "Sistema actualizado" "$COLOR_SUCCESS"
 
 
