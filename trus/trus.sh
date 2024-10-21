@@ -23,7 +23,7 @@ DESCRIPTION_MESSAGE=""
 SWAP_FILE=/swapfile
 SWAP_SIZE=$(free --giga | awk '/^Mem:/ {print int($2)}')
 USER_HOME=$(eval echo ~"$SUDO_USER")
-APT_INSTALLATION_PACKAGES=("curl" "unzip" "vim" "jq" "apt-transport-https" "screen" "tmux" "build-essential" "git" "libssl-dev" "automake" "autoconf" "gedit" "redis-tools" "libncurses6" "libncurses-dev" "docker.io" "postgresql-client" "xclip" "xdotool" "x11-utils" "wine-stable" "gdebi-core" "fonts-powerline" "xsltproc" "fop" "libxml2-utils" "bc" "wmctrl" "fzf" "sl" "neofetch" "apt-transport-https")
+APT_INSTALLATION_PACKAGES=("curl" "unzip" "vim" "jq" "apt-transport-https" "screen" "tmux" "build-essential" "git" "libssl-dev" "automake" "autoconf" "gedit" "redis-tools" "libncurses6" "libncurses-dev" "docker.io" "postgresql-client" "xclip" "xdotool" "x11-utils" "wine-stable" "gdebi-core" "fonts-powerline" "xsltproc" "fop" "libxml2-utils" "bc" "wmctrl" "fzf" "sl" "neofetch")
 ARCHITECTURE=$(dpkg --print-architecture)
 
 # ====== Sesiones, contextos y configuraciones
@@ -173,15 +173,15 @@ ANIMATIONS=("ARROW" "BOUNCE" "BOUNCING_BALL" "BOX" "BRAILLE" "BREATHE" "BUBBLE" 
 
 # ====== Esquema de colores
 
-NO_COLOR="FFFCE2"
-COLOR_PRIMARY="BED5E8"
-COLOR_SECONDARY="DEE0B7"
-COLOR_TERNARY="937F5F"
-COLOR_QUATERNARY="808F9C"
-COLOR_SUCCESS="10C90A"
-COLOR_WARNING="FFCE00"
-COLOR_ERROR="C90D0A"
-COLOR_BACKRGROUND="000000"
+NO_COLOR="#FFFCE2"
+COLOR_PRIMARY="#BED5E8"
+COLOR_SECONDARY="#DEE0B7"
+COLOR_TERNARY="#937F5F"
+COLOR_QUATERNARY="#808F9C"
+COLOR_SUCCESS="#10C90A"
+COLOR_WARNING="#FFCE00"
+COLOR_ERROR="#C90D0A"
+COLOR_BACKRGROUND="#000000"
 
 # ====== Esquema de colores del gradiente
 # https://github.com/aurora-0025/gradient-terminal?tab=readme-ov-file
@@ -265,8 +265,8 @@ set_terminal_config() {
     source $TRUS_CONFIG
 
     if [ "$SIMPLE_ECHO" = "" ]; then
-        echo -ne "\e[1m\e]11;#${COLOR_BACKRGROUND}\e\\"
-        echo -ne "\e[1m\e]10;#${NO_COLOR}\e\\"
+        echo -ne "\e]11;#${COLOR_BACKRGROUND}\e\\"
+        echo -ne "\e]10;#${NO_COLOR}\e\\"
         set_active_animation
     fi
 
@@ -358,10 +358,10 @@ swap() {
 
 get_color() {
     local COLOR=${1:-$COLOR_PRIMARY}
-    local R=$((16#${COLOR:0:2}))
-    local G=$((16#${COLOR:2:2}))
-    local B=$((16#${COLOR:4:2}))
-    echo -e "\e[1;38;2;${R};${G};${B}m"
+    local R=$((16#${COLOR:1:2}))
+    local G=$((16#${COLOR:3:2}))
+    local B=$((16#${COLOR:5:2}))
+    echo -e "\e[38;2;${R};${G};${B}m"
 }
 
 hex_to_rgb() {
@@ -649,7 +649,7 @@ print_separator() {
     "") separator_lenght=$((filled_space / 8)) ;;
     esac
 
-    print_message "$(pad_message "" "left" "-" $separator_lenght)"
+    print_message "$(pad_message "" "left" "-" $separator_lenght)" "" "before"
 }
 
 print_header() {
@@ -902,10 +902,10 @@ clone_if_not_exists() {
 
     if [ ! -d "$target_dir" ]; then
         print_message "Clonando el repositorio desde '$repo_url' en '$target_dir'..." "$COLOR_SUCCESS"
-        if [! -z "$params"] then
-            git clone "$params" "$repo_url" "$target_dir"
+        if [ ! -z "$params" ] ; then
+            exec_command "git clone '$params' '$repo_url' '$target_dir'"
         else
-            git clone "$repo_url" "$target_dir"
+            exec_command "git clone '$repo_url' '$target_dir'"
         fi
     else
         print_message "El directorio '$target_dir' ya existe. No se clonará el repositorio." "$COLOR_WARNING"
@@ -1684,7 +1684,7 @@ bash_config() {
     fi
 
     print_message "Prompt de Bash actualizado $fix_message" "$COLOR_SUCCESS" "after"
-    print_message "Cierra la terminal y vuelvela a abrir para que surgan efecto los cambios" "$COLOR_PRIMARY" "after"
+    print_message "Cierra la terminal y vuelvela a abrir para que surgan efecto los cambios" "$COLOR_WARNING" 
 }
 
 hosts_config() {
@@ -1872,21 +1872,23 @@ update_config() {
     source $TRUS_CONFIG
 }
 
-aws_configure() {
-    aws ecr get-login-password --profile truedat --region eu-west-1 | docker login --username AWS --password-stdin 576759405678.dkr.ecr.eu-west-1.amazonaws.com
+aws_configure() {    
+    if [ ! -e "$AWSCONFIG" ]; then    
+        aws ecr get-login-password --profile truedat --region eu-west-1 | docker login --username AWS --password-stdin 576759405678.dkr.ecr.eu-west-1.amazonaws.com
 
-    if [ ! -f "$AWS_CREDENTIALS_PATH" ] || ! grep -q "\[default\]" "$AWS_CREDENTIALS_PATH"; then
-        print_message "ATENCIÓN, SE VA A SOLICITAR LOS DATOS DE ACCESO A AWS" "$COLOR_WARNING" "before"
-        print_message "perfil: 'default'"
-        print_message "Estos datos te los debe dar tu responsable" "$COLOR_WARNING" "both"
-        aws configure
-    fi
+        if [ ! -f "$AWS_CREDENTIALS_PATH" ] || ! grep -q "\[default\]" "$AWS_CREDENTIALS_PATH"; then
+            print_message "ATENCIÓN, SE VA A SOLICITAR LOS DATOS DE ACCESO A AWS" "$COLOR_WARNING" "before"
+            print_message "perfil: 'default'"
+            print_message "Estos datos te los debe dar tu responsable" "$COLOR_WARNING" "both"
+            aws configure
+        fi
 
-    if [ ! -f "$AWS_CREDENTIALS_PATH" ] || ! grep -q "\[truedat\]" "$AWS_CREDENTIALS_PATH"; then
-        print_message "ATENCIÓN, SE VA A SOLICITAR LOS DATOS DE ACCESO A AWS" "$COLOR_WARNING" "before"
-        print_message "perfil: 'truedat'"
-        print_message "Estos datos te los debe dar tu responsable" "$COLOR_WARNING" "both"
-        aws configure --profile truedat
+        if [ ! -f "$AWS_CREDENTIALS_PATH" ] || ! grep -q "\[truedat\]" "$AWS_CREDENTIALS_PATH"; then
+            print_message "ATENCIÓN, SE VA A SOLICITAR LOS DATOS DE ACCESO A AWS" "$COLOR_WARNING" "before"
+            print_message "perfil: 'truedat'"
+            print_message "Estos datos te los debe dar tu responsable" "$COLOR_WARNING" "both"
+            aws configure --profile truedat
+        fi
     fi
 }
 
@@ -1924,7 +1926,7 @@ preinstallation() {
         print_message " - Instalación de AWSCLI" "$COLOR_SECONDARY"
         print_message " - Instalación de KUBECTL" "$COLOR_SECONDARY"
         print_message " - Instalación de ZSH, OhMyZSH y plugins" "$COLOR_SECONDARY"
-        print_message " - Instalación de ASDF y plugins" "$COLOR_SECONDARY" "before"
+        print_message " - Instalación de ASDF y plugins" "$COLOR_SECONDARY" "after"
 
         print_message "En el paso de la instalacion donde se ofrece instalar zsh y oh my zsh, si se decide instalarlo, cuando esté disponible ZSH, escribir "exit" para salir de dicho terminal y terminar con la instalación" "$COLOR_PRIMARY"
         print_message "ya que la instalación se ha lanzado desde bash y en ese contexto, zsh es un proceso lanzado mas y se queda esperando hasta terminar (con el exit), no la terminal por defecto." "$COLOR_PRIMARY" "after"
@@ -1970,53 +1972,53 @@ preinstallation() {
 
 install_truedat() {
     print_semiheader "Intalación de Truedat"
-    print_message "Guia de instalación: https://confluence.bluetab.net/pages/viewpage.action?pageId=136022683" "$COLOR_QUATERNARY" 5 "both"
+    
+    if [ ! -e "/tmp/truedat_installation" ]; then
+        if [ -f "$SSH_PUBLIC_FILE" ]; then
+            print_message "Guia de instalación: https://confluence.bluetab.net/pages/viewpage.action?pageId=136022683" "$COLOR_QUATERNARY" 5 "both"
 
-    print_message "IMPORTANTE: Para poder seguir con la instalación de Truedat, debes crear las claves SSH con 'trus -cs' y tambien tenerlas registrarlas en Gitlab y Githab" "$COLOR_WARNING" "before"
-    print_message "De lo contrario, no se descargarán los proyectos y dará error" "$COLOR_WARNING" "after"
+            print_message "IMPORTANTE: Para poder seguir con la instalación de Truedat, debes crear las claves SSH con 'trus -cs' y tambien tenerlas registrarlas en Gitlab y Githab" "$COLOR_WARNING" "before"
+            print_message "De lo contrario, no se descargarán los proyectos y dará error" "$COLOR_WARNING" "after"
 
-    print_message "Se va a proceder a realizar las siguientes tareas:" "$COLOR_PRIMARY"
-    print_message " - Configurar AWS los perfiles 'default' y 'truedat'" "$COLOR_SECONDARY"
-    print_message " - Instalación de contenedores" "$COLOR_SECONDARY"
-    print_message " - Añadido a fichero de hosts info de Truedat" "$COLOR_SECONDARY"
-    print_message " - Creación de estructuras de proyecto y descarga de código" "$COLOR_SECONDARY"
-    print_message " - Configuración de elastic 'max_map_count'" "$COLOR_SECONDARY"
-    print_message " - Linkado de paquetes del los proyectos de  front" "$COLOR_SECONDARY"
-    print_message " - Descarga de último backup de bdd de TEST y aplicado a las bdd locales" "$COLOR_SECONDARY"
-    print_message " - Configuración de Kong" "$COLOR_SECONDARY"
- 
-    if print_question "" = 0; then
-        if [ ! -e "/tmp/truedat_installation" ]; then
-            if [ -f "$SSH_PUBLIC_FILE" ]; then
-                if [ ! -e "$AWSCONFIG" ]; then
-                    aws_configure
-                fi
+            print_message "Se va a proceder a realizar las siguientes tareas:" "$COLOR_PRIMARY"
+            print_message " - Configurar AWS los perfiles 'default' y 'truedat'" "$COLOR_SECONDARY"
+            print_message " - Instalación de contenedores" "$COLOR_SECONDARY"
+            print_message " - Añadido a fichero de hosts info de Truedat" "$COLOR_SECONDARY"
+            print_message " - Creación de estructuras de proyecto y descarga de código" "$COLOR_SECONDARY"
+            print_message " - Configuración de elastic 'max_map_count'" "$COLOR_SECONDARY"
+            print_message " - Linkado de paquetes del los proyectos de  front" "$COLOR_SECONDARY"
+            print_message " - Descarga de último backup de bdd de TEST y aplicado a las bdd locales" "$COLOR_SECONDARY"
+            print_message " - Configuración de Kong" "$COLOR_SECONDARY"
+        
+            if print_question "A continuación se va a proceder a realizar la preinstalación" = 1; then exit 0 ; fi
 
-                install_containers
-                clone_truedat_project
+            aws_configure
 
-                cd $DEV_PATH
-                sudo sysctl -w vm.max_map_count=262144
-                sudo cp elastic-search/999-map-count.conf /etc/sysctl.d/
+            install_containers
+            clone_truedat_project
 
-                hosts_config
-                update_repositories "-a" "yes"
-                link_web_modules
-                ddbb "-du"
-                config_kong
-                touch "/tmp/truedat_installation"
-                print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" "both"
-            else
-                print_message "- Claves SSH (NO CREADAS): Tienes que tener creada una clave SSH (el script chequea que la clave se llame 'truedat') en la carpeta ~/.ssh" "$COLOR_ERROR" "before"
-                print_message "RECUERDA que tiene que estar registrada en el equipo y en Gitlab. Si no, debes crearla con 'trus -cr' y registarla en la web'" "$COLOR_WARNING" "after"
-            fi
-        else
+            cd $DEV_PATH
+            sudo sysctl -w vm.max_map_count=262144
+            sudo cp elastic-search/999-map-count.conf /etc/sysctl.d/
+
+            hosts_config
+            update_repositories "-a" "yes"
+            link_web_modules
+            ddbb "-du"
+            config_kong
+            touch "/tmp/truedat_installation"
             print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" "both"
+        else
+            print_message "- Claves SSH (NO CREADAS): Tienes que tener creada una clave SSH (el script chequea que la clave se llame 'truedat') en la carpeta ~/.ssh" "$COLOR_ERROR" "before"
+            print_message "RECUERDA que tiene que estar registrada en el equipo y en Gitlab. Si no, debes crearla con 'trus -cr' y registarla en la web'" "$COLOR_WARNING" "after"
+        fi
+        
+    else
+        print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" "both"
 
-            if print_question "Si deseas reinstalarlo, puedes hacerlo borrando el archivo '/temp/truedat_installation'" = 0; then
-                rm "/tmp/truedat_installation"
-                print_message "Archivo '/tmp/truedat_installation' eliminado correctamente" "$COLOR_PRIMARY" "both"
-            fi
+        if print_question "Es posible realizar de nuevo la preinstalación" = 0; then
+            rm "/tmp/truedat_installation"
+            print_message "Archivo '/tmp/truedat_installation' eliminado correctamente" "$COLOR_PRIMARY" "both"
         fi
     fi
 }
@@ -2057,13 +2059,22 @@ install_asdf() {
         rm -fr $ASDF_ROOT_PATH
     fi
 
+    print_semiheader "Instalacion y configuración de ASDF y los plugins de Erlang, Elixir, NodeJS y Yarn"
+
     print_message_with_animation "Instalando ASDF" "$COLOR_TERNARY"
     exec_command "git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.14.1"
+    print_message "ASDF Instalado" "$COLOR_SUCCESS"
 
+
+    print_message_with_animation "Instalando plugins de ASDF" "$COLOR_TERNARY"
     asdf plugin add erlang https://github.com/asdf-vm/asdf-erlang.git
     asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git
     asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
     asdf plugin-add yarn
+    print_message "Plugins de ASDF instalados" "$COLOR_SUCCESS"
+
+
+    print_message_with_animation "Descargando versiones de Erlang, Elixir, NodeJS y Yarn" "$COLOR_TERNARY"
     KERL_BUILD_DOCS=yes asdf install erlang 25.3
     asdf install elixir 1.13.4
     asdf install elixir 1.14.5-otp-25
@@ -2071,18 +2082,24 @@ install_asdf() {
     asdf install elixir 1.16
     asdf install nodejs 18.20.3
     asdf install yarn latest
+    print_message "Versiones instaladas" "$COLOR_SUCCESS"
 
+
+    print_message_with_animation "Seteando versiones por defecto" "$COLOR_TERNARY"
     asdf global erlang 25.3
     asdf global elixir 1.14.5-otp-25
     asdf global nodejs 18.20.3
     asdf global yarn latest
+    print_message "Versiones seteadas" "$COLOR_SUCCESS"
 
+
+    print_message_with_animation "Instalando Gradient Terminal y dependencias" "$COLOR_TERNARY"
     # Meto esto aqui porque aunque no es de ASDF, depende de que ASDF instale NodeJs
     # https://github.com/aurora-0025/gradient-terminal?tab=readme-ov-file
     npm install -g gradient-terminal
     npm install -g tinygradient
     npm install -g ansi-regex
-    print_message "Instalando plugins y librerias de ASDF (HECHO)" "$COLOR_SUCCESS"
+    print_message "Gradient Terminal instalado" "$COLOR_SUCCESS"
 }
 
 install_awscli() {
