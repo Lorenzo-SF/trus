@@ -139,9 +139,10 @@ MAIN_MENU_OPTIONS=("0 - Salir" "1 - Configurar" "2 - Acciones principales" "3 - 
 CONFIGURE_MENU_OPTIONS=("0 - Volver" "1 - Instalación de paquetes y configuración de Truedat" "2 - (Re)instalar ZSH y Oh My ZSH" "3 - Archivos de configuración" "4 - Actualizar splash loader" "5 - Actualizar la memoria SWAP (a $SWAP_SIZE GB)" "6 - Configurar animación de los mensajes" "7 - Configurar colores")
 CONFIGURATION_FILES_MENU_OPTIONS=("0 - Volver" "1 - ZSH" "2 - BASH" "3 - Fix login Google (solo BASH)" "4 - TMUX" "5 - TLP" "6 - Añadir al archivo de hosts info de Truedat" "7 - Todos")
 ANIMATION_MENU_OPTIONS=("0 - Volver" "1 - Pintar test animaciones" ${ANIMATIONS[@]})
-PRINCIPAL_ACTIONS_MENU_OPTIONS=("0 - Volver" "1 - Arrancar Truedat" "2 - Matar Truedat" "3 - Operaciones de bdd" "4 - Operaciones de repositorios")
+PRINCIPAL_ACTIONS_MENU_OPTIONS=("0 - Volver" "1 - Arrancar Truedat" "2 - Matar Truedat" "3 - Operaciones de bdd" "4 - Operaciones de repositorios" "5 - Sesiones (Tmux y Screen)")
 START_MENU_OPTIONS=("0 - Volver" "1 - Todo" "2 - Solo contenedores" "3 - Solo servicios" "4 - Solo el frontal")
-SECONDARY_ACTIONS_MENU_OPTIONS=("0 - Volver" "1 - Indices de ElasticSearch" "2 - Claves SSH" "3 - Kong" "4 - Linkado de modulos del frontal" "5 - Llamada REST que necesita token de login" "6 - Carga de estructuras" "7 - Carga de linajes" "8 - Entrar en una sesion iniciada de TMUX" "9 - Salir de una sesion inciada de TMUX" "10 - Informe PiDi")
+SECONDARY_ACTIONS_MENU_OPTIONS=("0 - Volver" "1 - Indices de ElasticSearch" "2 - Claves SSH" "3 - Kong" "4 - Linkado de modulos del frontal" "5 - Llamada REST que necesita token de login" "6 - Carga de estructuras" "7 - Carga de linajes" "8 - Informe PiDi")
+SESSIONS_MENU_OPTIONS=("0 - Volver" "1 - Entrar en la sesión de Tmux" "2 - Salir en la sesión de Tmux" "3 - Entrar en una sesión de Screen" "4 - Salir de la sesión de Screen")
 DDBB_MENU_OPTIONS=("0 - Volver" "1 - Descargar SOLO backup de TEST" "2 - Descargar y aplicar backup de TEST" "3 - Aplicar backup de ruta LOCAL" "4 - Crear backup de las bdd actuales" "5 - Limpieza de backups LOCALES" "6 - (Re)crear bdd locales VACÍAS")
 REPO_MENU_OPTIONS=("0 - Volver" "1 - Actualizar TODO" "2 - Actualizar solo back" "3 - Actualizar solo front" "4 - Actualizar solo libs")
 KONG_MENU_OPTIONS=("0 - Volver" "1 - (Re)generar rutas de Kong" "2 - Configurar Kong")
@@ -554,13 +555,15 @@ print_message() {
     local tabs=0
     stop_animation
 
-    case "$color" in
-    "$COLOR_PRIMARY") tabs=1 ;;
-    "$COLOR_SECONDARY") tabs=2 ;;
-    "$COLOR_TERNARY" | "$COLOR_SUCCESS" | "$COLOR_ERROR" | "$COLOR_WARNING") tabs=3 ;;
-    "$COLOR_QUATERNARY") tabs=4 ;;
-    *) tabs=0 ;;
-    esac
+    if [ -z "$centered" ] ; then
+        case "$color" in
+            "$COLOR_PRIMARY") tabs=1 ;;
+            "$COLOR_SECONDARY" | "$COLOR_SUCCESS" | "$COLOR_ERROR" | "$COLOR_WARNING") tabs=2 ;;
+            "$COLOR_TERNARY") tabs=3 ;;
+            "$COLOR_QUATERNARY") tabs=4 ;;
+            *) tabs=0 ;;
+        esac
+    fi
 
     message="$(get_tabs $tabs)$message"
 
@@ -1382,7 +1385,7 @@ create_backup_local_ddbb() {
 # =================================================================
 
 reindex_all() {
-    local remove_all_indexes=${1:-""}
+    start_containers
 
     print_header
     print_semiheader "Reindexado de Elasticsearch"
@@ -1400,7 +1403,7 @@ reindex_all() {
     fi
 }
 
-reind() {
+reindex_one() {
     local service=$1
 
     cd "$BACK_PATH/td-$service"
@@ -1458,8 +1461,7 @@ reind() {
 
 remove_all_index() {
     if print_question "¿Quieres borrar todos los datos de ElasticSearch antes de reindexar?" = 0; then
-        #do_api_call "" "http://localhost:9200/_all" "DELETE" "--fail"
-        do_api_call "" "" "http://localhost:9200/_all" "DELETE" "--fail"
+        do_api_call "http://localhost:9200/_all" "DELETE" "--fail"
         print_message "✳ Borrado de ElasticSearch completado ✳" "$COLOR_SUCCESS" "both"
     fi
 }
@@ -1482,11 +1484,7 @@ load_structures() {
     local token=$(get_token)
 
     cd "$path"
-    do_api_call \
-        "$token" \
-        "http://localhost:4005/api/systems/${system}/metadata" \
-        "POST" \
-        "-F \"data_structures=@structures.csv\" -F \"data_structure_relations=@relations.csv\""
+    do_api_call "http://localhost:4005/api/systems/${system}/metadata" "POST" "-F 'data_structures=@structures.csv' -F 'data_structure_relations=@relations.csv'" "" "" "$token"
 }
 
 load_linages() {
@@ -1498,25 +1496,21 @@ load_linages() {
 
     cd "$path"
 
-    do_api_call \
-        "$token" \
-        "http://localhost:4005/api/units/test" \
-        "PUT" \
-        "-F \"nodes=@nodes.csv\" -F \"rels=@rels.csv\""
+    do_api_call "http://localhost:4005/api/units/test" "PUT" "-F 'nodes=@nodes.csv' -F 'rels=@rels.csv'" "" "" "$token"
 }
 
 do_api_call() {
-    local token_type="${1:-"Bearer"}"
-    local token="${2:-""}"
-    local url="$3"
-    local rest_method="${4:-"GET"}"
-    local params="${5:-""}"
-    local content_type="${6:-"application/json"}"
-    local extra_headers="${7:-""}"
-    local output_format="${8:-""}"
+    local url="$1"
+    local rest_method="${2:-"GET"}"
+    local params="${3:-""}"
+    local output_format="${4:-""}"
+    local token_type="${5:-"Bearer"}"
+    local token="${6:-""}"
+    local content_type="${7:-"application/json"}"
+    local extra_headers="${8:-""}"
 
     if [ -z "$url" ]; then
-        echo "Error: No se ha proporcionado una URL." >&2
+        print_message "Error: No se ha proporcionado una URL." "$COLOR_ERROR" >&2
         return 1
     fi
 
@@ -1526,15 +1520,15 @@ do_api_call() {
         command+="--header 'Authorization: $token_type ${token}' "
     fi
 
+    if [ ! -z "$extra_headers" ]; then
+        command+=" $extra_headers "
+    fi
+
     if [ ! -z "$rest_method" ]; then
         command+="--request $rest_method "
         if [[ "$rest_method" == "POST" || "$rest_method" == "PUT" || "$rest_method" == "PATCH" ]]; then
             command+="--header 'Content-Type: ${content_type}' "
         fi
-    fi
-
-    if [ ! -z "$extra_headers" ]; then
-        command+=" $extra_headers "
     fi
 
     if [ ! -z "$params" ]; then
@@ -1554,11 +1548,11 @@ do_api_call() {
     execution_time=$((end_time - start_time))
 
     if [ $status -ne 0 ]; then
-        echo "Error en la llamada API: $response" >&2
+        print_message "Error en la llamada API: $response" "$COLOR_ERROR" >&2
         return $status
     fi
 
-    echo "Llamada API completada en $execution_time segundos"
+    print_message "Llamada API completada en $execution_time segundos" "$COLOR_SUCCESS"
 
     if [ "$output_format" == "json" ]; then
         echo "$response" | jq .
@@ -1568,7 +1562,7 @@ do_api_call() {
 }
 
 get_token() {
-    local token=$(do_api_call "" "json" "localhost:8080/api/sessions/" "POST" "--data '{\"access_method\": \"alternative_login\",\"user\": {\"user_name\": \"admin\",\"password\": \"patata\"}}'" ".token")
+    local token=$(do_api_call "localhost:8080/api/sessions/" "POST" "--data '{\"access_method\": \"alternative_login\",\"user\": {\"user_name\": \"admin\",\"password\": \"patata\"}}'" ".token")
     echo "$token"
 }
 
@@ -1583,16 +1577,7 @@ do_api_call_with_login_token() {
     local token_type="bearer"
     local token=${get_token}
 
-    do_api_call \ 
-    $token_type \ 
-    $token \
-        $url \
-        $rest_method \ 
-    $params \
-        $content_type \ 
-    $extra_headers \
-        $output_format
-
+    do_api_call $url $rest_method $params $output_format $token_type $token $content_type $extra_headers 
 }
 
 add_terminal_to_tmux_session() {
@@ -2335,34 +2320,28 @@ kong_routes() {
 
         for SERVICE in ${KONG_SERVICES[@]}; do
             local PORT=$(get_service_port "$SERVICE")
-            #local SERVICE_ID=$(do_api_call "${KONG_ADMIN_URL}/services/${SERVICE}" | jq -r '.id // empty')
-            local SERVICE_ID=$(do_api_call "" "json" "${KONG_ADMIN_URL}/services/${SERVICE}" "GET" "" ".id // empty")
+            local SERVICE_ID=$(do_api_call "${KONG_ADMIN_URL}/services/${SERVICE}" "GET" "" ".id // empty")
             local DATA='{ "name": "'${SERVICE}'", "host": "'${DOCKER_LOCALHOST}'", "port": '$PORT' }'
 
             print_message_with_animation "Creando rutas para el servicio: $SERVICE (puerto: $PORT)" "$COLOR_TERNARY"
 
             if [ -n "${SERVICE_ID}" ]; then
-                #ROUTE_IDS=$(do_api_call "" "${KONG_ADMIN_URL}/services/${SERVICE}/routes" | jq -r '.data[].id')
-                ROUTE_IDS=$(do_api_call "" "json" "${KONG_ADMIN_URL}/services/${SERVICE}/routes" "GET" "" ".data[].id")
+                ROUTE_IDS=$(do_api_call "${KONG_ADMIN_URL}/services/${SERVICE}/routes" "GET" "" ".data[].id")
                 if [ -n "${ROUTE_IDS}" ]; then
                     for ROUTE_ID in ${ROUTE_IDS}; do
-                        #do_api_call "" "${KONG_ADMIN_URL}/routes/${ROUTE_ID}" "DELETE"
-                        do_api_call "" "" "${KONG_ADMIN_URL}/routes/${ROUTE_ID}" "DELETE"
+                        do_api_call "${KONG_ADMIN_URL}/routes/${ROUTE_ID}" "DELETE"
                     done
                 fi
-                #do_api_call "" "${KONG_ADMIN_URL}/services/${SERVICE_ID}" "DELETE"
-                do_api_call "" "" "${KONG_ADMIN_URL}/services/${SERVICE_ID}" "DELETE"
+                do_api_call "${KONG_ADMIN_URL}/services/${SERVICE_ID}" "DELETE"
             fi
 
-            #local API_ID=$(do_api_call "" "${KONG_ADMIN_URL}/services" "POST" "-d '$DATA'") | jq -r '.id'
-            local API_ID=$(do_api_call "" "json" "${KONG_ADMIN_URL}/services" "POST" "-d '$DATA'" ".id")
+            local API_ID=$(do_api_call "${KONG_ADMIN_URL}/services" "POST" "-d '$DATA'" ".id")
             exec_command "sed -e \"s/%API_ID%/${API_ID}/\" ${SERVICE}.json | curl --silent -H \"Content-Type: application/json\" -X POST \"${KONG_ADMIN_URL}/routes\" -d @- | jq -r '.id'"
 
             print_message "Rutas servicio: $SERVICE (puerto: $PORT) creadas con éxito" "$COLOR_SUCCESS"
         done
 
-        #exec_command "do_api_call '${KONG_ADMIN_URL}/services/health/plugins' "POST" "--data 'name=request-termination' --data 'config.status_code=200' --data 'config.message=Kong is alive'"  | jq -r '.id'"
-        exec_command "do_api_call '' 'json' '${KONG_ADMIN_URL}/services/health/plugins' 'POST' '--data 'name=request-termination' --data 'config.status_code=200' --data 'config.message=Kong is alive'' '.id'"
+        exec_command "do_api_call '${KONG_ADMIN_URL}/services/health/plugins' 'POST' '--data 'name=request-termination' --data 'config.status_code=200' --data 'config.message=Kong is alive'' '.id'"
 
         print_message "Creacion de rutas finalizada" "$COLOR_SUCCESS" "both"
 
@@ -2384,7 +2363,7 @@ activate_kong() {
     print_message "Se van a actualizar las rutas de Kong" "$COLOR_SECONDARY"
 
     if print_question "Se va a activar Kong" = 0; then
-        sed -i 's/USE_KONG=false/USE_KONG=true/' "$TRUS_CONFIG"
+        sed -i 's/USE_KONG=false/USE_KONG=false/' "$TRUS_CONFIG"
 
         
         cd $BACK_PATH
@@ -2442,7 +2421,7 @@ deactivate_kong() {
     print_message "Se va a actualizar el archivo $TD_WEB_DEV_CONFIG para que se encargue de enrutar td-web" "$COLOR_SECONDARY"
 
     if print_question "Se va a desactivar Kong" = 0; then
-        sed -i 's/USE_KONG=true/USE_KONG=false/' "$TRUS_CONFIG"
+        sed -i 's/USE_KONG=false/USE_KONG=false/' "$TRUS_CONFIG"
         
         rm -f $BACK_PATH/kong_routes
 
@@ -2501,8 +2480,13 @@ deactivate_kong() {
             echo '  qx: target("http://localhost:4010")'
             echo '};'
             echo 'const ai = {'
+            echo '  "/api/actions": targets.ai,'
+            echo '  "/api/indices": targets.ai,'
+            echo '  "/api/predictions": targets.ai,'
             echo '  "/api/resource_mappings": targets.ai,'
-            echo '  "/api/prompts": targets.ai'
+            echo '  "/api/providers": targets.ai,'
+            echo '  "/api/prompts": targets.ai,'
+            echo '  "/api/suggestions": targets.ai'
             echo '};'
             echo 'const audit = {'
             echo '  "/api/events": targets.audit,'
@@ -2536,20 +2520,24 @@ deactivate_kong() {
             echo '  "/api/sources": targets.cx'
             echo '};'
             echo 'const dd = {'
+            echo '  "/api/comments": targets.dd,'
             echo '  "/api/accesses": targets.dd,'
-            echo '  "/api/buckets/structures": targets.dd,'
+            echo '  "/api/buckets": targets.dd,'
             echo '  "/api/data_structure_filters": targets.dd,'
             echo '  "/api/data_structure_notes": targets.dd,'
             echo '  "/api/data_structure_tags": targets.dd,'
             echo '  "/api/data_structure_types": targets.dd,'
             echo '  "/api/data_structure_versions": targets.dd,'
+            echo '  "/api/data_structure_links": targets.dd,'
             echo '  "/api/data_structures": targets.dd,'
             echo '  "/api/grant_filters": targets.dd,'
             echo '  "/api/grant_request_groups": targets.dd,'
             echo '  "/api/grant_requests": targets.dd,'
             echo '  "/api/grants": targets.dd,'
             echo '  "/api/graphs": targets.dd,'
+            echo '  "/api/labels": targets.dd,'
             echo '  "/api/lineage_events": targets.dd,'
+            echo '  "/api/lineage": targets.dd,'
             echo '  "/api/nodes": targets.dd,'
             echo '  "/api/profile_execution_groups": targets.dd,'
             echo '  "/api/profile_executions": targets.dd,'
@@ -2563,16 +2551,20 @@ deactivate_kong() {
             echo '};'
             echo 'const df = {'
             echo '  "/api/templates": targets.df,'
+            echo '  "/api/template_relations": targets.df,'
             echo '  "/api/hierarchies": targets.df'
             echo '};'
             echo 'const dq = {'
             echo '  "/api/execution_groups": targets.dq,'
             echo '  "/api/executions": targets.dq,'
+            echo '  "/api/functions": targets.dq,'
             echo '  "/api/rule_filters": targets.dq,'
             echo '  "/api/rule_implementation_filters": targets.dq,'
             echo '  "/api/rule_implementations": targets.dq,'
             echo '  "/api/rule_results": targets.dq,'
-            echo '  "/api/rules": targets.dq'
+            echo '  "/api/rule_types": targets.dq,'
+            echo '  "/api/rules": targets.dq,'
+            echo '  "/api/segment_results": targets.dq'
             echo '};'
             echo 'const ie = {'
             echo '  "/api/ingests": targets.ie,'
@@ -2580,11 +2572,13 @@ deactivate_kong() {
             echo '  "/api/ingest_versions": targets.ie'
             echo '};'
             echo 'const lm = {'
+            echo '  "/api/business_concept/\\d+/links": targets.lm,'
             echo '  "/api/relations": targets.lm,'
             echo '  "/api/tags": targets.lm'
             echo '};'
             echo 'const se = {'
-            echo '  "/api/global_search": targets.se'
+            echo '  "/api/global_search": targets.se,'
+            echo '  "/api/elastic_indexes": targets.se'
             echo '};'
             echo 'const i18n = {'
             echo '  "/api/messages": targets.i18n,'
@@ -2692,8 +2686,17 @@ start_services() {
         screen -h 10000 -mdS "$SERVICE" bash -c "cd $BACK_PATH/$SERVICE && iex --sname ${SERVICE#td-} -S mix phx.server"
     done
 
-    print_message "Servicios arrancados:" "$COLOR_PRIMARY"
-    screen -ls | awk '/\.td-/ {print $1}' | sed 's/\.\(td-[[:alnum:]]*\)/ => \1/'
+    print_screen_sessions    
+}
+
+print_screen_sessions() {
+    print_header 
+
+    print_semiheader "Sesiones activas de Screen:" "$COLOR_PRIMARY"    
+    
+    screen -ls | awk '/\.td-/ {print $1}' | sed 's/\.\(td-[[:alnum:]]*\)/ => \1/' | while read -r line; do
+        print_message "$line" "$COLOR_SECONDARY"
+    done
 }
 
 start_front() {
@@ -2759,7 +2762,7 @@ start_truedat() {
     add_terminal_to_tmux_session "$(($(tmux list-panes -t truedat | awk 'END {print $1 + 0}') + 1))" "trus --help"
     tmux select-pane -t truedat:0."$(($(tmux list-panes -t truedat | awk 'END {print $1 + 0}') - 1))"
 
-    go_to_session $TRUEDAT
+    go_to_tmux_session $TRUEDAT
 }
 
 kill_truedat() {
@@ -2780,7 +2783,7 @@ kill_truedat() {
     pkill -9 -f yarn
 }
 
-go_to_session() {
+go_to_tmux_session() {
     local session_name=$1
 
     clear
@@ -2788,9 +2791,24 @@ go_to_session() {
     tmux attach-session -t "$session_name"
 }
 
-go_out_session() {
+go_out_tmux_session() {
     tmux detach-client
 }
+
+go_to_screen_session() {
+    print_screen_sessions 
+    
+    print_message "Introduce el id de la sesión a la que quieres acceder" "$COLOR_PRIMARY"
+    read -r screen_id_session
+
+    screen -r $screen_id_session
+}
+
+go_out_screen_session() {
+    screen -d
+}
+
+
 
 # =================================================================================================
 # ====== Otras operaciones importantes
@@ -3168,6 +3186,10 @@ principal_actions_menu() {
         repo_menu
         ;;
 
+    5)
+        sessions_menu
+        ;;
+        
     0)
         main_menu
         ;;
@@ -3202,55 +3224,75 @@ start_menu() {
     esac
 }
 
+sessions_menu() {
+    local option=$(print_menu "sessions_menu_help" "${SESSIONS_MENU_OPTIONS[@]}")
+
+    option=$(extract_menu_option "$option")
+
+    case "$option" in
+        1)
+            trus --attach-tmux
+            ;;
+
+        2)
+            trus --detach-tmux
+            ;;
+
+        3)
+            trus --attach-screen
+            ;;
+
+        4)
+            trus --detach-screen
+            ;;
+
+        0)
+            secondary_actions_menu
+            ;;
+    esac
+}
+
 secondary_actions_menu() {
     local option=$(print_menu "secondary_actions_menu_help" "${SECONDARY_ACTIONS_MENU_OPTIONS[@]}")
 
     option=$(extract_menu_option "$option")
 
     case "$option" in
-    1)
-        trus --reindex
-        ;;
+        1)
+            trus --reindex
+            ;;
 
-    2)
-        trus --create-ssh
-        ;;
+        2)
+            trus --create-ssh
+            ;;
 
-    3)
-        kong_menu
-        ;;
+        3)
+            kong_menu
+            ;;
 
-    4)
-        trus --link-modules
-        ;;
+        4)
+            trus --link-modules
+            ;;
 
-    5)
-        trus --rest
-        ;;
+        5)
+            trus --rest
+            ;;
 
-    6)
-        trus --load-structures
-        ;;
+        6)
+            trus --load-structures
+            ;;
 
-    7)
-        trus --load-linage
-        ;;
+        7)
+            trus --load-linage
+            ;;
 
-    8)
-        trus --attach
-        ;;
+        8)
+            informe_pidi
+            ;;
 
-    9)
-        trus --detach
-        ;;
-
-    10)
-        informe_pidi
-        ;;
-
-    0)
-        main_menu
-        ;;
+        0)
+            main_menu
+            ;;
     esac
 }
 
@@ -3407,6 +3449,10 @@ param_router() {
     local param3=$3
     local param4=$4
     local param5=$5
+    local param6=$6
+    local param7=$7
+    local param8=$8
+    local param9=$9
 
     if [ -z "$param1" ]; then
         print_logo
@@ -3490,15 +3536,23 @@ param_router() {
             ;;
 
         "--rest")
-            do_api_call "$param2" "$param3" "$param4"
+            do_api_call "$param2" "$param3" "$param4" "$param5" "$param6" "$param7" "$param8" "$param9"
             ;;
 
-        "-at" | "--attach")
-            go_to_session
+        "-att" | "--attach-tmux")
+            go_to_tmux_session
             ;;
 
-        "-dt" | "--dettach")
-            go_out_session
+        "-dtt" | "--dettach-tmux")
+            go_out_tmux_session
+            ;;
+
+        "-ats" | "--attach-screen")
+            go_to_screen_session
+            ;;
+
+        "-dts" | "--dettach-screen")
+            go_out_screen_session
             ;;
 
         "--help")
@@ -3524,7 +3578,7 @@ elif [ "$1" = "--help" ]; then
      help "$2" "$3" "$4"
 else
     set_terminal_config
-    param_router $1 $2 $3 $4 $5
+    param_router $*
 fi
 
 # # print_message "tareas por completar" "$color_primary" "both"
