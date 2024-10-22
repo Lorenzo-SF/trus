@@ -28,18 +28,6 @@ APT_INSTALLATION_PACKAGES=("curl" "unzip" "vim" "jq" "apt-transport-https" "scre
 ARCHITECTURE=$(dpkg --print-architecture)
 
 
-# ====== Sesiones, contextos y configuraciones
-
-AWS_TEST_CONTEXT="test-truedat-eks"
-TMUX_SESSION="truedat"
-TMUX_ROWS_PER_COLUMN=4
-TMUX_ACTUAL_COLUMNS=0
-GIT_USER_NAME=$(getent passwd $USER | cut -d ':' -f 5 | cut -d ',' -f 1)
-GIT_USER_EMAIL=$(whoami)"@bluetab.net"
-PIDI_PATH=$XDG_DESKTOP_DIR/pidi
-PIDI_FILE=$PIDI_PATH/informe_pidi_${GIT_USER_NAME}_${DATE_NOW}.csv
-
-
 # =================================================================================================
 # ====== Rutas
 
@@ -92,6 +80,18 @@ OMZ_PATH=$USER_HOME/.oh-my-zsh
 OMZ_PLUGINS_PATH=$OMZ_PATH/custom/plugins
 TMUX_PATH_CONFIG=$USER_HOME/.tmux.conf
 TLP_PATH_CONFIG=/etc/tlp.conf
+
+
+# ====== Sesiones, contextos y configuraciones
+
+AWS_TEST_CONTEXT="test-truedat-eks"
+TMUX_SESSION="truedat"
+TMUX_ROWS_PER_COLUMN=4
+TMUX_ACTUAL_COLUMNS=0
+GIT_USER_NAME=$(getent passwd $USER | cut -d ':' -f 5 | cut -d ',' -f 1)
+GIT_USER_EMAIL=$(whoami)"@bluetab.net"
+PIDI_PATH=$XDG_DESKTOP_DIR/pidi
+PIDI_FILE=$PIDI_PATH/informe_pidi_${GIT_USER_NAME}_${DATE_NOW}.csv
 
 
 # ====== Rutas de usuario actual (para poder navegar a las carpetas del usuario, independientemente del ididoma)
@@ -1734,8 +1734,11 @@ zsh_config() {
         echo 'alias audit="cd ~/workspace/truedat/back/td-audit"'
         echo 'alias auth="cd ~/workspace/truedat/back/td-auth"'
         echo 'alias bg="cd ~/workspace/truedat/back/td-bg"'
+        echo 'alias core="cd ~/workspace/truedat/back/td-core"'
+        echo 'alias cache="cd ~/workspace/truedat/back/td-cache"'
         echo 'alias dd="cd ~/workspace/truedat/back/td-dd"'
         echo 'alias df="cd ~/workspace/truedat/back/td-df"'
+        echo 'alias dflib="cd ~/workspace/truedat/back/td-df-lib"'
         echo 'alias i18n="cd ~/workspace/truedat/back/td-i18n"'
         echo 'alias ie="cd ~/workspace/truedat/back/td-ie"'
         echo 'alias lm="cd ~/workspace/truedat/back/td-lm"'
@@ -2694,17 +2697,6 @@ start_services() {
 start_truedat() {
     local TMUX_SERVICES=("$@")
     local SCREEN_SERVICES=()
-    local WINDOW_TOTAL_HEIGHT
-    local WINDOW_TOTAL_WIDTH
-    local SMALL_COLUMN
-    local LARGE_COLUMN
-    local TERMINAL_SIZE
-
-    WINDOW_TOTAL_HEIGHT=$(tmux display-message -p '#{window_height}')
-    WINDOW_TOTAL_WIDTH=$(tmux display-message -p '#{window_width}')
-    SMALL_COLUMN=$((WINDOW_TOTAL_WIDTH / 4))
-    LARGE_COLUMN=$((WINDOW_TOTAL_WIDTH / 4 * 3))
-    PRINCIPAL_TERMINAL_HEIGHT=$((WINDOW_TOTAL_HEIGHT / 4 * 3))
 
     kill_truedat
     start_containers
@@ -2728,44 +2720,30 @@ start_truedat() {
 
     tmux source-file $TMUX_PATH_CONFIG
     tmux new-session -d -s $TMUX_SESSION -n "Truedat"
-    tmux select-layout -t $TMUX_SESSION:0 main-vertical
-    tmux split-window -h -t $TMUX_SESSION:0
 
+    add_terminal_to_tmux_session "$((count_tmux_termnals))" "neofetch"    
+    tmux send-keys -t $TMUX_SESSION:0."$((count_tmux_termnals + 1))" "trus --start-front" C-m      
+    tmux select-layout -t $TMUX_SESSION:0 main-vertical
     
     if [ ${#TMUX_SERVICES[@]} -gt 0 ]; then
-        TERMINAL_SIZE=$((WINDOW_TOTAL_HEIGHT / ${#TMUX_SERVICES[@]}))
-
         for i in "${!TMUX_SERVICES[@]}"; do
-            tmux split-window -v -t truedat:0
-
             SERVICE="${TMUX_SERVICES[$i]}"
             SERVICE_NAME="td-${SERVICE}"
-            COMMAND="cd $BACK_PATH/$SERVICE_NAME && iex --sname ${SERVICE} -S mix phx.server"
-
-            add_terminal_to_tmux_session "$i" "$COMMAND"
+            
+            add_terminal_to_tmux_session "$i" "cd $BACK_PATH/$SERVICE_NAME && iex --sname ${SERVICE} -S mix phx.server"            
         done
-    fi
+    fi   
 
-    add_terminal_to_tmux_session "trus --start-front"
-    add_terminal_to_tmux_session "whoami"
-
+    tmux select-layout -t $TMUX_SESSION:0 main-vertical
     go_to_tmux_session $TRUEDAT
 }
 
 add_terminal_to_tmux_session() {
-    local COMMAND=$1
+    local terminal="$1"
+    local command="$2"    
     
-    total_terminals=$(count_tmux_termnals)
-    total_columns=$(( (total_terminals + TMUX_ROWS_PER_COLUMN - 1) / TMUX_ROWS_PER_COLUMN ))
-    
-    if [ $total_columns != $TMUX_ACTUAL_COLUMNS ]; then
-        tmux split-window -h -t $TMUX_SESSION:0
-        tmux select-layout -t $TMUX_SESSION:0 main-vertical
-        TMUX_ACTUAL_COLUMNS=$((TMUX_ACTUAL_COLUMNS + 1))
-    fi    
-
-    tmux select-pane -t $TMUX_SESSION:0."$total_terminals"
-    tmux send-keys -t $TMUX_SESSION:0."$total_terminals" "${COMMAND}" C-m
+    tmux split-window -v -t $TMUX_SESSION:0.$termnal
+    tmux send-keys -t $TMUX_SESSION:0.$termnal "${command}" C-m
 }
 
 count_tmux_termnals() {
@@ -2773,11 +2751,8 @@ count_tmux_termnals() {
 }
 
 go_to_tmux_session() {
-    local session_name=$1
-
     clear
-
-    tmux attach-session -t "$session_name"
+    tmux attach-session -t "$TMUX_SESSION"
 }
 
 go_out_tmux_session() {
@@ -2826,7 +2801,7 @@ kill_truedat() {
     screen -wipe >/dev/null 2>&1
 
     print_message "Matando sesiones TMUX"  "$COLOR_SECONDARY"
-    tmux kill-session -t '$TMUX_SESSION' >/dev/null 2>&1
+    tmux kill-session -t "$TMUX_SESSION" >/dev/null 2>&1
 
     print_message "Matando front"  "$COLOR_SECONDARY"
     pkill -9 -f yarn >/dev/null 2>&1
