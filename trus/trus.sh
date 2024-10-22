@@ -9,6 +9,7 @@
 # ======
 # =================================================================================================
 
+
 # =================================================================================================
 # ====== Variables
 # =================================================================================================
@@ -30,7 +31,9 @@ ARCHITECTURE=$(dpkg --print-architecture)
 # ====== Sesiones, contextos y configuraciones
 
 AWS_TEST_CONTEXT="test-truedat-eks"
-TMUX_SESION="truedat"
+TMUX_SESSION="truedat"
+TMUX_ROWS_PER_COLUMN=4
+TMUX_ACTUAL_COLUMNS=0
 GIT_USER_NAME=$(getent passwd $USER | cut -d ':' -f 5 | cut -d ',' -f 1)
 GIT_USER_EMAIL=$(whoami)"@bluetab.net"
 PIDI_PATH=$XDG_DESKTOP_DIR/pidi
@@ -194,6 +197,7 @@ COLOR_QUATERNARY='#E66EB2'
 COLOR_SUCCESS='#15DB02'
 COLOR_WARNING='#DBAB02'
 COLOR_ERROR='#DB2602'
+COLOR_SAD='#000000'
 COLOR_BACKRGROUND='#2E5386' 
 # #331B28
 
@@ -656,6 +660,9 @@ print_separator() {
     local separator=${2:-"-"}
     local size_line=$3
     local message_ubication=${4:-""}
+    local color=${5:-"$NO_COLOR"}
+    local new_lines=${6:-"before"}
+
     IFS=' ' read -r total_length filled_space <<<"$(message_size "$message")"
 
     local separator_lenght
@@ -667,7 +674,7 @@ print_separator() {
         "") separator_lenght=$((filled_space / 8)) ;;
     esac
 
-    print_message "$(pad_message "$message" "$message_ubication" "=" $separator_lenght)" "" "before"
+    print_message "$(pad_message "$message" "$message_ubication" "=" $separator_lenght)" "$color" "$new_lines"
 }
 
 print_header() {
@@ -1580,12 +1587,6 @@ do_api_call_with_login_token() {
     do_api_call $url $rest_method $params $output_format $token_type $token $content_type $extra_headers 
 }
 
-add_terminal_to_tmux_session() {
-    local PANEL=$1
-    local COMMAND=$2
-    tmux select-pane -t truedat:0."$PANEL"
-    tmux send-keys -t truedat:0."$PANEL" "${COMMAND}" C-m
-}
 
 # =================================================================
 # ====== Archivos de configuración
@@ -1689,9 +1690,9 @@ bash_config() {
 
 hosts_config() {
     sudo sh -c '{
-                echo "##################"
-                echo "# Añadido por trus"
-                echo "##################"
+                echo "# ===================================="
+                echo "# ====== Añadido por trus"
+                echo "# ===================================="
                 echo "127.0.0.1 localhost"
                 echo "127.0.0.1 $(uname -n).bluetab.net $(uname -n)"
                 echo "127.0.0.1 redis"
@@ -1700,10 +1701,10 @@ hosts_config() {
                 echo "127.0.0.1 kong"
                 echo "127.0.0.1 neo"
                 echo "127.0.0.1 vault"
-                echo "0.0.0.0 localhost"
-                echo "##################"
-                echo "# Añadido por trus"
-                echo "##################"
+                echo "0.0.0.0 truedatlocal"
+                echo "# ===================================="
+                echo "# ====== Añadido por trus"
+                echo "# ===================================="
             } >> /etc/hosts'
 }
 
@@ -2636,9 +2637,10 @@ config_kong() {
     fi
 }
 
-###################################################################################################
-###### Arranque y apagado
-###################################################################################################
+
+# =================================================================================================
+# ======Arranque y apagado
+# =================================================================================================
 
 start_containers() {
     print_semiheader "Contenedores Docker"
@@ -2689,21 +2691,6 @@ start_services() {
     print_screen_sessions    
 }
 
-print_screen_sessions() {
-    print_header 
-
-    print_semiheader "Sesiones activas de Screen:" "$COLOR_PRIMARY"    
-    
-    screen -ls | awk '/\.td-/ {print $1}' | sed 's/\.\(td-[[:alnum:]]*\)/ => \1/' | while read -r line; do
-        print_message "$line" "$COLOR_SECONDARY"
-    done
-}
-
-start_front() {
-    cd "$FRONT_PATH"/td-web
-    yarn start
-}
-
 start_truedat() {
     local TMUX_SERVICES=("$@")
     local SCREEN_SERVICES=()
@@ -2720,6 +2707,7 @@ start_truedat() {
     PRINCIPAL_TERMINAL_HEIGHT=$((WINDOW_TOTAL_HEIGHT / 4 * 3))
 
     kill_truedat
+    start_containers
 
     for SERVICE in "${SERVICES[@]}"; do
         local founded_service="false"
@@ -2736,14 +2724,14 @@ start_truedat() {
         fi
     done
 
-    start_containers
     start_services "${TMUX_SERVICES[@]}"
 
     tmux source-file $TMUX_PATH_CONFIG
-    tmux new-session -d -s $TMUX_SESION -n "Truedat"
-    tmux select-layout -t truedat:0 main-vertical
-    tmux split-window -h -t truedat:0 -p 6
+    tmux new-session -d -s $TMUX_SESSION -n "Truedat"
+    tmux select-layout -t $TMUX_SESSION:0 main-vertical
+    tmux split-window -h -t $TMUX_SESSION:0
 
+    
     if [ ${#TMUX_SERVICES[@]} -gt 0 ]; then
         TERMINAL_SIZE=$((WINDOW_TOTAL_HEIGHT / ${#TMUX_SERVICES[@]}))
 
@@ -2758,29 +2746,30 @@ start_truedat() {
         done
     fi
 
-    add_terminal_to_tmux_session "$(tmux list-panes -t truedat | awk 'END {print $1 + 0}')" "trus --start-front"
-    add_terminal_to_tmux_session "$(($(tmux list-panes -t truedat | awk 'END {print $1 + 0}') + 1))" "trus --help"
-    tmux select-pane -t truedat:0."$(($(tmux list-panes -t truedat | awk 'END {print $1 + 0}') - 1))"
+    add_terminal_to_tmux_session "trus --start-front"
+    add_terminal_to_tmux_session "whoami"
 
     go_to_tmux_session $TRUEDAT
 }
 
-kill_truedat() {
-    print_semiheader "Matando procesos 'mix' (elixir)"
-    pkill -9 -f mix
+add_terminal_to_tmux_session() {
+    local COMMAND=$1
+    
+    total_terminals=$(count_tmux_termnals)
+    total_columns=$(( (total_terminals + TMUX_ROWS_PER_COLUMN - 1) / TMUX_ROWS_PER_COLUMN ))
+    
+    if [ $total_columns != $TMUX_ACTUAL_COLUMNS ]; then
+        tmux split-window -h -t $TMUX_SESSION:0
+        tmux select-layout -t $TMUX_SESSION:0 main-vertical
+        TMUX_ACTUAL_COLUMNS=$((TMUX_ACTUAL_COLUMNS + 1))
+    fi    
 
-    print_semiheader "Matando sesiones Screen"
-    for session in $(screen -ls | awk '/\t/ {print $1}'); do
-        screen -S "$TMUX_SESION" -X quit
-    done
+    tmux select-pane -t $TMUX_SESSION:0."$total_terminals"
+    tmux send-keys -t $TMUX_SESSION:0."$total_terminals" "${COMMAND}" C-m
+}
 
-    screen -wipe
-
-    print_semiheader "Matando sesiones TMUX"
-    tmux kill-session -t "$TMUX_SESION"
-
-    print_semiheader "Matando front"
-    pkill -9 -f yarn
+count_tmux_termnals() {
+    echo "$(tmux list-panes -t $TMUX_SESSION | wc -l)"
 }
 
 go_to_tmux_session() {
@@ -2808,6 +2797,45 @@ go_out_screen_session() {
     screen -d
 }
 
+print_screen_sessions() {
+    print_header 
+
+    print_semiheader "Sesiones activas de Screen:" "$COLOR_PRIMARY"    
+    
+    screen -ls | awk '/\.td-/ {print $1}' | sed 's/\.\(td-[[:alnum:]]*\)/ => \1/' | while read -r line; do
+        print_message "$line" "$COLOR_SECONDARY"
+    done
+}
+
+start_front() {
+    cd "$FRONT_PATH"/td-web
+    yarn start
+}
+
+kill_truedat() {
+    print_header
+    print_semiheader "Matando procesos"
+    print_message "Matando 'mix' (elixir)" "$COLOR_SECONDARY"
+    pkill -9 -f mix >/dev/null 2>&1
+
+    print_message "Matando sesiones Screen"  "$COLOR_SECONDARY"
+    for session in $(screen -ls | awk '/\t/ {print $1}'); do
+        screen -S "$TMUX_SESSION" -X quit >/dev/null 2>&1
+    done
+
+    screen -wipe >/dev/null 2>&1
+
+    print_message "Matando sesiones TMUX"  "$COLOR_SECONDARY"
+    tmux kill-session -t '$TMUX_SESSION' >/dev/null 2>&1
+
+    print_message "Matando front"  "$COLOR_SECONDARY"
+    pkill -9 -f yarn >/dev/null 2>&1
+
+    print_separator "" "=" "full" "" "$COLOR_SAD"
+    print_message "Truedat ha muerto"  "$COLOR_SAD" "" "centered"
+    print_separator "" "=" "full" "" "$COLOR_SAD" "after"
+
+}
 
 
 # =================================================================================================
