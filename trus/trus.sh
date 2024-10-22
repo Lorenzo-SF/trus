@@ -26,6 +26,7 @@ USER_HOME=$(eval echo ~"$SUDO_USER")
 APT_INSTALLATION_PACKAGES=("curl" "unzip" "vim" "jq" "apt-transport-https" "screen" "tmux" "build-essential" "git" "libssl-dev" "automake" "autoconf" "gedit" "redis-tools" "libncurses6" "libncurses-dev" "docker.io" "postgresql-client" "xclip" "xdotool" "x11-utils" "wine-stable" "gdebi-core" "fonts-powerline" "xsltproc" "fop" "libxml2-utils" "bc" "wmctrl" "fzf" "sl" "neofetch")
 ARCHITECTURE=$(dpkg --print-architecture)
 
+
 # ====== Sesiones, contextos y configuraciones
 
 AWS_TEST_CONTEXT="test-truedat-eks"
@@ -35,16 +36,21 @@ GIT_USER_EMAIL=$(whoami)"@bluetab.net"
 PIDI_PATH=$XDG_DESKTOP_DIR/pidi
 PIDI_FILE=$PIDI_PATH/informe_pidi_${GIT_USER_NAME}_${DATE_NOW}.csv
 
+
 # =================================================================================================
 # ====== Rutas
 
 TRUS_BASE_PATH=$USER_HOME/.trus
-TRUS_CONFIG="$TRUS_BASE_PATH/trus.config"
+# Se han metido los archivos de configuracion dentro del script para que sea uno solo, si se saca fuera
+TRUS_CONFIG=$TRUS_BASE_PATH/trus.sh     
+TRUS_PATH=$TRUS_BASE_PATH/trus.sh
+
 
 # ====== Enlaces simbolicos
 
 LINK_BASE_PATH=/usr/local/bin
 TRUS_LINK_PATH=$LINK_BASE_PATH/trus
+
 
 # ====== Rutas Truedat
 
@@ -58,6 +64,7 @@ DEV_PATH=$TRUEDAT_ROOT_PATH/true-dev
 DDBB_BASE_BACKUP_PATH=$TRUEDAT_ROOT_PATH"/ddbb_truedat"
 DDBB_BACKUP_PATH=$DDBB_BASE_BACKUP_PATH/$DATE_NOW
 DDBB_LOCAL_BACKUP_PATH=$DDBB_BASE_BACKUP_PATH"/local_backups"
+
 
 # ====== SSH, ASDF, AWS, KUBE y otros
 
@@ -83,6 +90,7 @@ OMZ_PLUGINS_PATH=$OMZ_PATH/custom/plugins
 TMUX_PATH_CONFIG=$USER_HOME/.tmux.conf
 TLP_PATH_CONFIG=/etc/tlp.conf
 
+
 # ====== Rutas de usuario actual (para poder navegar a las carpetas del usuario, independientemente del ididoma)
 
 if [ -e "~/.config/user-dirs.dirs" ]; then
@@ -98,6 +106,7 @@ else
     XDG_VIDEOS_DIR="$USER_HOME/Vídeos"
 fi
 
+
 # ====== Listados de elementos de infraestructura a procesar
 
 DATABASES=("td_ai" "td_audit" "td_bg" "td_dd" "td_df" "td_i18n" "td_ie" "td_lm" "td_qx")
@@ -112,6 +121,7 @@ LEGACY_REPOS=("td-helm")
 DOCKER_LOCALHOST="172.17.0.1"
 KONG_ADMIN_URL="localhost:8001"
 KONG_ROUTES_SERVICES=("health" "td_audit" "td_auth" "td_bg" "td_dd" "td_qx" "td_dq" "td_lm" "td_qe" "td_se" "td_df" "td_ie" "td_cx" "td_i18n" "td_ai")
+
 
 # =================================================================================================
 # ====== Configuración de Trus
@@ -135,6 +145,7 @@ SECONDARY_ACTIONS_MENU_OPTIONS=("0 - Volver" "1 - Indices de ElasticSearch" "2 -
 DDBB_MENU_OPTIONS=("0 - Volver" "1 - Descargar SOLO backup de TEST" "2 - Descargar y aplicar backup de TEST" "3 - Aplicar backup de ruta LOCAL" "4 - Crear backup de las bdd actuales" "5 - Limpieza de backups LOCALES" "6 - (Re)crear bdd locales VACÍAS")
 REPO_MENU_OPTIONS=("0 - Volver" "1 - Actualizar TODO" "2 - Actualizar solo back" "3 - Actualizar solo front" "4 - Actualizar solo libs")
 KONG_MENU_OPTIONS=("0 - Volver" "1 - (Re)generar rutas de Kong" "2 - Configurar Kong")
+
 
 # ====== Animaciones
 
@@ -167,38 +178,45 @@ TERMINAL_ANIMATION_TRIGRAM=(☰ ☱ ☳ ☶ ☴)
 TERMINAL_ANIMATION_VERTICAL_BLOCK=(▁ ▂ ▃ ▄ ▅ ▆ ▇ █ █ ▇ ▆ ▅ ▄ ▃ ▂ ▁)
 ANIMATIONS=("ARROW" "BOUNCE" "BOUNCING_BALL" "BOX" "BRAILLE" "BREATHE" "BUBBLE" "OTHER_BUBBLE" "CLASSIC_UTF8" "CLASSIC" "DOT" "FILLING_BAR" "FIREWORK" "GROWING_DOTS" "HORIZONTAL_BLOCK" "KITT" "METRO" "PASSING_DOTS" "PONG" "QUARTER" "ROTATING_EYES" "SEMI_CIRCLE" "SIMPLE_BRAILLE" "SNAKE" "TRIANGLE" "TRIGRAM" "VERTICAL_BLOCK")
 
+
 # =================================================================================================
 # ====== Personalizacion de TrUs (se sobreescribe en trus.config)
 # =================================================================================================
 
 # ====== Esquema de colores
 
-NO_COLOR="#FFFCE2"
-COLOR_PRIMARY="#BED5E8"
-COLOR_SECONDARY="#DEE0B7"
-COLOR_TERNARY="#937F5F"
-COLOR_QUATERNARY="#808F9C"
-COLOR_SUCCESS="#10C90A"
-COLOR_WARNING="#FFCE00"
-COLOR_ERROR="#C90D0A"
-COLOR_BACKRGROUND="#000000"
+NO_COLOR='#FFFFFF'
+COLOR_PRIMARY='#89AFB3'
+COLOR_SECONDARY='#DB7202'
+COLOR_TERNARY='#B3AD89'
+COLOR_QUATERNARY='#E66EB2'
+COLOR_SUCCESS='#15DB02'
+COLOR_WARNING='#DBAB02'
+COLOR_ERROR='#DB2602'
+COLOR_BACKRGROUND='#2E5386' 
+# #331B28
+
 
 # ====== Esquema de colores del gradiente
 # https://github.com/aurora-0025/gradient-terminal?tab=readme-ov-file
 
-GRADIENT_1="orange"
-GRADIENT_2="blue"
-GRADIENT_3=""
-GRADIENT_4=""
-GRADIENT_5=""
-GRADIENT_6=""
+GRADIENT_1='#2B86C5'
+GRADIENT_2=''
+# Copia del gradiente 2, para que el degradado se visualice bien
+GRADIENT_2_AUX=$GRADIENT_2 
+GRADIENT_3='#784BA0'
+GRADIENT_4='#784BA0'
+GRADIENT_5='#E66EB2'
+GRADIENT_6='#E66EB2'
+
 
 # ====== Comportamiento de
 
-HIDE_OUTPUT='false'
+HIDE_OUTPUT='true'
 USE_KONG=false
-SELECTED_ANIMATION='BUBBLE'
+SELECTED_ANIMATION='BRAILLE'
 SIMPLE_ECHO=""
+
 
 # =================================================================================================
 # ====== Herramientas
@@ -261,9 +279,7 @@ message_size() {
     echo "$total_length $filled_space"
 }
 
-set_terminal_config() {
-    source $TRUS_CONFIG
-
+set_terminal_config() {    
     if [ "$SIMPLE_ECHO" = "" ]; then
         echo -ne "\e]11;#${COLOR_BACKRGROUND}\e\\"
         echo -ne "\e]10;#${NO_COLOR}\e\\"
@@ -276,9 +292,7 @@ set_terminal_config() {
         REDIRECT=""
     fi
 
-    if command -v wmctrl &>/dev/null; then
-        wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz
-    fi
+    wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz
 }
 
 exec_command() {
@@ -361,7 +375,7 @@ get_color() {
     local R=$((16#${COLOR:1:2}))
     local G=$((16#${COLOR:3:2}))
     local B=$((16#${COLOR:5:2}))
-    echo -e "\e[38;2;${R};${G};${B}m"
+    echo -e "\e[1;38;2;${R};${G};${B}m"
 }
 
 hex_to_rgb() {
@@ -411,7 +425,7 @@ calculate_closest_color() {
     echo
 }
 
-declare propiedadesConfigurables=("COLOR_PRIMARY" "COLOR_SECONDARY" "COLOR_TERNARY" "COLOR_QUATERNARY" "COLOR_SUCCESS" "COLOR_WARNING" "COLOR_ERROR" "COLOR_BACKRGROUND" "GRADIENT_1" "GRADIENT_2" "GRADIENT_3" "GRADIENT_4" "GRADIENT_5" "GRADIENT_6")
+declare propiedadesConfigurables=("COLOR_PRIMARY" "COLOR_SECONDARY" "COLOR_TERNARY" "COLOR_QUATERNARY" "COLOR_SUCCESS" "COLOR_WARNING" "COLOR_ERROR" "COLOR_BACKGROUND" "GRADIENT_1" "GRADIENT_2" "GRADIENT_3" "GRADIENT_4" "GRADIENT_5" "GRADIENT_6")
 
 declare -A textosPropiedadesConfigurables=(
     [COLOR_PRIMARY]="Color 1º nivel"
@@ -421,7 +435,7 @@ declare -A textosPropiedadesConfigurables=(
     [COLOR_SUCCESS]="Color success"
     [COLOR_WARNING]="Color advertencia"
     [COLOR_ERROR]="Color error"
-    [COLOR_BACKRGROUND]="Color Fondo"
+    [COLOR_BACKGROUND]="Color Fondo"
     [GRADIENT_1]="Gradiente posicion 1"
     [GRADIENT_2]="Gradiente posicion 2"
     [GRADIENT_3]="Gradiente posicion 3"
@@ -438,7 +452,7 @@ declare -A relacionPropiedadesConfigurables=(
     ['Color success']="COLOR_SUCCESS"
     ['Color advertencia']="COLOR_WARNING"
     ['Color Error']="COLOR_ERROR"
-    ['Color Fondo']="COLOR_BACKRGROUND"
+    ['Color Fondo']="COLOR_BACKGROUND"
     ['Gradiente posicion 1']="GRADIENT_1"
     ['Gradiente posicion 2']="GRADIENT_2"
     ['Gradiente posicion 3']="GRADIENT_3"
@@ -458,7 +472,7 @@ get_example_color() {
     "COLOR_SUCCESS") print_message "Ejemplo color" "$COLOR_SUCCESS" ;;
     "COLOR_WARNING") print_message "Ejemplo color" "$COLOR_WARNING" ;;
     "COLOR_ERROR") print_message "Ejemplo color" "$COLOR_ERROR" ;;
-    "COLOR_BACKRGROUND") print_message "Ejemplo color" "$COLOR_BACKRGROUND" ;;
+    "COLOR_BACKGROUND") print_message "Ejemplo color" "$COLOR_BACKGROUND" ;;
     "GRADIENT_1") print_message "Ejemplo color" "$GRADIENT_1" ;;
     "GRADIENT_2") print_message "Ejemplo color" "$GRADIENT_2" ;;
     "GRADIENT_3") print_message "Ejemplo color" "$GRADIENT_3" ;;
@@ -504,7 +518,7 @@ config_colours_menu() {
         print_message "Formato admitido de colores:"
 
         printf "%-22s %-22s %-25s %-25s\n" "Hex" "RGB/RGBA" "HSL/HSLA" "HSV/HSVA"
-        print_separator "" "-" "quarter"
+        print_separator "" "=" "quarter"
 
         printf "%-22s %-22s %-25s %-25s\n" "#000" "rgb (255, 0, 0)" "hsl(0, 100%, 50%)" "hsv(0, 100%, 100%)"
         printf "%-22s %-22s %-25s %-25s\n" "000" "rgb 255 0 0" "hsla(0, 100%, 50%, .5)" "hsva(0, 100%, 100%, .5)"
@@ -638,18 +652,19 @@ print_separator() {
     local message=${1:-""}
     local separator=${2:-"-"}
     local size_line=$3
+    local message_ubication=${4:-""}
     IFS=' ' read -r total_length filled_space <<<"$(message_size "$message")"
 
     local separator_lenght
 
     case "$size_line" in
-    "full") separator_lenght=$filled_space ;;
-    "half") separator_lenght=$((filled_space / 2)) ;;
-    "quarter") separator_lenght=$((filled_space / 4)) ;;
-    "") separator_lenght=$((filled_space / 8)) ;;
+        "full") separator_lenght=$filled_space ;;
+        "half") separator_lenght=$((filled_space / 2)) ;;
+        "quarter") separator_lenght=$((filled_space / 4)) ;;
+        "") separator_lenght=$((filled_space / 8)) ;;
     esac
 
-    print_message "$(pad_message "" "left" "-" $separator_lenght)" "" "before"
+    print_message "$(pad_message "$message" "$message_ubication" "=" $separator_lenght)" "" "before"
 }
 
 print_header() {
@@ -660,10 +675,10 @@ print_header() {
     local USER_DATA="Usuario: $(echo "$(getent passwd $USER)" | cut -d ':' -f 5 | cut -d ',' -f 1) ($USER)"
     local EQUIPO="Equipo: $(hostname)"
 
-    local empty_space="                                         "
+    local empty_space="                                       "
     local logo=(""
         "  &           &&&&&&&&&           &  "
-        "   &&&  &&&&&           &&&&&  &&&   $(print_separator "$empty_space" "-" "full") "
+        "   &&&  &&&&&           &&&&&  &&&   $(print_separator "$empty_space" "=" "full" "right" | xargs)"
         "     &&&&&&&&&&       &&&&&&&&&&     "
         "     &&&*****&&&&& &&&&&*****&&&      _________   ______     __  __    ______       "
         "     &&  *******&&&&&*******  &&     /________/\ /_____/\   /_/\/_/\  /_____/\      $HEADER_MESSAGE"
@@ -674,7 +689,7 @@ print_header() {
         "  &&&&         &&&&&&&&&&&     &&&&         \__\/    \_\/ \_\/  \_____\/  \_____\/  $DESCRIPTION_MESSAGE"
         "   &&&&&  &&&&&&&&&&         &&&&&   "
         "    &&&&&&&&&&&            &&&&&&    "
-        "      &&&&&&&           &&&&&&       $(print_separator "$empty_space" "-" "full")"
+        "      &&&&&&&           &&&&&&       $(print_separator "$empty_space" "=" "full" "right" | xargs)"
         "         &&&&&&&&   &&&&&&&&         "
         "             &&&&&&&&&&&             "
         "                 &&                  ")
@@ -690,7 +705,7 @@ print_header() {
     done
 
     for line in "${logo[@]}"; do
-        centered_logo+=("$(pad_message "$line" "right" " " "$min_length")")
+        centered_logo+=("$(pad_message "$line" "left" " " "$min_length")")
     done
 
     print_message_with_gradient "$(printf "%s\n" "${centered_logo[@]}")"
@@ -700,10 +715,10 @@ print_semiheader() {
     local message=$1
 
     if [ -z "$SIMPLE_ECHO" ]; then
-        print_separator "" "-" "quarter"
+        print_separator "" "=" "quarter" "right"
     fi
 
-    print_message "---- $message"
+    print_message "====== $message"
 }
 
 print_logo() {
@@ -815,7 +830,7 @@ play_animation() {
             elapsed_time=$((current_time - start_time))
             formatted_time=$(printf "%02d:%02d" $((elapsed_time / 60)) $((elapsed_time % 60))) # Formato mm:ss
 
-            echo -ne "$frame $message ($formatted_time)\033[0K\r"
+            echo -ne "\e[1m $frame $message ($formatted_time)\033[0K\r"
             sleep 0.075
         done
     done
@@ -918,8 +933,8 @@ clone_truedat_project() {
     mkdir -p $BACK_PATH/logs
     mkdir -p $FRONT_PATH
 
-    print_:message "Quieres descargar los diferentes proectos de los repos condespondiente?"
-    if print_question "¿" = 0; then
+    print_message "Quieres descargar los diferentes proectos de los repos condespondiente?"
+    if print_question "" = 0; then
         #Este eval está porque si se instala el entorno en el WSL de windows, el agente no se mantiene levantado
         #En linux no es necesario pero no molesta
         eval "$(ssh-agent -s)"
@@ -1869,8 +1884,7 @@ update_config() {
     local option=$1
     local value=$2
     sed -i "s/^$option=.*/$option='$value'/" "$TRUS_CONFIG"
-    source $TRUS_CONFIG
-}
+    }
 
 aws_configure() {    
     if [ ! -e "$AWSCONFIG" ]; then    
@@ -1901,10 +1915,10 @@ install_trus() {
     rm -f "$TRUS_BASE_PATH"/*
     cp -r "$PWD"/* "$TRUS_BASE_PATH"
 
-    sudo rm -f $TRUS_LINK_PATH && sudo ln -s $TRUS_PATH $TRUS_LINK_PATH
+    sudo rm -f $TRUS_LINK_PATH 
+    sudo ln -s $TRUS_PATH $TRUS_LINK_PATH
 
-    source $TRUS_CONFIG
-
+    
     print_message "Truedat Utils (TrUs) instalado con éxito" "$COLOR_SUCCESS"
 }
 
@@ -1951,15 +1965,35 @@ preinstallation() {
             exec_command "~/.fzf/install"
         fi
         
-        print_message "--- (GIT) Se ha configurado GIT con los siguientes datos" "$COLOR_PRIMARY" "before"
-        print_message "        - Nombre: $GIT_USER_NAME" "$COLOR_SECONDARY"
-        print_message "        - Email: $GIT_USER_NAME" "$COLOR_SECONDARY"
+        print_semiheader "GIT"
+        print_message "Se va ha configurar la información de usuario de GIT" "$COLOR_PRIMARY" "before"
+        
+        local GIT_TEMP_USER_NAME=$(git config --global user.name)
+        local GIT_TEMP_USER_EMAIL=$(git config --global user.email)
+
+        print_message "Por favor, introduce tu nombre (si no escribes nada, se deja lo que hubiese antes)" "$COLOR_SECONDARY"
+        read -r GIT_USER_NAME
+
+        if [ -z "$GIT_USER_NAME" ] ; then
+            GIT_USER_NAME=$GIT_TEMP_USER_NAME
+        fi
+
+        exec_command "git config --global user.name '$GIT_USER_NAME'"
+
+
+        print_message "Por favor, introduce tu email (si no escribes nada, se deja lo que hubiese antes)" "$COLOR_SECONDARY"
+        read -r GIT_USER_EMAIL
+
+        if [ -z "$GIT_USER_EMAIL" ] ; then
+            GIT_USER_EMAIL=$GIT_TEMP_USER_EMAIL
+        fi
+
+        exec_command "git config --global user.name '$GIT_USER_EMAIL'"
+
+
         print_message "        Si deseas modificarlo, utiliza los siguientes comandos en la terminal:" "$COLOR_PRIMARY" "before"
         print_message "        - Nombre: git config --global user.name "\<user_name\>"'" "$COLOR_SECONDARY"
-        print_message "        - Email: git config --global user.email "\<user_email\>"'" "$COLOR_SECONDARY"
-
-        git config --global user.name "$GIT_USER_NAME"
-        git config --global user.email "$GIT_USER_EMAIL"
+        print_message "        - Email: git config --global user.email "\<user_email\>"'" "$COLOR_SECONDARY" "before"
 
         install_awscli
         install_kubectl
@@ -1990,7 +2024,7 @@ install_truedat() {
             print_message " - Descarga de último backup de bdd de TEST y aplicado a las bdd locales" "$COLOR_SECONDARY"
             print_message " - Configuración de Kong" "$COLOR_SECONDARY"
         
-            if print_question "A continuación se va a proceder a realizar la preinstalación" = 1; then exit 0 ; fi
+            if print_question "A continuación se va a proceder a realizar la instalación de Truedat" = 0; then exit 0 ; fi
 
             aws_configure
 
@@ -2067,46 +2101,46 @@ install_asdf() {
 
 
     print_message_with_animation "Instalando plugins de ASDF" "$COLOR_TERNARY"
-    asdf plugin add erlang https://github.com/asdf-vm/asdf-erlang.git
-    asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git
-    asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
-    asdf plugin-add yarn
+    exec_command "asdf plugin add erlang https://github.com/asdf-vm/asdf-erlang.git"
+    exec_command "asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git"
+    exec_command "asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git"
+    exec_command "asdf plugin-add yarn"
     print_message "Plugins de ASDF instalados" "$COLOR_SUCCESS"
 
 
     print_message_with_animation "Descargando versiones de Erlang, Elixir, NodeJS y Yarn" "$COLOR_TERNARY"
-    KERL_BUILD_DOCS=yes asdf install erlang 25.3
-    asdf install elixir 1.13.4
-    asdf install elixir 1.14.5-otp-25
-    asdf install elixir 1.15
-    asdf install elixir 1.16
-    asdf install nodejs 18.20.3
-    asdf install yarn latest
+    exec_command "KERL_BUILD_DOCS=yes asdf install erlang 25.3"
+    exec_command "asdf install elixir 1.13.4"
+    exec_command "asdf install elixir 1.14.5-otp-25"
+    exec_command "asdf install elixir 1.15"
+    exec_command "asdf install elixir 1.16"
+    exec_command "asdf install nodejs 18.20.3"
+    exec_command "asdf install yarn latest"
     print_message "Versiones instaladas" "$COLOR_SUCCESS"
 
 
     print_message_with_animation "Seteando versiones por defecto" "$COLOR_TERNARY"
-    asdf global erlang 25.3
-    asdf global elixir 1.14.5-otp-25
-    asdf global nodejs 18.20.3
-    asdf global yarn latest
+    exec_command "asdf global erlang 25.3"
+    exec_command "asdf global elixir 1.14.5-otp-25"
+    exec_command "asdf global nodejs 18.20.3"
+    exec_command "asdf global yarn latest"
     print_message "Versiones seteadas" "$COLOR_SUCCESS"
 
 
     print_message_with_animation "Instalando Gradient Terminal y dependencias" "$COLOR_TERNARY"
     # Meto esto aqui porque aunque no es de ASDF, depende de que ASDF instale NodeJs
     # https://github.com/aurora-0025/gradient-terminal?tab=readme-ov-file
-    npm install -g gradient-terminal
-    npm install -g tinygradient
-    npm install -g ansi-regex
+    exec_command "npm install -g gradient-terminal"
+    exec_command "npm install -g tinygradient"
+    exec_command "npm install -g ansi-regex"
     print_message "Gradient Terminal instalado" "$COLOR_SUCCESS"
 }
 
 install_awscli() {
-    mkdir $AWS_PATH
+    mkdir -p $AWS_PATH
     cd $AWS_PATH
-    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-    unzip awscliv2.zip
+    exec_command "curl 'https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip' -o 'awscliv2.zip'"
+    exec_command "unzip awscliv2.zip"
     cd aws
     sudo ./install
 }
@@ -2115,7 +2149,7 @@ install_kubectl() {
     if [ ! -e "$KUBE_PATH" ]; then
         print_message_with_animation "Instalando Kubectl" "$COLOR_TERNARY"
 
-        mkdir $KUBE_PATH
+        mkdir -p $KUBE_PATH
 
         cd $KUBE_PATH
 
@@ -2352,8 +2386,7 @@ activate_kong() {
     if print_question "Se va a activar Kong" = 0; then
         sed -i 's/USE_KONG=false/USE_KONG=true/' "$TRUS_CONFIG"
 
-        source $TRUS_CONFIG
-
+        
         cd $BACK_PATH
 
         clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/kong-setup.git $BACK_PATH/kong-setup
@@ -2410,8 +2443,7 @@ deactivate_kong() {
 
     if print_question "Se va a desactivar Kong" = 0; then
         sed -i 's/USE_KONG=true/USE_KONG=false/' "$TRUS_CONFIG"
-        source $TRUS_CONFIG
-
+        
         rm -f $BACK_PATH/kong_routes
 
         local kong_id=$(docker ps -q --filter "name=kong")
@@ -2595,7 +2627,6 @@ deactivate_kong() {
 }
 
 config_kong() {
-
     print_semiheader "Kong"
     print_message "¿Quién quieres que enrute, Kong(k) o td-web(w)? (k/w)" "$COLOR_PRIMARY"
     read -r install_kong
@@ -2783,6 +2814,45 @@ help() {
         "0 - Volver") print_message "Volver al menú anterior" "$COLOR_PRIMARY" ;;
         "0 - Salir") print_message "Salir de TrUs" "$COLOR_PRIMARY" ;;
     *) echo "TODO" ;;
+    esac
+}
+
+main_menu_help() {
+    local option=$1
+
+    case "$option" in
+    1)
+        print_message "Configurar" "$COLOR_PRIMARY"
+        print_message "Aqui se puede instalar los paquetes necesarios para truedat, generar diferentes archivos de configuracón, personalizar TrUs y el equipo, etc" "$COLOR_SECONDARY"
+        ;;
+    2)
+        print_message "Acciones principales" "$COLOR_PRIMARY"
+        print_message "Aqui se realizan las acciones importantes: Arrancar y matar Truedat, actualizar repos, bajar backups de bdd, etc" "$COLOR_SECONDARY"
+        ;;
+    3)
+        print_message "Actiones secundarias" "$COLOR_PRIMARY"
+        print_message "Aqui se realizan otras acciones, no tan importantes, pero necesarias: Reindexar Elastic, Crear claves ssh, configurar el uso de Kong en el equipo, linkar paquetes web, etc" "$COLOR_SECONDARY"
+        ;;
+    4)
+        print_message "Ayuda" "$COLOR_PRIMARY"
+        print_message "Aqui se muestra toda la ayuda de todas las opciones disponibles en Trus (incluidos parámetros para realizar acciones desde script)" "$COLOR_SECONDARY"
+        ;;
+    *)
+
+        print_semiheader "Opciones Menú Principal"
+        print_message "Configurar" "$COLOR_PRIMARY"
+        --print_message "Aqui se puede instalar los paquetes necesarios para truedat, generar diferentes archivos de configuracón, personalizar TrUs y el equipo, etc" "$COLOR_SECONDARY"
+
+        print_message "Acciones principales" "$COLOR_PRIMARY"
+        print_message "Aqui se realizan las acciones importantes: Arrancar y matar Truedat, actualizar repos, bajar backups de bdd, etc" "$COLOR_SECONDARY"
+
+        print_message "Actiones secundarias" "$COLOR_PRIMARY"
+        print_message "Aqui se realizan otras acciones, no tan importantes, pero necesarias: Reindexar Elastic, Crear claves ssh, configurar el uso de Kong en el equipo, linkar paquetes web, etc" "$COLOR_SECONDARY"
+
+        print_message "Ayuda" "$COLOR_PRIMARY"
+        print_message "Aqui se muestra toda la ayuda de todas las opciones disponibles en Trus (incluidos parámetros para realizar acciones desde script)" "$COLOR_SECONDARY"
+        ;;
+
     esac
 }
 
@@ -3070,29 +3140,7 @@ configuration_files_menu() {
 
     0)
         configure_menu
-        ;;
-    esac
-}
-
-animation_menu() {
-    local option=$(print_menu "animation_menu_help" "${ANIMATION_MENU_OPTIONS[@]}")
-
-    option=$(extract_menu_option "$option")
-
-    case "$option" in
-    0)
-        configure_menu
-        ;;
-    1)
-        print_test_animations
-
-        if print_question "¿Quieres volver al menu de configuración de animaciones?" = 0; then
-            print_header
-            animation_menu
-        fi
-
-        ;;
-    *)
+        ;;"td_cx") 
         sed -i "s/^SELECTED_ANIMATION=.*/SELECTED_ANIMATION=$option/" "$TRUS_CONFIG"
         ;;
     esac
@@ -3348,48 +3396,6 @@ kong_menu() {
     esac
 }
 
-# =================================================================================================
-# ====== Ayudas
-# =================================================================================================
-
-main_menu_help() {
-    local option=$1
-
-    case "$option" in
-    1)
-        print_message "Configurar" "$COLOR_PRIMARY"
-        print_message "Aqui se puede instalar los paquetes necesarios para truedat, generar diferentes archivos de configuracón, personalizar TrUs y el equipo, etc" "$COLOR_SECONDARY"
-        ;;
-    2)
-        print_message "Acciones principales" "$COLOR_PRIMARY"
-        print_message "Aqui se realizan las acciones importantes: Arrancar y matar Truedat, actualizar repos, bajar backups de bdd, etc" "$COLOR_SECONDARY"
-        ;;
-    3)
-        print_message "Actiones secundarias" "$COLOR_PRIMARY"
-        print_message "Aqui se realizan otras acciones, no tan importantes, pero necesarias: Reindexar Elastic, Crear claves ssh, configurar el uso de Kong en el equipo, linkar paquetes web, etc" "$COLOR_SECONDARY"
-        ;;
-    4)
-        print_message "Ayuda" "$COLOR_PRIMARY"
-        print_message "Aqui se muestra toda la ayuda de todas las opciones disponibles en Trus (incluidos parámetros para realizar acciones desde script)" "$COLOR_SECONDARY"
-        ;;
-    *)
-
-        print_semiheader "Opciones Menú Principal"
-        print_message "Configurar" "$COLOR_PRIMARY"
-        --print_message "Aqui se puede instalar los paquetes necesarios para truedat, generar diferentes archivos de configuracón, personalizar TrUs y el equipo, etc" "$COLOR_SECONDARY"
-
-        print_message "Acciones principales" "$COLOR_PRIMARY"
-        print_message "Aqui se realizan las acciones importantes: Arrancar y matar Truedat, actualizar repos, bajar backups de bdd, etc" "$COLOR_SECONDARY"
-
-        print_message "Actiones secundarias" "$COLOR_PRIMARY"
-        print_message "Aqui se realizan otras acciones, no tan importantes, pero necesarias: Reindexar Elastic, Crear claves ssh, configurar el uso de Kong en el equipo, linkar paquetes web, etc" "$COLOR_SECONDARY"
-
-        print_message "Ayuda" "$COLOR_PRIMARY"
-        print_message "Aqui se muestra toda la ayuda de todas las opciones disponibles en Trus (incluidos parámetros para realizar acciones desde script)" "$COLOR_SECONDARY"
-        ;;
-
-    esac
-}
 
 # =================================================================================================
 # ====== Enrutador de parámetros
@@ -3506,32 +3512,17 @@ param_router() {
     fi
 }
 
+
 # =================================================================================================
 # ====== Lógica inicial
 # =================================================================================================
-
-TRUS_ACTUAL_PATH=$(realpath "$0")
 
 if [[ "$0" != "/usr/local/bin/trus" ]]; then
     install_trus
     preinstallation
 elif [ "$1" = "--help" ]; then
-    if [[ -f "$TRUS_CONFIG" ]]; then
-
-        source $TRUS_CONFIG
-    else
-        echo "Error: Archivos de configuración no encontrados."
-        exit 1
-    fi
-    help "$2" "$3" "$4"
+     help "$2" "$3" "$4"
 else
-    if [[ -f "$TRUS_CONFIG" ]]; then
-        source $TRUS_CONFIG
-    else
-        echo "Error: Archivos de configuración no encontrados."
-        exit 1
-    fi
-
     set_terminal_config
     param_router $1 $2 $3 $4 $5
 fi
