@@ -2654,7 +2654,7 @@ start_containers() {
     print_message "Arrancando contenedores" "$COLOR_SECONDARY"
 
     for container in "${CONTAINERS[@]}"; do
-        print_message "container" "$COLOR_SECONDARY"
+        print_message " > $container" "$COLOR_SECONDARY"
 
         exec_command "docker-compose up -d '${container}'"
     done
