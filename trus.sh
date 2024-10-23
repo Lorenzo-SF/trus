@@ -2731,25 +2731,21 @@ start_truedat() {
         for i in "${!TMUX_SERVICES[@]}"; do
             SERVICE="${TMUX_SERVICES[$i]}"
             SERVICE_NAME="td-${SERVICE}"
-
+            
+            local command="cd $BACK_PATH/$SERVICE_NAME && iex --sname ${SERVICE} -S mix phx.server"
+            
             if (( $(count_tmux_termnals) % TMUX_ROWS_PER_COLUMN == 0 )); then
                 tmux split-window -h -t $TMUX_SESSION:0.0
-                # tmux select-layout -t $TMUX_SESSION:0 main-vertical
+                tmux send-keys -t $TMUX_SESSION:0."$((count_tmux_termnals + 1 ))" "$command" C-m
+            else
+                tmux split-window -v -t $TMUX_SESSION:0
+                tmux send-keys -t $TMUX_SESSION:0 "$command" C-m
             fi
 
-            add_terminal_to_tmux_session "$i" "cd $BACK_PATH/$SERVICE_NAME && iex --sname ${SERVICE} -S mix phx.server"
         done
     fi
 
     go_to_tmux_session $TRUEDAT
-}
-
-add_terminal_to_tmux_session() {
-    local terminal="$1"
-    local command="$2"
-
-    tmux split-window -v -t $TMUX_SESSION:0.$termnal
-    tmux send-keys -t $TMUX_SESSION:0.$termnal "${command}" C-m
 }
 
 count_tmux_termnals() {
@@ -2758,6 +2754,15 @@ count_tmux_termnals() {
 
 go_to_tmux_session() {
     clear
+    local cols=$((TMUX_ROWS_PER_COLUMN / 50)) 
+    local rows=$((TMUX_ROWS_PER_COLUMN / 100)) 
+
+    tmux resize-pane -t $TMUX_SESSION:0.0 -x 50%
+
+    for (( i = $total_panes; i >= 1; i-- )); do
+        tmux resize-pane -t $TMUX_SESSION:0.$i -x $cols% -y $rows%
+    done
+
     tmux select-pane -t $TMUX_SESSION:0.0
     tmux attach-session -t "$TMUX_SESSION"
 }
