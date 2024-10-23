@@ -33,7 +33,7 @@ ARCHITECTURE=$(dpkg --print-architecture)
 
 TRUS_BASE_PATH=$USER_HOME/.trus
 # Se han metido los archivos de configuracion dentro del script para que sea uno solo, si se saca fuera
-TRUS_CONFIG=$TRUS_BASE_PATH/trus.sh     
+TRUS_CONFIG=$TRUS_BASE_PATH/trus.sh
 TRUS_PATH=$TRUS_BASE_PATH/trus.sh
 
 
@@ -198,7 +198,7 @@ COLOR_SUCCESS='#15DB02'
 COLOR_WARNING='#DBAB02'
 COLOR_ERROR='#DB2602'
 COLOR_SAD='#000000'
-COLOR_BACKRGROUND='#2E5386' 
+COLOR_BACKRGROUND='#2E5386'
 # #331B28
 
 
@@ -208,7 +208,7 @@ COLOR_BACKRGROUND='#2E5386'
 GRADIENT_1='#2B86C5'
 GRADIENT_2=''
 # Copia del gradiente 2, para que el degradado se visualice bien
-GRADIENT_2_AUX=$GRADIENT_2 
+GRADIENT_2_AUX=$GRADIENT_2
 GRADIENT_3='#784BA0'
 GRADIENT_4='#784BA0'
 GRADIENT_5='#E66EB2'
@@ -284,7 +284,7 @@ message_size() {
     echo "$total_length $filled_space"
 }
 
-set_terminal_config() {    
+set_terminal_config() {
     if [ "$SIMPLE_ECHO" = "" ]; then
         echo -ne "\e]11;#${COLOR_BACKRGROUND}\e\\"
         echo -ne "\e]10;#${NO_COLOR}\e\\"
@@ -1584,7 +1584,7 @@ do_api_call_with_login_token() {
     local token_type="bearer"
     local token=${get_token}
 
-    do_api_call $url $rest_method $params $output_format $token_type $token $content_type $extra_headers 
+    do_api_call $url $rest_method $params $output_format $token_type $token $content_type $extra_headers
 }
 
 
@@ -1685,7 +1685,7 @@ bash_config() {
     fi
 
     print_message "Prompt de Bash actualizado $fix_message" "$COLOR_SUCCESS" "after"
-    print_message "Cierra la terminal y vuelvela a abrir para que surgan efecto los cambios" "$COLOR_WARNING" 
+    print_message "Cierra la terminal y vuelvela a abrir para que surgan efecto los cambios" "$COLOR_WARNING"
 }
 
 hosts_config() {
@@ -1875,8 +1875,8 @@ update_config() {
     sed -i "s/^$option=.*/$option='$value'/" "$TRUS_CONFIG"
     }
 
-aws_configure() {    
-    if [ ! -e "$AWSCONFIG" ]; then    
+aws_configure() {
+    if [ ! -e "$AWSCONFIG" ]; then
         aws ecr get-login-password --profile truedat --region eu-west-1 | docker login --username AWS --password-stdin 576759405678.dkr.ecr.eu-west-1.amazonaws.com
 
         if [ ! -f "$AWS_CREDENTIALS_PATH" ] || ! grep -q "\[default\]" "$AWS_CREDENTIALS_PATH"; then
@@ -1904,10 +1904,10 @@ install_trus() {
     rm -f "$TRUS_BASE_PATH"/*
     cp -r "$PWD"/* "$TRUS_BASE_PATH"
 
-    sudo rm -f $TRUS_LINK_PATH 
+    sudo rm -f $TRUS_LINK_PATH
     sudo ln -s $TRUS_PATH $TRUS_LINK_PATH
 
-    
+
     print_message "Truedat Utils (TrUs) instalado con éxito" "$COLOR_SUCCESS"
 }
 
@@ -1953,10 +1953,10 @@ preinstallation() {
             clone_if_not_exists "https://github.com/junegunn/fzf.git" "~/.fzf"
             exec_command "~/.fzf/install"
         fi
-        
+
         print_semiheader "GIT"
         print_message "Se va ha configurar la información de usuario de GIT" "$COLOR_PRIMARY" "before"
-        
+
         local GIT_TEMP_USER_NAME=$(git config --global user.name)
         local GIT_TEMP_USER_EMAIL=$(git config --global user.email)
 
@@ -1995,7 +1995,7 @@ preinstallation() {
 
 install_truedat() {
     print_semiheader "Intalación de Truedat"
-    
+
     if [ ! -e "/tmp/truedat_installation" ]; then
         if [ -f "$SSH_PUBLIC_FILE" ]; then
             print_message "Guia de instalación: https://confluence.bluetab.net/pages/viewpage.action?pageId=136022683" "$COLOR_QUATERNARY" 5 "both"
@@ -2012,7 +2012,7 @@ install_truedat() {
             print_message " - Linkado de paquetes del los proyectos de  front" "$COLOR_SECONDARY"
             print_message " - Descarga de último backup de bdd de TEST y aplicado a las bdd locales" "$COLOR_SECONDARY"
             print_message " - Configuración de Kong" "$COLOR_SECONDARY"
-        
+
             if print_question "A continuación se va a proceder a realizar la instalación de Truedat" = 0; then exit 0 ; fi
 
             aws_configure
@@ -2035,7 +2035,7 @@ install_truedat() {
             print_message "- Claves SSH (NO CREADAS): Tienes que tener creada una clave SSH (el script chequea que la clave se llame 'truedat') en la carpeta ~/.ssh" "$COLOR_ERROR" "before"
             print_message "RECUERDA que tiene que estar registrada en el equipo y en Gitlab. Si no, debes crearla con 'trus -cr' y registarla en la web'" "$COLOR_WARNING" "after"
         fi
-        
+
     else
         print_message "Truedat ha sido instalado" "$COLOR_PRIMARY" "both"
 
@@ -2058,7 +2058,7 @@ install_containers() {
         if [ ! -f /usr/local/bin/docker-compose ]; then
             exec_command "sudo curl -L 'https://github.com/docker/compose/releases/download/v2.16.0/docker-compose-$(uname -s)-$(uname -m)' -o /usr/local/bin/docker-compose"
         fi
-        
+
         exec_command "sudo chmod +x /usr/local/bin/docker-compose"
 
         if ! getent group docker >/dev/null 2>&1; then
@@ -2071,7 +2071,7 @@ install_containers() {
 
         exec_command "sudo chmod 666 /var/run/docker.sock"
 
-        print_message "Docker Compose instalado y configurado" "$COLOR_SUCCESS"        
+        print_message "Docker Compose instalado y configurado" "$COLOR_SUCCESS"
 
         start_containers
     fi
@@ -2369,7 +2369,7 @@ activate_kong() {
     if print_question "Se va a activar Kong" = 0; then
         sed -i 's/USE_KONG=false/USE_KONG=false/' "$TRUS_CONFIG"
 
-        
+
         cd $BACK_PATH
 
         clone_if_not_exists git@gitlab.bluetab.net:dgs-core/true-dat/back-end/kong-setup.git $BACK_PATH/kong-setup
@@ -2426,7 +2426,7 @@ deactivate_kong() {
 
     if print_question "Se va a desactivar Kong" = 0; then
         sed -i 's/USE_KONG=false/USE_KONG=false/' "$TRUS_CONFIG"
-        
+
         rm -f $BACK_PATH/kong_routes
 
         local kong_id=$(docker ps -q --filter "name=kong")
@@ -2691,7 +2691,7 @@ start_services() {
         screen -h 10000 -mdS "$SERVICE" bash -c "cd $BACK_PATH/$SERVICE && iex --sname ${SERVICE#td-} -S mix phx.server"
     done
 
-    print_screen_sessions    
+    print_screen_sessions
 }
 
 start_truedat() {
@@ -2721,27 +2721,35 @@ start_truedat() {
     tmux source-file $TMUX_PATH_CONFIG
     tmux new-session -d -s $TMUX_SESSION -n "Truedat"
 
-    add_terminal_to_tmux_session "$((count_tmux_termnals))" "neofetch"    
-    tmux send-keys -t $TMUX_SESSION:0."$((count_tmux_termnals + 1))" "trus --start-front" C-m      
-    tmux select-layout -t $TMUX_SESSION:0 main-vertical
-    
+    # +2 por la de front y la de cacharreo
+    local columnas_a_crear=$(( (${#TMUX_SERVICES[@]} + 2) % TMUX_ROWS_PER_COLUMN ))
+
+    for (( i=0; i<columnas_a_crear; i++ )); do
+        tmux split-window -v -t $TMUX_SESSION:0.0
+    done
+
+    tmux select-pane -t $TMUX_SESSION:0.0
+
+    # add_terminal_to_tmux_session "$((count_tmux_termnals))" "trus --start-front"
+    tmux send-keys -t $TMUX_SESSION:0."$((count_tmux_termnals))" "neofetch" C-m
+    tmux send-keys -t $TMUX_SESSION:0."$((count_tmux_termnals + 1 ))" "tmux select-layout -t $TMUX_SESSION:0 main-vertical; trus -sf" C-m
+
     if [ ${#TMUX_SERVICES[@]} -gt 0 ]; then
         for i in "${!TMUX_SERVICES[@]}"; do
             SERVICE="${TMUX_SERVICES[$i]}"
             SERVICE_NAME="td-${SERVICE}"
-            
-            add_terminal_to_tmux_session "$i" "cd $BACK_PATH/$SERVICE_NAME && iex --sname ${SERVICE} -S mix phx.server"            
-        done
-    fi   
 
-    tmux select-layout -t $TMUX_SESSION:0 main-vertical
+            add_terminal_to_tmux_session "$i" "cd $BACK_PATH/$SERVICE_NAME && iex --sname ${SERVICE} -S mix phx.server"
+        done
+    fi
+
     go_to_tmux_session $TRUEDAT
 }
 
 add_terminal_to_tmux_session() {
     local terminal="$1"
-    local command="$2"    
-    
+    local command="$2"
+
     tmux split-window -v -t $TMUX_SESSION:0.$termnal
     tmux send-keys -t $TMUX_SESSION:0.$termnal "${command}" C-m
 }
@@ -2760,8 +2768,8 @@ go_out_tmux_session() {
 }
 
 go_to_screen_session() {
-    print_screen_sessions 
-    
+    print_screen_sessions
+
     print_message "Introduce el id de la sesión a la que quieres acceder" "$COLOR_PRIMARY"
     read -r screen_id_session
 
@@ -2773,10 +2781,10 @@ go_out_screen_session() {
 }
 
 print_screen_sessions() {
-    print_header 
+    print_header
 
-    print_semiheader "Sesiones activas de Screen:" "$COLOR_PRIMARY"    
-    
+    print_semiheader "Sesiones activas de Screen:" "$COLOR_PRIMARY"
+
     screen -ls | awk '/\.td-/ {print $1}' | sed 's/\.\(td-[[:alnum:]]*\)/ => \1/' | while read -r line; do
         print_message "$line" "$COLOR_SECONDARY"
     done
@@ -3161,7 +3169,7 @@ configuration_files_menu() {
 
     0)
         configure_menu
-        ;;"td_cx") 
+        ;;"td_cx")
         sed -i "s/^SELECTED_ANIMATION=.*/SELECTED_ANIMATION=$option/" "$TRUS_CONFIG"
         ;;
     esac
@@ -3192,7 +3200,7 @@ principal_actions_menu() {
     5)
         sessions_menu
         ;;
-        
+
     0)
         main_menu
         ;;
