@@ -2720,24 +2720,22 @@ start_truedat() {
 
     tmux source-file $TMUX_PATH_CONFIG
     tmux new-session -d -s $TMUX_SESSION -n "Truedat"
+    tmux split-window -h -t $TMUX_SESSION:0.0
 
-    # +2 por la de front y la de cacharreo
-    local columnas_a_crear=$(( (${#TMUX_SERVICES[@]} + 2) % TMUX_ROWS_PER_COLUMN ))
-
-    for (( i=0; i<columnas_a_crear; i++ )); do
-        tmux split-window -v -t $TMUX_SESSION:0.0
-    done
-
-    tmux select-pane -t $TMUX_SESSION:0.0
 
     # add_terminal_to_tmux_session "$((count_tmux_termnals))" "trus --start-front"
-    tmux send-keys -t $TMUX_SESSION:0."$((count_tmux_termnals))" "neofetch" C-m
-    tmux send-keys -t $TMUX_SESSION:0."$((count_tmux_termnals + 1 ))" "tmux select-layout -t $TMUX_SESSION:0 main-vertical; trus -sf" C-m
+    tmux send-keys -t $TMUX_SESSION:0."$((count_tmux_termnals))" "sleep 1 && neofetch" C-m
+    tmux send-keys -t $TMUX_SESSION:0."$((count_tmux_termnals + 1 ))" "trus -sf" C-m
 
     if [ ${#TMUX_SERVICES[@]} -gt 0 ]; then
         for i in "${!TMUX_SERVICES[@]}"; do
             SERVICE="${TMUX_SERVICES[$i]}"
             SERVICE_NAME="td-${SERVICE}"
+
+            if (( $(count_tmux_termnals) % TMUX_ROWS_PER_COLUMN == 0 )); then
+                tmux split-window -h -t $TMUX_SESSION:0.0
+                # tmux select-layout -t $TMUX_SESSION:0 main-vertical
+            fi
 
             add_terminal_to_tmux_session "$i" "cd $BACK_PATH/$SERVICE_NAME && iex --sname ${SERVICE} -S mix phx.server"
         done
@@ -2760,6 +2758,7 @@ count_tmux_termnals() {
 
 go_to_tmux_session() {
     clear
+    tmux select-pane -t $TMUX_SESSION:0.0
     tmux attach-session -t "$TMUX_SESSION"
 }
 
@@ -2790,11 +2789,6 @@ print_screen_sessions() {
     done
 }
 
-start_front() {
-    cd "$FRONT_PATH"/td-web
-    yarn start
-}
-
 kill_truedat() {
     print_header
     print_semiheader "Matando procesos"
@@ -2820,6 +2814,10 @@ kill_truedat() {
 
 }
 
+start_front() {
+    cd "$FRONT_PATH"/td-web
+    yarn start
+}
 
 # =================================================================================================
 # ====== Otras operaciones importantes
