@@ -112,7 +112,7 @@ fi
 
 # ====== Listados de elementos de infraestructura a procesar
 
-DATABASES=("td_ai" "td_audit" "td_bg" "td_dd" "td_df" "td_i18n" "td_ie" "td_lm" "td_qx")
+DATABASES=("td_ai" "td_audit" "td_auth" "td_bg" "td_dd" "td_df" "td_i18n" "td_ie" "td_lm" "td_qx")
 INDEXES=("dd" "bg" "ie" "qx")
 CONTAINERS=("elasticsearch" "redis" "redis_test" "vault")
 CONTAINERS_SETUP=("kong_create" "kong_migrate" "kong_setup" "kong")
@@ -2720,38 +2720,32 @@ start_truedat() {
 
     tmux source-file $TMUX_PATH_CONFIG
     tmux new-session -d -s $TMUX_SESSION -n "Truedat"
+    tmux split-window -h -t $TMUX_SESSION:0.0
 
-    # +2 por la de front y la de cacharreo
-    local columnas_a_crear=$(( (${#TMUX_SERVICES[@]} + 2) % TMUX_ROWS_PER_COLUMN ))
-
-    for (( i=0; i<columnas_a_crear; i++ )); do
-        tmux split-window -v -t $TMUX_SESSION:0.0
-    done
-
-    tmux select-pane -t $TMUX_SESSION:0.0
 
     # add_terminal_to_tmux_session "$((count_tmux_termnals))" "trus --start-front"
-    tmux send-keys -t $TMUX_SESSION:0."$((count_tmux_termnals))" "neofetch" C-m
-    tmux send-keys -t $TMUX_SESSION:0."$((count_tmux_termnals + 1 ))" "tmux select-layout -t $TMUX_SESSION:0 main-vertical; trus -sf" C-m
+    tmux send-keys -t $TMUX_SESSION:0."$((count_tmux_termnals))" "sleep 1 && neofetch" C-m
+    tmux send-keys -t $TMUX_SESSION:0."$((count_tmux_termnals + 1 ))" "trus -sf" C-m
 
     if [ ${#TMUX_SERVICES[@]} -gt 0 ]; then
         for i in "${!TMUX_SERVICES[@]}"; do
             SERVICE="${TMUX_SERVICES[$i]}"
             SERVICE_NAME="td-${SERVICE}"
+            
+            local command="cd $BACK_PATH/$SERVICE_NAME && iex --sname ${SERVICE} -S mix phx.server"
+            
+            if (( $(count_tmux_termnals) % TMUX_ROWS_PER_COLUMN == 0 )); then
+                tmux split-window -h -t $TMUX_SESSION:0.0
+                tmux send-keys -t $TMUX_SESSION:0."$((count_tmux_termnals + 1 ))" "$command" C-m
+            else
+                tmux split-window -v -t $TMUX_SESSION:0
+                tmux send-keys -t $TMUX_SESSION:0 "$command" C-m
+            fi
 
-            add_terminal_to_tmux_session "$i" "cd $BACK_PATH/$SERVICE_NAME && iex --sname ${SERVICE} -S mix phx.server"
         done
     fi
 
     go_to_tmux_session $TRUEDAT
-}
-
-add_terminal_to_tmux_session() {
-    local terminal="$1"
-    local command="$2"
-
-    tmux split-window -v -t $TMUX_SESSION:0.$termnal
-    tmux send-keys -t $TMUX_SESSION:0.$termnal "${command}" C-m
 }
 
 count_tmux_termnals() {
@@ -2760,6 +2754,16 @@ count_tmux_termnals() {
 
 go_to_tmux_session() {
     clear
+    local cols=$((TMUX_ROWS_PER_COLUMN / 50)) 
+    local rows=$((TMUX_ROWS_PER_COLUMN / 100)) 
+
+    tmux resize-pane -t $TMUX_SESSION:0.0 -x 50%
+
+    for (( i = $total_panes; i >= 1; i-- )); do
+        tmux resize-pane -t $TMUX_SESSION:0.$i -x $cols% -y $rows%
+    done
+
+    tmux select-pane -t $TMUX_SESSION:0.0
     tmux attach-session -t "$TMUX_SESSION"
 }
 
@@ -2790,11 +2794,6 @@ print_screen_sessions() {
     done
 }
 
-start_front() {
-    cd "$FRONT_PATH"/td-web
-    yarn start
-}
-
 kill_truedat() {
     print_header
     print_semiheader "Matando procesos"
@@ -2820,6 +2819,10 @@ kill_truedat() {
 
 }
 
+start_front() {
+    cd "$FRONT_PATH"/td-web
+    yarn start
+}
 
 # =================================================================================================
 # ====== Otras operaciones importantes
@@ -3582,7 +3585,9 @@ param_router() {
 # ====== Lógica inicial
 # =================================================================================================
 
-if [[ "$0" != "/usr/local/bin/trus" ]]; then
+if [ "$1" = "--lib" ]; then
+    print_message "Modo libreria activado"
+elif [[ "$0" != "/usr/local/bin/trus" ]]; then
     install_trus
     preinstallation
 elif [ "$1" = "--help" ]; then
@@ -3591,6 +3596,7 @@ else
     set_terminal_config
     param_router $*
 fi
+
 
 # # print_message "tareas por completar" "$color_primary" "both"
 # # print_message "bugs" "$color_primary"
